@@ -153,4 +153,4 @@ To be added.
 
 ## Repository structure
 
-- [Wildcat CPU](https://github.com/schoeberl/wildcat) in external/wildcat
+- [Wildcat CPU](https://github.com/schoeberl/wildcat) in ./wildcat
