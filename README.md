@@ -49,7 +49,7 @@ The main tasks are the task you are responisble for and that you are expected to
 - **Secondary tasks:** GPIO controller, PWM, & Timers
 
 #### Teachers
-- **GitHub users:** (@schoeberl)[https://www.github.com/schoeberl], (@lucapezza)[https://www.github.com/lucapezza]
+- **GitHub users:** [@schoeberl](https://www.github.com/schoeberl), [@lucapezza](https://www.github.com/lucapezza)
 - **Tasks**: Specifications, coordination, repository structure, project planning
 
 ## Task log
