@@ -1,3 +1,6 @@
 [submodule "external/wildcat"]
 	path = external/wildcat
 	url = https://github.com/schoeberl/wildcat
+[submodule "soc-chip-2025"]
+	path = soc-chip-2025
+	url = git@github.com:os-chip-design/soc-chip-2025.git
