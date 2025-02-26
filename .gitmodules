@@ -1,0 +1,3 @@
+[submodule "external/wildcat"]
+	path = external/wildcat
+	url = https://github.com/schoeberl/wildcat

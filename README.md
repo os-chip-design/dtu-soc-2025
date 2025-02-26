@@ -9,3 +9,13 @@ This README shall be the starting point for the documentation.
  * RISC-V CPU (Wildcat)
  * Cache
  * ... to be written and decided
+
+## Setup
+
+### Checking out the repository
+
+- Be sure to initialize submodules with `git submodule update --init --recursive` or by cloning with `git clone --recurse-submodules`
+
+## Repository structure
+
+- [Wildcat CPU](https://github.com/schoeberl/wildcat) in external/wildcat
