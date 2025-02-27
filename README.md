@@ -24,7 +24,7 @@ The main tasks are the task you are responisble for and that you are expected to
 - **Secondary tasks:** GPIO controller, PWM, & Timers
 
 #### Group 20 
-- **GitHub users:** *ADD* 
+- **GitHub users:** AndreasSvarta[https://github.com/AndreasSvarta] and McQueen24[https://github.com/McQueen24] 
 - **Main tasks:** Intercooncation fabric (i.e., memory arbitrer, bus, memory mapping, etc).
 - **Secondary tasks:** Verification
 
