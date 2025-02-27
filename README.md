@@ -14,7 +14,7 @@ The main tasks are the task you are responisble for and that you are expected to
 - **Secondary tasks:** Text-based VGA
 
 #### Group 7
-- **GitHub users:** *ADD* 
+- **GitHub users:** [@cjavad](https://github.com/cjavad) [@MagnusAH](https://github.com/MagnusAH)
 - **Main tasks:** Wildcat CPU integration + System integration (e.i. maintaing top level) + Look into Caravel
 - **Secondary tasks:** Serial IO (UART), Keyboard, GitHub CI
 
