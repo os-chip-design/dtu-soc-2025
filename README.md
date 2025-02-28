@@ -44,7 +44,7 @@ The main tasks are the task you are responisble for and that you are expected to
 - **Secondary tasks:** Wildcat CPU integration, SPI controller
 
 #### Group 13
-- **GitHub users:** *ADD* 
+- **GitHub users:** Jacob - [@jjdehl](https://github.com/jjdehl), Asger - [@AsgerWenneb](https://github.com/AsgerWenneb), Carl - [@CarlVinten](https://github.com/CarlVinten)
 - **Main tasks:** Memories (custom + exisisting), Chip toolchain leader
 - **Secondary tasks:** GPIO controller, PWM, & Timers
 
@@ -92,12 +92,30 @@ The main tasks are the task you are responisble for and that you are expected to
 - [ ] Activity 2
 
 #### Memory system development (custom + existing)
-- [ ] Activity 1
-- [ ] Activity 2
+- [ ] Existing memory solution
+  - [ ] Selection of memory
+  - [ ] Simulation model
+  - [ ] Macro injection in openlane
+- [ ] Custom memory
+  - [ ] Analog design
+    - [ ] Bitcell
+    - [ ] Write driver
+    - [ ] Sense amplifier
+    - [ ] (Precharger)
+  - [ ] Digital design
+    - [ ] Wordline decoder
+    - [ ] Write masks
+    - [ ] Two ports?
+  - [ ] Generator script
+  - [ ] Macro injection in openlane
+  - [ ] Power gating
+  - [ ] Verilog simulation model
+  - [ ] Analog tests
 
 #### Chip toolchain leadership
-- [ ] Activity 1
-- [ ] Activity 2
+- [ ] Align groups on interfacing the toolchain
+- [ ] Align with CI group
+- [ ] Maintain config.json
 
 #### Keyboard controller development
 - [ ] Activity 1
