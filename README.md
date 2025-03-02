@@ -29,7 +29,7 @@ The main tasks are the task you are responisble for and that you are expected to
 - **Secondary tasks:** Verification
 
 #### Group 1
-- **GitHub users:** *ADD* 
+- **GitHub users:** Arnór - [@Arn0r](https://github.com/Arn0r), Matthias - [@mattm4r](https://github.com/mattm4r), Stephan - [@StephanAAu](https://github.com/StephanAAU/).
 - **Main tasks:** GPIO controller, PWM, & Timers
 - **Secondary tasks:** Wildcat CPU integration, SPI controller
 
@@ -126,12 +126,22 @@ The main tasks are the task you are responisble for and that you are expected to
 - [ ] Activity 2
 
 #### GPIO controller development
-- [ ] Activity 1
-- [ ] Activity 2
+- [ ] Investigate possibility of pullup and pulldown resistors
+- [ ] Investigate how muxing between in/out should be handled
+- [ ] Investigate possibility output driver configuration (pushpull, open drain)
+- [ ] Design specification
+- [ ] Design block diagram
+- [ ] Design register/memory layout
+- [ ] Digital Hardware design (Verilog)
 
 #### PWM & timers implementation
-- [ ] Activity 1
-- [ ] Activity 2
+- [ ] Investigate possibility of interrupts for CPU
+- [ ] Investigate how muxing between timers, pwm and output
+- [ ] Investigate capability needs, i.e. counting up/down
+- [ ] Design specification
+- [ ] Design block diagram
+- [ ] Design register/memory layout
+- [ ] Digital Hardware design (Verilog)
 
 #### Support for SPI controller
 - [ ] Activity 1
