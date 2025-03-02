@@ -144,8 +144,9 @@ The main tasks are the task you are responisble for and that you are expected to
 - [ ] Digital Hardware design (Verilog)
 
 #### Support for SPI controller
-- [ ] Activity 1
-- [ ] Activity 2
+- [ ] Understand Specifications of SPI protocol
+- [ ] How does the controller interact with the rest of the system (interrupts, registers)?
+- [ ] Writing Testbench
 
 #### Support for CPU development
 - [ ] Activity 1
