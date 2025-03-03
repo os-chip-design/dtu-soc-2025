@@ -9,7 +9,7 @@ This README shall be the starting point for the documentation.
 The main tasks are the task you are responisble for and that you are expected to lead and complete. The secondary tasks are the tasks for which you are expected to monitor the progress and give help. Every group needs to deal with verification and the chip design toolchain.
 
 #### Group 3
-- **GitHub users:** *ADD* 
+- **GitHub users:** [@UlrikTJ](https://github.com/UlrikTJ), 
 - **Main tasks:** Serial IO (UART) + SPI (helping group 4)
 - **Secondary tasks:** Text-based VGA
 
