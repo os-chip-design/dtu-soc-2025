@@ -87,9 +87,15 @@ The main tasks are the task you are responisble for and that you are expected to
 - [ ] Activity 1
 - [ ] Activity 2
 
-#### Off-chip SPI memory development
-- [ ] Activity 1
-- [ ] Activity 2
+#### Serial Peripheral Interface (SPI) off memory development
+- [ ] Research SPI communication requirements
+- [ ] Determine off-chip memory type (USB,SD-card,...)
+- [ ] Define SPI mapping and wrapper functionality
+- [ ] Work with group 4 for a standardized protocol to talk to external memory
+- [ ] Implement the external memory according to protocol
+- [ ] Integrate with github continuous integration
+- [ ] Test and debug SPI communication with the memory
+- [ ] Document API and how to use
 
 #### Verification leadership
 - [ ] Activity 1
@@ -164,13 +170,12 @@ The main tasks are the task you are responisble for and that you are expected to
 - [ ] Activity 1
 - [ ] Activity 2
 
-#### Verification tasks
-- [ ] Activity 1
-- [ ] Activity 2
-
-#### GitHub CI maintenance & automation
-- [ ] Activity 1
-- [ ] Activity 2
+#### Verification tasks and CI
+- [ ] Come up with verification plan
+- [ ] Come up with a rough draft of a timeline of tests needed to be done
+- [ ] Figure out success and failure criteria for each component
+- [ ] Integrate with github actions to automate testing framework
+- [ ] Integrate into CI on github
 
 
 ## System architecture and specifications
