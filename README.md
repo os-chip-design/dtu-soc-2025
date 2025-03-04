@@ -64,12 +64,21 @@ The main tasks are the task you are responisble for and that you are expected to
 - [ ] Document usage and API
 
 #### SPI controller development
-- [ ] Research SPI documentation and specifications
-- [ ] Narrow specifications, (interface speed, supported features, etc)
-- [ ] Determine GPIO pins / interfaces bewteen registers
-- [ ] Develop SPI controller features as outlined above 
-  - [ ] (will fill out after further research)
-- [ ] Verify and test features (writing driver?)
+- [ ] Investigate SPI:
+  - [ ] Study the SPI protocol (eg. clock polarity, phase)
+  - [ ] Check data width (normal/squad switch?) and speed
+  - [ ] Decide on Master or Slave Configuration
+- [ ] Design SPI specifications:
+  - [ ] List input and output signals, as well as control signals
+  - [ ] Define register for storing receiver data (and maybe temporary registers for data transmission?)
+  - [ ] Decide on Error Handling
+  - [ ] Specify performance metrics (clock frequency, latency, eg.)
+- [ ] Design Block Diagram (subsystems, datapaths, clk and control paths):
+- [ ] Design Register/Memory layout:
+- [ ] Chisel Implementation:
+- [ ] Verification:
+  - [ ] Testbenches (?)
+  - [ ] Analog tests
 
 #### Wildcat CPU integration
 - [ ] Activity 1
@@ -159,8 +168,9 @@ The main tasks are the task you are responisble for and that you are expected to
 - [ ] Writing Testbench
 
 #### Support for CPU development
-- [ ] Activity 1
-- [ ] Activity 2
+- [ ] Understand the Wildcat CPU Design
+- [ ] See how CPU connects to peripherals (SPI, GPIO, PWM, Timers)
+- [ ] Testbenches and Simulations to confirm they work as expected
 
 #### Support for Wildcat CPU integration
 - [ ] Activity 1
