@@ -34,7 +34,7 @@ The main tasks are the task you are responisble for and that you are expected to
 - **Secondary tasks:** Wildcat CPU integration, SPI controller
 
 #### Group 8
-- **GitHub users:** *ADD* 
+- **GitHub users:** [@Willdew](https://github.com/Willdew), [@komv123](https://github.com/komv123)
 - **Main tasks:** Keyboard, Text-based VGA
 - **Secondary tasks:** GitHub CI
 
@@ -146,8 +146,7 @@ The main tasks are the task you are responisble for and that you are expected to
 - [ ] Maintain config.json
 
 #### Keyboard controller development
-- [ ] Activity 1
-- [ ] Activity 2
+- [ ] Figure out what standard to use (USB or PS-2?)
 
 #### Text-based VGA development
 - [ ] Activity 1
