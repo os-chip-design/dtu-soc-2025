@@ -39,7 +39,7 @@ The main tasks are the task you are responisble for and that you are expected to
 - **Secondary tasks:** GitHub CI
 
 #### Group 2
-- **GitHub users:** *ADD* 
+- **GitHub users:** Tobias - [@Collinn](https://github.com/Collinnn), Mariana - [@immarianaas](https://github.com/immarianaas) 
 - **Main tasks:** Off-chip SPI memory, Verification learder, GitHub CI
 - **Secondary tasks:** Wildcat CPU integration, SPI controller
 
