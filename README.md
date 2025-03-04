@@ -81,16 +81,25 @@ The main tasks are the task you are responisble for and that you are expected to
   - [ ] Analog tests
 
 #### Wildcat CPU integration
-- [ ] Activity 1
-- [ ] Activity 2
+- [ ] Integrate into top level system with "template" as specified under system integration
+- [ ] Create tooling to run programs on hardware in simulations
+- [ ] Integrate and coordinate with vital hardware components such as serial etc.
+- [ ] Test hardware based instruction loading and program execution, including the ability to use memory
 
 #### System integration & top-level maintenance
-- [ ] Activity 1
-- [ ] Activity 2
+- [ ] Design "template" for every sub-implementation to follow
+  - [ ] For a top level module interface
+  - [ ] For a unified API specification
+- [ ] Ensure every project uses this format so everything can integrate with each other, potentially mock implementations at the beginning
+- [ ] Allow test suites at different levels (hardware/software) and integrate with CI
+- [ ] Tie together top level module with sub-implementation interfaces
+- [ ] Tie together top level module and caravel interface
+- [ ] Ensure continiued development does not deviate from preestablished conventions and norms
 
 #### Caravel exploration
-- [ ] Activity 1
-- [ ] Activity 2
+- [ ] Find out how we want to invoke soc-dtu-2025 repo to actually build stuff e.i. do we keep caravel configuration in this repo and just use local ci invocation to use it with some monkey patching? Or is it even a good idea to use it as a submodule. 
+- [ ] Outline top level specifications and translate to caravel pin-out / pin config
+- [ ] Implement build step that is compatible with rest of build process
 
 #### Interconnection fabric development (memory arbiter, bus, memory mapping, etc.)
 - [ ] Activity 1
