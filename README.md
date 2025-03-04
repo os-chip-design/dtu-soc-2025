@@ -9,7 +9,7 @@ This README shall be the starting point for the documentation.
 The main tasks are the task you are responisble for and that you are expected to lead and complete. The secondary tasks are the tasks for which you are expected to monitor the progress and give help. Every group needs to deal with verification and the chip design toolchain.
 
 #### Group 3
-- **GitHub users:** [@UlrikTJ](https://github.com/UlrikTJ), 
+- **GitHub users:** [@UlrikTJ](https://github.com/UlrikTJ), [@Emwm](https://github.com/Emwm)
 - **Main tasks:** Serial IO (UART) + SPI (helping group 4)
 - **Secondary tasks:** Text-based VGA
 
@@ -64,8 +64,12 @@ The main tasks are the task you are responisble for and that you are expected to
 - [ ] Document usage and API
 
 #### SPI controller development
-- [ ] Activity 1
-- [ ] Activity 2
+- [ ] Research SPI documentation and specifications
+- [ ] Narrow specifications, (interface speed, supported features, etc)
+- [ ] Determine GPIO pins / interfaces bewteen registers
+- [ ] Develop SPI controller features as outlined above 
+  - [ ] (will fill out after further research)
+- [ ] Verify and test features (writing driver?)
 
 #### Wildcat CPU integration
 - [ ] Activity 1
