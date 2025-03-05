@@ -68,3 +68,6 @@ project/**/metals.sbt
 
 .bsp
 .history
+
+# don't force specific sbt version
+project/build.properties
