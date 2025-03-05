@@ -71,3 +71,6 @@ project/**/metals.sbt
 
 # don't force specific sbt version
 project/build.properties
+
+# chisel
+/test_run_dir
