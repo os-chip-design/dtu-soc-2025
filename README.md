@@ -165,6 +165,7 @@ The main tasks are the task you are responisble for and that you are expected to
 - [ ] Investigate possibility of interrupts for CPU
 - [ ] Investigate how muxing between timers, pwm and output
 - [ ] Investigate capability needs, i.e. counting up/down
+- [ ] Investigate clocking and clock division
 - [ ] Design specification
 - [ ] Design block diagram
 - [ ] Design register/memory layout
