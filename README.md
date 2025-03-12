@@ -1,8 +1,11 @@
 # The SoC for the chip design course 2025
+[![CI](https://github.com/os-chip-design/dtu-soc-2025/actions/workflows/scala.yml/badge.svg)](https://github.com/os-chip-design/dtu-soc-2025/actions/workflows/scala.yml)
 
 We will build a RISC-V SoC targeting the ChipIgnite project from efabless.
 
 This README shall be the starting point for the documentation.
+
+
 
 ## Task distribution
 
@@ -19,7 +22,7 @@ The main tasks are the task you are responisble for and that you are expected to
 - **Secondary tasks:** Serial IO (UART), Keyboard, GitHub CI
 
 #### Group 4
-- **GitHub users:** [@sadafayubb](https://github.com/sadafayubb), [@sofusham](https://github.com/sofusham)
+- **GitHub users:** [@sadafayubb](https://github.com/sadafayubb), [@sofusham](https://github.com/sofusham), [@DavidBayPedersen](https://github.com/DavidBayPedersen)
 - **Main tasks:** SPI controller, CPU (helping group 7)
 - **Secondary tasks:** GPIO controller, PWM, & Timers
 
@@ -102,8 +105,12 @@ The main tasks are the task you are responisble for and that you are expected to
 - [ ] Implement build step that is compatible with rest of build process
 
 #### Interconnection fabric development (memory arbiter, bus, memory mapping, etc.)
-- [ ] Activity 1
-- [ ] Activity 2
+- [ ] Define interconnection protocol(AXI4-Lite)
+  - [ ] Define amount of components and address space in collaboration with the groups
+  - [ ] Define IO interface
+- [ ] Bridge CPU and AXI4-Lite interfaces
+- [ ] Write bus logic in verilog
+- [ ] Create a testbench for read and write with different components
 
 #### Serial Peripheral Interface (SPI) off memory development
 - [ ] Research SPI communication requirements
@@ -145,22 +152,49 @@ The main tasks are the task you are responisble for and that you are expected to
 - [ ] Align with CI group
 - [ ] Maintain config.json
 
-#### Keyboard controller development
-- [ ] Figure out what standard to use (USB or PS-2?)
+#### Keyboard development
+- [ ] Implementation details
+  - [ ] Figure out what standard to use (USB or PS-2?)
+  - [ ] Bus connection (Should it be interrupt or polling based?)
+  - [ ] Parallel or serial connection?
+  - [ ] Do we have a character set and where is it stored?
+    - [ ] Do we have danish and english (Multible character sets or only one?)
+  - [ ] Own clock divider or from main clock (Do we have PLL?)
+- [ ] Research PS-2 
+  - [ ] Clock domain
+  - [ ] Data signal structure
+  - [ ] Existing implentations
+  - [ ] Is debouncing handled in the keyboard? Is shift and other modifiers handled in keyboard?
+- [ ] Design block diagram
+- [ ] Write testbench
+- [ ] Implement
+- [ ] Test on basys fpga?
 
 #### Text-based VGA development
-- [ ] Activity 1
-- [ ] Activity 2
+- [ ] Research text-based vga protocol
+  - [ ] Colors?
+  - [ ] Character set?
+    - [ ] Rom or flash?
+    - [ ] RAM or VRAM?
+    - [ ] Character buffer
+    - [ ] Is fps fixed, and if so at what framerate?
+    - [ ] Resolution?
+  - [ ] Is writing to character buffer handled by the cpu or keyboard controller?
+  - [ ] General memory layout and implementation
+- [ ] Block diagram
+- [ ] Testbench
+- [ ] Implementation
+- [ ] Test on basys fpga?
 
 #### GPIO controller development
-- [ ] Investigate possibility of pullup and pulldown resistors
-- [ ] Investigate how muxing between in/out should be handled
-- [ ] Investigate possibility output driver configuration (pushpull, open drain)
-- [ ] Investigate ESD protection necessity
+- [x] Investigate possibility of pullup and pulldown resistors
+- [x] Investigate how muxing between in/out should be handled
+- [x] Investigate possibility output driver configuration (pushpull, open drain)
+- [x] Investigate ESD protection necessity
 - [ ] Design specification
 - [ ] Design block diagram
 - [ ] Design register/memory layout
-- [ ] Design the analog "front-end"
+- [ ] Design the wrapper for analog front-end
 - [ ] Digital Hardware design
 
 #### PWM & timers implementation
@@ -184,10 +218,6 @@ The main tasks are the task you are responisble for and that you are expected to
 - [ ] Testbenches and Simulations to confirm they work as expected
 
 #### Support for Wildcat CPU integration
-- [ ] Activity 1
-- [ ] Activity 2
-
-#### Keyboard development
 - [ ] Activity 1
 - [ ] Activity 2
 
