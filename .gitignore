@@ -74,3 +74,4 @@ project/build.properties
 
 # chisel
 /test_run_dir
+/generated

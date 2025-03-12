@@ -1,0 +1,5 @@
+# Contributing
+
+## Project structure
+
+TODO.
