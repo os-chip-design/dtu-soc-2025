@@ -145,12 +145,39 @@ The main tasks are the task you are responisble for and that you are expected to
 - [ ] Align with CI group
 - [ ] Maintain config.json
 
-#### Keyboard controller development
-- [ ] Figure out what standard to use (USB or PS-2?)
+#### Keyboard development
+- [ ] Implementation details
+  - [ ] Figure out what standard to use (USB or PS-2?)
+  - [ ] Bus connection (Should it be interrupt or polling based?)
+  - [ ] Parallel or serial connection?
+  - [ ] Do we have a character set and where is it stored?
+    - [ ] Do we have danish and english (Multible character sets or only one?)
+  - [ ] Own clock divider or from main clock (Do we have PLL?)
+- [ ] Research PS-2 
+  - [ ] Clock domain
+  - [ ] Data signal structure
+  - [ ] Existing implentations
+  - [ ] Is debouncing handled in the keyboard? Is shift and other modifiers handled in keyboard?
+- [ ] Design block diagram
+- [ ] Write testbench
+- [ ] Implement
+- [ ] Test on basys fpga?
 
 #### Text-based VGA development
-- [ ] Activity 1
-- [ ] Activity 2
+- [ ] Research text-based vga protocol
+  - [ ] Colors?
+  - [ ] Character set?
+    - [ ] Rom or flash?
+    - [ ] RAM or VRAM?
+    - [ ] Character buffer
+    - [ ] Is fps fixed, and if so at what framerate?
+    - [ ] Resolution?
+  - [ ] Is writing to character buffer handled by the cpu or keyboard controller?
+  - [ ] General memory layout and implementation
+- [ ] Block diagram
+- [ ] Testbench
+- [ ] Implementation
+- [ ] Test on basys fpga?
 
 #### GPIO controller development
 - [ ] Investigate possibility of pullup and pulldown resistors
@@ -184,10 +211,6 @@ The main tasks are the task you are responisble for and that you are expected to
 - [ ] Testbenches and Simulations to confirm they work as expected
 
 #### Support for Wildcat CPU integration
-- [ ] Activity 1
-- [ ] Activity 2
-
-#### Keyboard development
 - [ ] Activity 1
 - [ ] Activity 2
 
