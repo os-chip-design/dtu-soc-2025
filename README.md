@@ -19,7 +19,7 @@ The main tasks are the task you are responisble for and that you are expected to
 - **Secondary tasks:** Serial IO (UART), Keyboard, GitHub CI
 
 #### Group 4
-- **GitHub users:** [@sadafayubb](https://github.com/sadafayubb), [@sofusham](https://github.com/sofusham)
+- **GitHub users:** [@sadafayubb](https://github.com/sadafayubb), [@sofusham](https://github.com/sofusham), [@DavidBayPedersen](https://github.com/DavidBayPedersen)
 - **Main tasks:** SPI controller, CPU (helping group 7)
 - **Secondary tasks:** GPIO controller, PWM, & Timers
 
