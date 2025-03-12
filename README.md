@@ -183,14 +183,14 @@ The main tasks are the task you are responisble for and that you are expected to
 - [ ] Test on basys fpga?
 
 #### GPIO controller development
-- [ ] Investigate possibility of pullup and pulldown resistors
-- [ ] Investigate how muxing between in/out should be handled
-- [ ] Investigate possibility output driver configuration (pushpull, open drain)
-- [ ] Investigate ESD protection necessity
+- [x] Investigate possibility of pullup and pulldown resistors
+- [x] Investigate how muxing between in/out should be handled
+- [x] Investigate possibility output driver configuration (pushpull, open drain)
+- [x] Investigate ESD protection necessity
 - [ ] Design specification
 - [ ] Design block diagram
 - [ ] Design register/memory layout
-- [ ] Design the analog "front-end"
+- [ ] Design the wrapper for analog front-end
 - [ ] Digital Hardware design
 
 #### PWM & timers implementation
