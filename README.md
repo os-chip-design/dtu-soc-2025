@@ -1,8 +1,11 @@
 # The SoC for the chip design course 2025
+[![CI](https://github.com/os-chip-design/dtu-soc-2025/actions/workflows/scala.yml/badge.svg)](https://github.com/os-chip-design/dtu-soc-2025/actions/workflows/scala.yml)
 
 We will build a RISC-V SoC targeting the ChipIgnite project from efabless.
 
 This README shall be the starting point for the documentation.
+
+
 
 ## Task distribution
 
