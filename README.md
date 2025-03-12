@@ -105,8 +105,12 @@ The main tasks are the task you are responisble for and that you are expected to
 - [ ] Implement build step that is compatible with rest of build process
 
 #### Interconnection fabric development (memory arbiter, bus, memory mapping, etc.)
-- [ ] Activity 1
-- [ ] Activity 2
+- [ ] Define interconnection protocol(AXI4-Lite)
+  - [ ] Define amount of components and address space in collaboration with the groups
+  - [ ] Define IO interface
+- [ ] Bridge CPU and AXI4-Lite interfaces
+- [ ] Write bus logic in verilog
+- [ ] Create a testbench for read and write with different components
 
 #### Serial Peripheral Interface (SPI) off memory development
 - [ ] Research SPI communication requirements
