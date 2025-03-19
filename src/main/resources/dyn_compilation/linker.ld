@@ -1,4 +1,12 @@
-SECTIONS {
-.text :{*(*)}
-.data :{*(*)}
+MEMORY 
+{
+  INSTRUCTION_MEM : ORIGIN = 0x00000000, LENGTH = 0x00001000
+  DATA_MEM : ORIGIN = 0x00000000, LENGTH = 0x00001000
+}
+
+SECTIONS 
+{
+  .text :{*(*)} > INSTRUCTION_MEM
+  .data :{*(*)} > DATA_MEM
+  .bss :{*(*)} > DATA_MEM
 }

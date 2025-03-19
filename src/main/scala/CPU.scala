@@ -1,5 +1,3 @@
-
-import RISCVCompiler.emptyProgram
 import chisel3._
 import chisel3.util._
 import wildcat.pipeline.Functions.decode
@@ -39,12 +37,8 @@ class FakeCPUMem(program: RISCVCompiler.CompiledProgram, size: Int = 4096) exten
 
   // split an integer into a seq of 4 bytes
   // little endian, so first byte in seq goes to mem(0)
-  def splitInt(x: Int): Array[Int] = {
-    (0 until 4).map(i => (x >> (i * 8)) & 0xff).toArray
-  }
-
   // Split program._2 into a list of 4 length lists, then zip inner lists into four lists
-  program._2.map(splitInt).transpose.zipWithIndex.map(x => {
+  program._2.map(x => (0 until 4).map(i => (x >> (i * 8)) & 0xff).toArray).transpose.zipWithIndex.map(x => {
     val (data, i) = x
     data.zipWithIndex.map(y => {
       val (byte, j) = y
@@ -52,14 +46,16 @@ class FakeCPUMem(program: RISCVCompiler.CompiledProgram, size: Int = 4096) exten
     })
   })
 
+  val truncatedRdAddress = io.rdAddress(31, 2)
+  val truncatedWrAddress = io.wrAddress(31, 2)
 
-  val idx = log2Up(size / 4)
-
-  io.rdData := mems.reverse.map(_.read(io.rdAddress(idx + 2, 2))).reduce(_ ## _)
+  io.rdData := mems.reverse.map(_.read(truncatedRdAddress)).reduce(_ ## _)
+  printf(p"Read ${io.rdData} from ${truncatedRdAddress}\n")
 
   for (i <- 0 until 4) {
     when(io.wrEnable(i)) {
-      mems(i).write(io.wrAddress(idx + 2, 2), io.wrData(8 * i + 7, 8 * i))
+      printf(p"Writing ${io.wrData(8 * i + 7, 8 * i)} to ${truncatedWrAddress}\n")
+      mems(i).write(truncatedWrAddress, io.wrData(8 * i + 7, 8 * i))
     }
   }
 
@@ -67,7 +63,10 @@ class FakeCPUMem(program: RISCVCompiler.CompiledProgram, size: Int = 4096) exten
 }
 
 class CPU(program: RISCVCompiler.CompiledProgram) extends Module {
+  println(".text")
   program._1.foreach(x => println(f"${x}%08x"))
+  println(".data")
+  program._2.foreach(x => println(f"${x}%08x"))
 
   val cpu = Module(new ThreeCats())
   val instr = Module(new FakeCPUInstr(program))
@@ -86,5 +85,5 @@ class CPU(program: RISCVCompiler.CompiledProgram) extends Module {
 }
 
 object CPU extends App {
-  emitVerilog(new CPU(emptyProgram), Array("--target-dir", "generated"))
+  emitVerilog(new CPU(RISCVCompiler.emptyProgram), Array("--target-dir", "generated"))
 }

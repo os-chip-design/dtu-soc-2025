@@ -51,7 +51,7 @@ object RISCVCompiler {
     val dataSection = Files.readAllBytes(dataSectionBin)
     val textSectionArray = textSection.grouped(4).map(_.foldRight(0)((x, acc) => (acc << 8) | (x & 0xff))).toArray
     val dataSectionArray = dataSection.grouped(4).map(_.foldRight(0)((x, acc) => (acc << 8) | (x & 0xff))).toArray
-    
+
     (textSectionArray, dataSectionArray)
   }
 
@@ -105,10 +105,12 @@ object RISCVCompiler {
   }
 
   // Take a C program and compile it with gnu tool chain, get output as 4-byte instructions
-  def inlineC(c: String): CompiledProgram = Deferable { defer =>
-    compiledProgramCacheLookup(c) match {
-      case Some(p) => return p
-      case None =>
+  def inlineC(c: String, useCache: Boolean = true): CompiledProgram = Deferable { defer =>
+    if (useCache) {
+      compiledProgramCacheLookup(c) match {
+        case Some(p) => return p
+        case None =>
+      }
     }
 
     val sourceFile = Files.createTempFile("wildcat_source", ".c")
@@ -147,6 +149,8 @@ object RISCVCompiler {
     f"riscv64-unknown-elf-gcc -march=rv32i -mabi=ilp32 $crt0 -c -o $crt0ObjPath".!
     f"riscv64-unknown-elf-gcc -march=rv32i -mabi=ilp32 $sourceFile -c -o $sourceObjPath".!
     f"riscv64-unknown-elf-ld -melf32lriscv -T $linkerFile $crt0ObjPath $sourceObjPath -o $aoutPath".!
+
+    println(f"riscv64-unknown-elf-objdump -d $aoutPath".!!)
 
     readAndSplitIntoTextAndData(aoutPath).tap {
       writeCompiledProgramCache(c, _)
