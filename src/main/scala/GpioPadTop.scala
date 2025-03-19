@@ -15,7 +15,7 @@ class GpioPadTop extends Module {
     // Pads we want to expose to other modules
     gpioPad.io.OUT                  := io.OUT
     gpioPad.io.OE_N                 := io.OE_N
-    gpioPad.io.IN                   := io.IN
+    io.IN                          := gpioPad.io.IN
 
     // Lets hardcore the rest configurations for now
     // Moving the complexity from the test to the module instead:

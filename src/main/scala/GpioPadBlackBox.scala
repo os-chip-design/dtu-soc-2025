@@ -1,12 +1,14 @@
 import chisel3._
 import chisel3.util.HasBlackBoxResource
+import chisel3.util.HasBlackBoxInline
 
 // Boilerplate stuff - work in progress
 
 // Need to implement the inout pins to be able to test, 
 // but even then, no guarantee that it will function...
 
-class GpioPad extends BlackBox with HasBlackBoxResource {
+//class GpioPad extends BlackBox with HasBlackBoxResource {
+class GpioPad extends BlackBox with HasBlackBoxInline {
   val io = IO(new Bundle {
 
     val OUT                 = Input(Bool())
@@ -48,6 +50,10 @@ class GpioPad extends BlackBox with HasBlackBoxResource {
     val IN_H                = Output(Bool())
     val TIE_HI_ESD          = Output(Bool())
   })
-  addResource("../../../soc-chip-2025/dependencies/pdks/sky130B/libs.ref/sky130_fd_io/verilog/sky130_fd_io.v")
+  //addResource("../../../soc-chip-2025/dependencies/pdks/sky130B/libs.ref/sky130_fd_io/verilog/sky130_fd_io.v")
+  setInline(
+    s"""
+      |`DEFINE FUNCTIONAL
+    """.stripMargin,
+    "../../../soc-chip-2025/dependencies/pdks/sky130B/libs.ref/sky130_fd_io/verilog/sky130_fd_io.v")
 }
-

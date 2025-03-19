@@ -26,6 +26,10 @@ class GpioPadTest extends AnyFlatSpec with ChiselScalatestTester {
 
                 // and check the input:
                 dut.io.IN.expect(false.B)
+
+                // So now it seems the functionality simulation
+                // is working, since this fails:
+                // dut.io.IN.expect(true.B)
             }
         }
     }
