@@ -112,25 +112,14 @@ The main tasks are the task you are responisble for and that you are expected to
 - [ ] Write bus logic in verilog
 - [ ] Create a testbench for read and write with different components
 
-- [x] Pipecon interface:
-  class PipeCon(private val addrWidth: Int) extends Bundle {
-    val address = Input(UInt(addrWidth.W))
-    val rd = Input(Bool())
-    val wr = Input(Bool())
-    val rdData = Output(UInt(32.W))
-    val wrData = Input(UInt(32.W))
-    val wrMask = Input(UInt(4.W))
-    val ack = Output(Bool())
-  }
-
--[ ] Edit here the address size needed for your device
-  -[ ] VGA: XXkB
-  -[ ] SPI: XXkB
-  -[ ] SPI: XXkB
-  -[ ] UART: XXkB
-  -[ ] Keyboard: XXkB
-  -[ ] Memory: XXkB
-  -[ ] GPIO, PWM: XXkB
+- [ ] Edit here the address size needed for your device
+  - [ ] VGA: XXkB
+  - [ ] SPI: XXkB
+  - [ ] SPI: XXkB
+  - [ ] UART: XXkB
+  - [ ] Keyboard: XXkB
+  - [ ] Memory: XXkB
+  - [ ] GPIO, PWM: XXkB
 
 
 #### Serial Peripheral Interface (SPI) off memory development
