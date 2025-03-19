@@ -1,7 +1,12 @@
 import chisel3._
 import chisel3.util.HasBlackBoxResource
 
-class Gpio_Pad extends BlackBox with HasBlackBoxResource {
+// Boilerplate stuff - work in progress
+
+// Need to implement the inout pins to be able to test, 
+// but even then, no guarantee that it will function...
+
+class GpioPad extends BlackBox with HasBlackBoxResource {
   val io = IO(new Bundle {
 
     val OUT                 = Input(Bool())
@@ -21,6 +26,23 @@ class Gpio_Pad extends BlackBox with HasBlackBoxResource {
     val ANALOG_SEL          = Input(Bool())
     val ANALOG_POL          = Input(Bool())
     val DM                  = Input(UInt(3.W))
+
+    /* Pins currently ommited
+        inout VDDIO;
+        inout VDDIO_Q;
+        inout VDDA;
+        inout VCCD;
+        inout VSWITCH;
+        inout VCCHIB;
+        inout VSSA;
+        inout VSSD;
+        inout VSSIO_Q;
+        inout VSSIO;
+        inout PAD;
+        inout PAD_A_NOESD_H,PAD_A_ESD_0_H,PAD_A_ESD_1_H;
+        inout AMUXBUS_A;
+        inout AMUXBUS_B;
+    */
 
     val IN                  = Output(Bool())
     val IN_H                = Output(Bool())
