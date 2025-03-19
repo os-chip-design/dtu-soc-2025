@@ -49,16 +49,9 @@ object RISCVCompiler {
 
     val textSection = Files.readAllBytes(textSectionBin)
     val dataSection = Files.readAllBytes(dataSectionBin)
-
-    // In a pure functional way group the text section by four bytes and convert to int
     val textSectionArray = textSection.grouped(4).map(_.foldRight(0)((x, acc) => (acc << 8) | (x & 0xff))).toArray
     val dataSectionArray = dataSection.grouped(4).map(_.foldRight(0)((x, acc) => (acc << 8) | (x & 0xff))).toArray
-
-    // Print all as hex
-    textSectionArray.foreach(x => println(f"${x}%08x"))
-    println("----")
-    dataSectionArray.foreach(x => println(f"${x}%08x"))
-
+    
     (textSectionArray, dataSectionArray)
   }
 

@@ -11,8 +11,6 @@ class FakeCPUInstr(program: RISCVCompiler.CompiledProgram) extends Module {
 
   val instructions = VecInit(program._1.toIndexedSeq.map(_.S(32.W).asUInt))
 
-  println(s"Compiled instructions: $instructions")
-
   idxReg := io.address / 4.U
 
   when(idxReg >= instructions.length.U) {
