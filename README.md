@@ -112,14 +112,14 @@ The main tasks are the task you are responisble for and that you are expected to
 - [ ] Write bus logic in verilog
 - [ ] Create a testbench for read and write with different components
 
-- [ ] Edit here the address size needed for your device
-  - [ ] VGA: XXkB
-  - [ ] SPI: XXkB
-  - [ ] SPI: XXkB
-  - [ ] UART: XXkB
-  - [ ] Keyboard: XXkB
-  - [ ] Memory: XXkB
-  - [ ] GPIO, PWM: XXkB
+- [ ] Please edit the address size for your respective device
+  - [ ] VGA: XX KB
+  - [ ] SPI: XX KB
+  - [ ] SPI: XX KB
+  - [ ] UART: XX KB
+  - [ ] Keyboard: XX KB
+  - [ ] Memory: XX KB
+  - [ ] GPIO, PWM: XX KB
 
 
 #### Serial Peripheral Interface (SPI) off memory development
