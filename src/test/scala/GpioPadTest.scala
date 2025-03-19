@@ -8,9 +8,9 @@ class GpioPadTest extends AnyFlatSpec with ChiselScalatestTester {
     behavior of "The GpioPad"
 
     it should "pass" in {
-        test(new GpioPad()) {
+        test(new GpioPadTop) {
             dut => {
-                
+
                 // Enable input buffer during reset 
                 // (dont care about current consumption atm)
                 dut.io.ENABLE_INP_H.poke(true.B)
@@ -48,7 +48,7 @@ class GpioPadTest extends AnyFlatSpec with ChiselScalatestTester {
                 dut.io.OUT.poke(true.B)
 
                 // Or check the input:
-                dut.io.IN.expect(false.T)
+                dut.io.IN.expect(false.B)
                 
                 // Ignore the other pads...
                 //dut.io.IN_H.expect(false.B)
