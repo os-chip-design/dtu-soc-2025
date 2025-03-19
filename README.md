@@ -28,7 +28,7 @@ The main tasks are the task you are responisble for and that you are expected to
 
 #### Group 20 
 - **GitHub users:** Andreas - [@AndreasSvarta](https://github.com/AndreasSvarta), Rasmus - [@McQueen24](https://github.com/McQueen24) 
-- **Main tasks:** Interconnaction fabric (i.e., memory arbitrer, bus, memory mapping, etc).
+- **Main tasks:** Interconnection fabric (i.e., memory arbiter, bus, memory mapping, etc.).
 - **Secondary tasks:** Verification
 
 #### Group 1
