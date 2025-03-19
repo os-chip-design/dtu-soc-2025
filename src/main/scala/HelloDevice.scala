@@ -1,4 +1,5 @@
 import chisel3._
+import soc._
 
 /**
   * An minimal IO device.
