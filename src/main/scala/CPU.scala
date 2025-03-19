@@ -2,22 +2,26 @@
 import RISCVCompiler.emptyProgram
 import chisel3._
 import chisel3.util._
-import chisel3.util.experimental.{BoringUtils, loadMemoryFromFile, loadMemoryFromFileInline}
 import wildcat.pipeline.Functions.decode
 import wildcat.pipeline._
 
 class FakeCPUInstr(program: RISCVCompiler.CompiledProgram) extends Module {
   val io = IO(Flipped(new InstrIO()))
-  val addrReg = RegInit(0.U(32.W))
-  val instructions = VecInit(program._1.toIndexedSeq.map(_.S(32.W).asUInt))
-  addrReg := io.address
+  val idxReg = RegInit(0.U(32.W))
 
-  when(addrReg >= program._1.length.U) {
+  val instructions = VecInit(program._1.toIndexedSeq.map(_.S(32.W).asUInt))
+
+  println(s"Compiled instructions: $instructions")
+
+  idxReg := io.address / 4.U
+
+  when(idxReg >= instructions.length.U) {
     io.data := 0x00000013.U
   }.otherwise {
-    // io.data := instructions(addrReg)
-    io.data := instructions(addrReg(31, 2))
+    io.data := instructions(idxReg)
   }
+
+  printf(p"$idxReg | ${io.data} | ${decode(io.data)}\n")
 
   io.stall := false.B
 }
@@ -65,6 +69,8 @@ class FakeCPUMem(program: RISCVCompiler.CompiledProgram, size: Int = 4096) exten
 }
 
 class CPU(program: RISCVCompiler.CompiledProgram) extends Module {
+  program._1.foreach(x => println(f"${x}%08x"))
+
   val cpu = Module(new ThreeCats())
   val instr = Module(new FakeCPUInstr(program))
   val mem = Module(new FakeCPUMem(program))
@@ -73,10 +79,10 @@ class CPU(program: RISCVCompiler.CompiledProgram) extends Module {
   instr.io.address := cpu.io.imem.address
   cpu.io.imem.data := instr.io.data
   cpu.io.imem.stall := instr.io.stall
-  
+
   val debugMem_rdAddress = IO(Input(UInt(32.W)))
   val debugMem_rdData = IO(Output(UInt(32.W)))
-  
+
   mem.io.rdAddress := debugMem_rdAddress
   debugMem_rdData := mem.io.rdData
 }

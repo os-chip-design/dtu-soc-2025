@@ -1,14 +1,48 @@
-import java.io.{FileInputStream, FileOutputStream, ObjectInputStream, ObjectOutputStream}
-import scala.language.postfixOps
 import sys.process._
+import scala.util.chaining._
+import scala.collection.mutable.ListBuffer
+import java.io.{FileInputStream, FileOutputStream, ObjectInputStream, ObjectOutputStream}
 import java.nio.file.{Files, Path, Paths}
+
+private trait Deferable {
+  private val stack = ListBuffer.empty[() => Unit]
+
+  def defer(f: => Unit): Unit = {
+    stack += (() => f)
+  }
+
+  private[Deferable] def exit(): Unit = {
+    stack.foreach(f => f())
+  }
+}
+
+private object Deferable {
+  def apply[T](f: ((=> Unit) => Unit) => T): T = {
+    val d = new Deferable {}
+    try {
+      f(d.defer)
+    } finally {
+      d.exit()
+    }
+  }
+}
+
 
 object RISCVCompiler {
   type CompiledProgram = (Array[Int], Array[Int])
 
-  private def readAndSplitIntoTextAndData(file: Path): CompiledProgram = {
+  private def readAndSplitIntoTextAndData(file: Path): CompiledProgram = Deferable { defer =>
     val textSectionBin = Files.createTempFile("wildcat_text", ".bin")
+
+    defer {
+      Files.deleteIfExists(textSectionBin)
+    }
+
     val dataSectionBin = Files.createTempFile("wildcat_data", ".bin")
+
+    defer {
+      Files.deleteIfExists(dataSectionBin)
+    }
 
     f"riscv64-unknown-elf-objcopy -O binary -j .text $file $textSectionBin".!
     f"riscv64-unknown-elf-objcopy -O binary -j .data $file $dataSectionBin".!
@@ -16,21 +50,14 @@ object RISCVCompiler {
     val textSection = Files.readAllBytes(textSectionBin)
     val dataSection = Files.readAllBytes(dataSectionBin)
 
-    val textSectionArray = new Array[Int](textSection.length / 4 + 1)
-    val dataSectionArray = new Array[Int](dataSection.length / 4 + 1)
+    // In a pure functional way group the text section by four bytes and convert to int
+    val textSectionArray = textSection.grouped(4).map(_.foldRight(0)((x, acc) => (acc << 8) | (x & 0xff))).toArray
+    val dataSectionArray = dataSection.grouped(4).map(_.foldRight(0)((x, acc) => (acc << 8) | (x & 0xff))).toArray
 
-    // Print result as hex
-    for (i <- 0 until textSection.length) {
-      textSectionArray(i / 4) = textSectionArray(i / 4) | (textSection(i) << (8 * (i % 4)))
-    }
-
-    for (i <- 0 until dataSection.length) {
-      dataSectionArray(i / 4) = dataSectionArray(i / 4) | (dataSection(i) << (8 * (i % 4)))
-    }
-
-    Files.deleteIfExists(textSectionBin)
-    Files.deleteIfExists(dataSectionBin)
-    Files.deleteIfExists(file)
+    // Print all as hex
+    textSectionArray.foreach(x => println(f"${x}%08x"))
+    println("----")
+    dataSectionArray.foreach(x => println(f"${x}%08x"))
 
     (textSectionArray, dataSectionArray)
   }
@@ -85,62 +112,93 @@ object RISCVCompiler {
   }
 
   // Take a C program and compile it with gnu tool chain, get output as 4-byte instructions
-  def inlineC(c: String): CompiledProgram = {
-    if (compiledProgramCacheLookup(c).isDefined) {
-      return compiledProgramCacheLookup(c).get
+  def inlineC(c: String): CompiledProgram = Deferable { defer =>
+    compiledProgramCacheLookup(c) match {
+      case Some(p) => return p
+      case None =>
     }
 
     val sourceFile = Files.createTempFile("wildcat_source", ".c")
+    defer {
+      Files.deleteIfExists(sourceFile)
+    }
+
     Files.write(sourceFile, c.getBytes)
 
     // Get path to ressources crt0.c and linker.ld
     val crt0 = resolveResourceAsTemp("/dyn_compilation/crt0.c")
+    defer {
+      Files.deleteIfExists(crt0)
+    }
+
     val linkerFile = resolveResourceAsTemp("/dyn_compilation/linker.ld")
+    defer {
+      Files.deleteIfExists(linkerFile)
+    }
 
     val crt0ObjPath = Files.createTempFile("wildcat_crt0", ".o")
+    defer {
+      Files.deleteIfExists(crt0ObjPath)
+    }
+
     val sourceObjPath = Files.createTempFile("wildcat_source", ".o")
+    defer {
+      Files.deleteIfExists(sourceObjPath)
+    }
+
     val aoutPath = Files.createTempFile("wildcat_result", ".out")
+    defer {
+      Files.deleteIfExists(aoutPath)
+    }
 
     f"riscv64-unknown-elf-gcc -march=rv32i -mabi=ilp32 $crt0 -c -o $crt0ObjPath".!
     f"riscv64-unknown-elf-gcc -march=rv32i -mabi=ilp32 $sourceFile -c -o $sourceObjPath".!
     f"riscv64-unknown-elf-ld -melf32lriscv -T $linkerFile $crt0ObjPath $sourceObjPath -o $aoutPath".!
 
-    Files.deleteIfExists(crt0)
-    Files.deleteIfExists(sourceFile)
-    Files.deleteIfExists(linkerFile)
-    Files.deleteIfExists(crt0ObjPath)
-    Files.deleteIfExists(sourceObjPath)
-
-    val p = readAndSplitIntoTextAndData(aoutPath)
-    writeCompiledProgramCache(c, p)
-    p
+    readAndSplitIntoTextAndData(aoutPath).tap {
+      writeCompiledProgramCache(c, _)
+    }
   }
 
-  def inlineASM(asmProgram: String): CompiledProgram = {
-    if (compiledProgramCacheLookup(asmProgram).isDefined) {
-      return compiledProgramCacheLookup(asmProgram).get
+  def inlineASM(asmProgram: String): CompiledProgram = Deferable { defer =>
+    compiledProgramCacheLookup(asmProgram) match {
+      case Some(p) => return p
+      case None =>
     }
 
     val sourceFile = Files.createTempFile("wildcat_source", ".S")
+
+    defer {
+      Files.deleteIfExists(sourceFile)
+    }
+
     Files.write(sourceFile, asmProgram.getBytes)
 
     val objectPath = Files.createTempFile("wildcat_object", ".o")
+    defer {
+      Files.deleteIfExists(objectPath)
+    }
 
     f"riscv64-unknown-elf-as -march=rv32i -mabi=ilp32 $sourceFile -o $objectPath".!
 
-    Files.deleteIfExists(sourceFile)
-
-    val p = readAndSplitIntoTextAndData(objectPath)
-    writeCompiledProgramCache(asmProgram, p)
-    p
+    readAndSplitIntoTextAndData(objectPath).tap {
+      writeCompiledProgramCache(asmProgram, _)
+    }
   }
-  
+
   def emptyProgram: CompiledProgram = {
     (Array(0), Array(0))
   }
 }
 
 object TestTRISCVCompiler extends App {
+  RISCVCompiler.inlineASM(
+    """.text
+addi x1, x0, 42
+sw x1, 0(x0)
+"""
+  )
+
   RISCVCompiler.inlineC(
     """
 int main() {
