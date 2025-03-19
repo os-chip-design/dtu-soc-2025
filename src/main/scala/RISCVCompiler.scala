@@ -3,10 +3,10 @@ import scala.language.postfixOps
 import sys.process._
 import java.nio.file.{Files, Path, Paths}
 
-object Utils {
+object RISCVCompiler {
   type CompiledProgram = (Array[Int], Array[Int])
 
-  def readAndSplitIntoTextAndData(file: Path): CompiledProgram = {
+  private def readAndSplitIntoTextAndData(file: Path): CompiledProgram = {
     val textSectionBin = Files.createTempFile("wildcat_text", ".bin")
     val dataSectionBin = Files.createTempFile("wildcat_data", ".bin")
 
@@ -35,7 +35,7 @@ object Utils {
     (textSectionArray, dataSectionArray)
   }
 
-  def compiledProgramCacheLookup(source: String): Option[CompiledProgram] = {
+  private def compiledProgramCacheLookup(source: String): Option[CompiledProgram] = {
     // Cache in source code resources dyn_compilation/cache
     try {
       val cacheFile = getClass.getResource(f"/dyn_compilation/cache/${source.hashCode}.bin").getPath
@@ -53,7 +53,7 @@ object Utils {
     }
   }
 
-  def writeCompiledProgramCache(source: String, p: CompiledProgram): Unit = {
+  private def writeCompiledProgramCache(source: String, p: CompiledProgram): Unit = {
     // Cache in resources dyn_compilation/cache
     val devCache = Paths.get("src/main/resources").toFile
 
@@ -76,28 +76,26 @@ object Utils {
     outputObjectStream.close()
   }
 
-  def resolveResourceAsTemp(resource: String): Path = {
+  private def resolveResourceAsTemp(resource: String): Path = {
     // Use extension of resource as file extension
     val extension = resource.split('.').last
     val tempFile = Files.createTempFile("wildcat_resource", s".$extension")
     Files.copy(getClass.getResource(resource).openStream(), tempFile, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
     tempFile
   }
-}
 
-object InlineWildcatCProgram {
   // Take a C program and compile it with gnu tool chain, get output as 4-byte instructions
-  def apply(c: String): Utils.CompiledProgram = {
-    if (Utils.compiledProgramCacheLookup(c).isDefined) {
-      return Utils.compiledProgramCacheLookup(c).get
+  def inlineC(c: String): CompiledProgram = {
+    if (compiledProgramCacheLookup(c).isDefined) {
+      return compiledProgramCacheLookup(c).get
     }
 
     val sourceFile = Files.createTempFile("wildcat_source", ".c")
     Files.write(sourceFile, c.getBytes)
 
     // Get path to ressources crt0.c and linker.ld
-    val crt0 = Utils.resolveResourceAsTemp("/dyn_compilation/crt0.c")
-    val linkerFile = Utils.resolveResourceAsTemp("/dyn_compilation/linker.ld")
+    val crt0 = resolveResourceAsTemp("/dyn_compilation/crt0.c")
+    val linkerFile = resolveResourceAsTemp("/dyn_compilation/linker.ld")
 
     val crt0ObjPath = Files.createTempFile("wildcat_crt0", ".o")
     val sourceObjPath = Files.createTempFile("wildcat_source", ".o")
@@ -113,16 +111,14 @@ object InlineWildcatCProgram {
     Files.deleteIfExists(crt0ObjPath)
     Files.deleteIfExists(sourceObjPath)
 
-    val p = Utils.readAndSplitIntoTextAndData(aoutPath)
-    Utils.writeCompiledProgramCache(c, p)
+    val p = readAndSplitIntoTextAndData(aoutPath)
+    writeCompiledProgramCache(c, p)
     p
   }
-}
 
-object InlineWildcatASMProgram {
-  def apply(asmProgram: String): Utils.CompiledProgram = {
-    if (Utils.compiledProgramCacheLookup(asmProgram).isDefined) {
-      return Utils.compiledProgramCacheLookup(asmProgram).get
+  def inlineASM(asmProgram: String): CompiledProgram = {
+    if (compiledProgramCacheLookup(asmProgram).isDefined) {
+      return compiledProgramCacheLookup(asmProgram).get
     }
 
     val sourceFile = Files.createTempFile("wildcat_source", ".S")
@@ -134,14 +130,18 @@ object InlineWildcatASMProgram {
 
     Files.deleteIfExists(sourceFile)
 
-    val p = Utils.readAndSplitIntoTextAndData(objectPath)
-    Utils.writeCompiledProgramCache(asmProgram, p)
+    val p = readAndSplitIntoTextAndData(objectPath)
+    writeCompiledProgramCache(asmProgram, p)
     p
+  }
+  
+  def emptyProgram: CompiledProgram = {
+    (Array(0), Array(0))
   }
 }
 
 object TestTRISCVCompiler extends App {
-  InlineWildcatCProgram(
+  RISCVCompiler.inlineC(
     """
 int main() {
   // UART on 0xf0000004: status and output
@@ -154,7 +154,7 @@ int main() {
 
     """)
 
-  val p = InlineWildcatASMProgram(
+  val p = RISCVCompiler.inlineASM(
     """
 .global _start
 .text

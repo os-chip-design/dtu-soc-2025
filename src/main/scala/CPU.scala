@@ -1,88 +1,86 @@
 
+import RISCVCompiler.emptyProgram
 import chisel3._
 import chisel3.util._
+import chisel3.util.experimental.{BoringUtils, loadMemoryFromFile, loadMemoryFromFileInline}
 import wildcat.pipeline.Functions.decode
 import wildcat.pipeline._
 
-class FakeCPUInstr extends Module {
+class FakeCPUInstr(program: RISCVCompiler.CompiledProgram) extends Module {
   val io = IO(Flipped(new InstrIO()))
-
   val addrReg = RegInit(0.U(32.W))
-
+  val instructions = VecInit(program._1.toIndexedSeq.map(_.S(32.W).asUInt))
   addrReg := io.address
 
-  io.data := 0x00000013.U // nop
-  io.stall := false.B
-
-  /*
-  * Program
-  * 
-  * 02a00313
-    00000393
-    00732023
-  * */
-
-  switch(addrReg) {
-    is(4.U) {
-      io.data := 0x02a00313.U
-    }
-
-    is(8.U) {
-      io.data := 0x00000393.U
-    }
-
-    is(12.U) {
-      io.data := 0x00732023.U
-    }
-  }
-}
-
-class FakeCPUMem extends Module {
-  val io = IO(Flipped(new MemIO()))
-  val v = IO(Output(UInt(32.W)))
-
-  val singleReg = RegInit(0.U(32.W))
-
-  when(io.wrEnable(0)) {
-    singleReg := io.wrData
-  }
-
-  when(io.rdEnable) {
-    io.rdData := singleReg
+  when(addrReg >= program._1.length.U) {
+    io.data := 0x00000013.U
   }.otherwise {
-    io.rdData := 0.U
+    // io.data := instructions(addrReg)
+    io.data := instructions(addrReg(31, 2))
   }
 
-  v := singleReg
   io.stall := false.B
 }
 
-class CPU extends Module {
-  val out = IO(Output(UInt(8.W)))
-  val out_address = IO(Output(UInt(32.W)))
-  val out_wrData = IO(Output(UInt(32.W)))
-  val out_instr = IO(Output(UInt(32.W)))
-  val out_decodedInstr = IO(Output(new DecodedInstr()))
+class FakeCPUMem(program: RISCVCompiler.CompiledProgram, size: Int = 4096) extends Module {
+  val io = IO(Flipped(new MemIO()))
+  val mem = SyncReadMem(size, UInt(32.W), SyncReadMem.WriteFirst)
+
+  // Assert that the program fits in memory
+  assert(program._1.length <= size)
+
+  val mems = Array(
+    SyncReadMem(size / 4, UInt(8.W), SyncReadMem.WriteFirst),
+    SyncReadMem(size / 4, UInt(8.W), SyncReadMem.WriteFirst),
+    SyncReadMem(size / 4, UInt(8.W), SyncReadMem.WriteFirst),
+    SyncReadMem(size / 4, UInt(8.W), SyncReadMem.WriteFirst))
+
+  // split an integer into a seq of 4 bytes
+  // little endian, so first byte in seq goes to mem(0)
+  def splitInt(x: Int): Array[Int] = {
+    (0 until 4).map(i => (x >> (i * 8)) & 0xff).toArray
+  }
+
+  // Split program._2 into a list of 4 length lists, then zip inner lists into four lists
+  program._2.map(splitInt).transpose.zipWithIndex.map(x => {
+    val (data, i) = x
+    data.zipWithIndex.map(y => {
+      val (byte, j) = y
+      mems(i).write(j.U, byte.U)
+    })
+  })
 
 
+  val idx = log2Up(size / 4)
+
+  io.rdData := mems.reverse.map(_.read(io.rdAddress(idx + 2, 2))).reduce(_ ## _)
+
+  for (i <- 0 until 4) {
+    when(io.wrEnable(i)) {
+      mems(i).write(io.wrAddress(idx + 2, 2), io.wrData(8 * i + 7, 8 * i))
+    }
+  }
+
+  io.stall := false.B
+}
+
+class CPU(program: RISCVCompiler.CompiledProgram) extends Module {
   val cpu = Module(new ThreeCats())
-  val instr = Module(new FakeCPUInstr())
-  val mem = Module(new FakeCPUMem())
+  val instr = Module(new FakeCPUInstr(program))
+  val mem = Module(new FakeCPUMem(program))
 
   cpu.io.dmem <> mem.io
-
   instr.io.address := cpu.io.imem.address
-  out_decodedInstr <> decode(instr.io.data)
   cpu.io.imem.data := instr.io.data
   cpu.io.imem.stall := instr.io.stall
-
-  out_address := cpu.io.imem.address
-  out_wrData := cpu.io.dmem.wrData
-  out_instr := instr.io.data
-
-  out := mem.v(7, 0)
+  
+  val debugMem_rdAddress = IO(Input(UInt(32.W)))
+  val debugMem_rdData = IO(Output(UInt(32.W)))
+  
+  mem.io.rdAddress := debugMem_rdAddress
+  debugMem_rdData := mem.io.rdData
 }
 
 object CPU extends App {
-  emitVerilog(new CPU(), Array("--target-dir", "generated"))
+  emitVerilog(new CPU(emptyProgram), Array("--target-dir", "generated"))
 }
