@@ -105,7 +105,7 @@ The main tasks are the task you are responisble for and that you are expected to
 - [ ] Implement build step that is compatible with rest of build process
 
 #### Interconnection fabric development (memory arbiter, bus, memory mapping, etc.)
-- [ ] Define interconnection protocol(PipeCon)
+- [x] Define interconnection protocol (PipeCon)
   - [ ] Define amount of components and address space in collaboration with the groups
   - [ ] Define IO interface
 - [ ] Bridge CPU and chosen interfaces
