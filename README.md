@@ -43,12 +43,12 @@ The main tasks are the task you are responisble for and that you are expected to
 
 #### Group 2
 - **GitHub users:** Tobias - [@Collinn](https://github.com/Collinnn), Mariana - [@immarianaas](https://github.com/immarianaas), Andreas - [@DreasL02](https://github.com/DreasL02).
-- **Main tasks:** Off-chip SPI memory, Verification learder, GitHub CI
+- **Main tasks:** Off-chip SPI memory, Verification leader, GitHub CI
 - **Secondary tasks:** Wildcat CPU integration, SPI controller
 
 #### Group 13
 - **GitHub users:** Jacob - [@jjdehl](https://github.com/jjdehl), Asger - [@AsgerWenneb](https://github.com/AsgerWenneb), Carl - [@CarlVinten](https://github.com/CarlVinten)
-- **Main tasks:** Memories (custom + exisisting), Chip toolchain leader
+- **Main tasks:** Memories (custom + existing), Chip toolchain leader
 - **Secondary tasks:** GPIO controller, PWM, & Timers
 
 #### Teachers
@@ -68,15 +68,15 @@ The main tasks are the task you are responisble for and that you are expected to
 
 #### SPI controller development
 - [ ] Investigate SPI:
-  - [ ] Study the SPI protocol (eg. clock polarity, phase)
+  - [ ] Study the SPI protocol (e.g., clock polarity, phase)
   - [ ] Check data width (normal/squad switch?) and speed
   - [ ] Decide on Master or Slave Configuration
 - [ ] Design SPI specifications:
   - [ ] List input and output signals, as well as control signals
   - [ ] Define register for storing receiver data (and maybe temporary registers for data transmission?)
   - [ ] Decide on Error Handling
-  - [ ] Specify performance metrics (clock frequency, latency, eg.)
-- [ ] Design Block Diagram (subsystems, datapaths, clk and control paths):
+  - [ ] Specify performance metrics (clock frequency, latency, e.g.,)
+- [ ] Design Block Diagram (subsystems, datapaths, clk, and control paths):
 - [ ] Design Register/Memory layout:
 - [ ] Chisel Implementation:
 - [ ] Verification:
@@ -84,20 +84,20 @@ The main tasks are the task you are responisble for and that you are expected to
   - [ ] Analog tests
 
 #### Wildcat CPU integration
-- [ ] Integrate into top level system with "template" as specified under system integration
+- [ ] Integrate into top-level system with "template" as specified under system integration
 - [ ] Create tooling to run programs on hardware in simulations
 - [ ] Integrate and coordinate with vital hardware components such as serial etc.
-- [ ] Test hardware based instruction loading and program execution, including the ability to use memory
+- [ ] Test hardware-based instruction loading and program execution, including the ability to use memory
 
 #### System integration & top-level maintenance
-- [ ] Design "template" for every sub-implementation to follow
-  - [ ] For a top level module interface
+- [ ] Design a "template" for every sub-implementation to follow
+  - [ ] For a top-level module interface
   - [ ] For a unified API specification
 - [ ] Ensure every project uses this format so everything can integrate with each other, potentially mock implementations at the beginning
 - [ ] Allow test suites at different levels (hardware/software) and integrate with CI
-- [ ] Tie together top level module with sub-implementation interfaces
-- [ ] Tie together top level module and caravel interface
-- [ ] Ensure continiued development does not deviate from preestablished conventions and norms
+- [ ] Tie together top-level module with sub-implementation interfaces
+- [ ] Tie together top-level module and caravel interface
+- [ ] Ensure continued development does not deviate from pre-established conventions and norms
 
 #### Caravel exploration
 - [ ] Find out how we want to invoke soc-dtu-2025 repo to actually build stuff e.i. do we keep caravel configuration in this repo and just use local ci invocation to use it with some monkey patching? Or is it even a good idea to use it as a submodule. 
