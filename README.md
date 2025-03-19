@@ -106,8 +106,8 @@ The main tasks are the task you are responisble for and that you are expected to
 
 #### Interconnection fabric development (memory arbiter, bus, memory mapping, etc.)
 - [x] Define interconnection protocol (PipeCon)
-  - [ ] Define amount of components and address space in collaboration with the groups
-  - [ ] Define IO interface
+  - [x] Define amount of components and address space in collaboration with the groups
+  - [x] Define IO interface (max 5000 ack-stalls)
 - [ ] Bridge CPU and chosen interfaces
 - [ ] Write bus logic in verilog
 - [ ] Create a testbench for read and write with different components
