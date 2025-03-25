@@ -12,7 +12,6 @@ class SPIOffChipMemoryControllerSpec extends AnyFlatSpec with ChiselScalatestTes
       freq = 10
     )) { dut =>
       
-
       dut.clock.step(10);
 
       val address = 0x112233.U
@@ -50,9 +49,29 @@ class SPIOffChipMemoryControllerSpec extends AnyFlatSpec with ChiselScalatestTes
       val expectedInstruction = "11101011" // todo: verify this is the actual value we want
       val obtainedInstruction = instruction.map(if (_) "1" else "0").mkString
       assert (expectedInstruction==obtainedInstruction, s"Expected $expectedInstruction but got $obtainedInstruction")
-
-
-
+    }
+  }
+  it should "Handle SPIO clk correctly" in {
+    test(new SPIOffChipMemoryController(
+      addrWidth = 24,
+      dataWidth = 32,
+      spiFreq = 1000000,
+      freq = 50000000
+    )) { dut =>
+      //test the spiIOCclk
+      dut.clock.step(10)
+      dut.reset.poke(true.B)
+      dut.clock.step(1)
+      dut.reset.poke(false.B)
+      val spiClkmax = dut.freq/dut.spiFreq/2
+      assume(dut.qspiPort.spiClk.peek().litToBoolean == false, "spiClk should be false")
+      assert(spiClkmax > 0, "spiClkmax should be greater than 0")
+      dut.clock.step(spiClkmax)
+      assert(dut.qspiPort.spiClk.peek().litToBoolean == true, "spiClk should be true")
+      dut.clock.step(spiClkmax-1)
+      assert(dut.qspiPort.spiClk.peek().litToBoolean == true, "spiClk should still be true")
+      dut.clock.step(1)
+      assert(dut.qspiPort.spiClk.peek().litToBoolean == false, "spiClk should be false")
     }
   }
 }

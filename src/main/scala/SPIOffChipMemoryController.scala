@@ -35,7 +35,7 @@ class SPIOffChipMemoryController(
   val pointerReg = RegInit(0.U(32.W))
   val spiClkCounterReg = RegInit(0.U(32.W))
 
-  val spiClkCounterMax = (freq / spiFreq / 2).U
+  val spiClkCounterMax = ((freq / spiFreq / 2)-1).U
 
   val spiClkReg = RegInit(false.B)
 
