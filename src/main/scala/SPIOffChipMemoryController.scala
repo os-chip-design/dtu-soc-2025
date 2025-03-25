@@ -54,7 +54,6 @@ class SPIOffChipMemoryController(
   qspiPort.chipSelect := false.B
   interconnectPort.ack := false.B
 
-
   when(spiClkCounterReg === spiClkCounterMax) {
     spiClkCounterReg := 0.U
     spiClkReg := !spiClkReg
@@ -97,7 +96,8 @@ class SPIOffChipMemoryController(
       when(risingEdgeOfSpiClk) {
         pointerReg := pointerReg - 1.U
       }
-      when(pointerReg === 0.U) {
+      // same reason as before, only change after the last values have been read
+      when(pointerReg === 0.U && risingEdgeOfSpiClk) {
         stateReg := State.waiting
         pointerReg := 8.U
       }
@@ -108,7 +108,7 @@ class SPIOffChipMemoryController(
       when(risingEdgeOfSpiClk) {
         pointerReg := pointerReg - 1.U
       }
-      when(pointerReg === 0.U) {
+      when(pointerReg === 0.U && risingEdgeOfSpiClk) {
         stateReg := State.read_data_transmit
         pointerReg := 32.U
       }
@@ -117,7 +117,8 @@ class SPIOffChipMemoryController(
       when(risingEdgeOfSpiClk) {
         pointerReg := pointerReg - 4.U
       }
-      when(pointerReg === 0.U) { 
+      
+      when(pointerReg === 0.U && risingEdgeOfSpiClk) { 
         stateReg := State.idle
         pointerReg := 0.U
         interconnectPort.ack := true.B
@@ -126,6 +127,7 @@ class SPIOffChipMemoryController(
       dataOutRegs(pointerReg - 2.U) := qspiPort.data2In // 30, 26, 22, 18, 14, 10, 6, 2
       dataOutRegs(pointerReg - 3.U) := qspiPort.data1In // 29, 25, 21, 17, 13,  9, 5, 1
       dataOutRegs(pointerReg - 4.U) := qspiPort.data0In // 28, 24, 20, 16, 12,  8, 4, 0
+
     }
     
   }
