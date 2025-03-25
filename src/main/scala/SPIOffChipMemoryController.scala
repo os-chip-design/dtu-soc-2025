@@ -70,22 +70,30 @@ class SPIOffChipMemoryController(
         stateReg := State.read_instr_transmit
         regAddr := interconnectPort.address
         pointerReg := 7.U
+        qspiPort.chipSelect := false.B
+
       }
     }
     is(State.read_instr_transmit) {
+
       // after 8 clock cycles, the instruction is transmitted
       when(risingEdgeOfSpiClk) {
         pointerReg := pointerReg - 1.U
       }
       
-      when(pointerReg === 0.U) {
+      // risingEdgeOfSpiClk needs to be a part of the condition
+      // because we want to make sure that data0Out stays with
+      // the last instruction bit for the correct amount of time
+      when(pointerReg === 0.U && risingEdgeOfSpiClk) {
         stateReg := State.addr_transmit
         pointerReg := 23.U
       }
+
       qspiPort.data0Out := readInstruction(pointerReg)
-      
+
     }
     is(State.addr_transmit) {
+
       when(risingEdgeOfSpiClk) {
         pointerReg := pointerReg - 1.U
       }
@@ -94,6 +102,7 @@ class SPIOffChipMemoryController(
         pointerReg := 8.U
       }
       qspiPort.data0Out := regAddr(pointerReg)
+  
     }
     is(State.waiting) {
       when(risingEdgeOfSpiClk) {
