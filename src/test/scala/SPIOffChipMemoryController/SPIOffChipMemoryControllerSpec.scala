@@ -99,7 +99,8 @@ class SPIOffChipMemoryControllerSpec extends AnyFlatSpec with ChiselScalatestTes
       addrWidth = 24,
       dataWidth = 32,
       spiFreq = 2,
-      freq = 10
+      freq = 10,
+      configuredIntoQSPI = true
     )) { dut =>
       
       dut.clock.step(10);
@@ -122,7 +123,7 @@ class SPIOffChipMemoryControllerSpec extends AnyFlatSpec with ChiselScalatestTes
       }
 
       
-      val expectedInstruction : Int = Integer.parseInt("11101011", 2)
+      val expectedInstruction : Int = Integer.parseInt("01101011", 2)
       qspi.expectFunctionCode(expectedInstruction)
       dut.clock.step()
 

@@ -5,10 +5,11 @@ class SPIOffChipMemoryControllerWrapper(
     val dataWidth: Int = 32,
     val spiFreq: Int = 1000000,
     val freq: Int = 50000000,
-    )extends Module {
+    val configuredIntoQSPI: Boolean = false
+)extends Module {
     val interconnectPort = IO(new PipeCon(addrWidth))
     val qspiPort = IO(new qspiIO)
-    val m = Module(new SPIOffChipMemoryController(addrWidth, dataWidth, spiFreq, freq))
+    val m = Module(new SPIOffChipMemoryController(addrWidth, dataWidth, spiFreq, freq, configuredIntoQSPI))
 
     val MAXAddr = pow(2, addrWidth).toInt.U
     val MINAddr = 0.U //TODO: Figure out the correct restraints
