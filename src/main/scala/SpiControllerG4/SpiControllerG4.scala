@@ -8,6 +8,8 @@
 import chisel3._
 import chisel3.util._
 
+
+//Just a comment for Git test 
 class SpiControllerG4 extends Module {
     val io = IO(new Bundle {
         val cpuWriteData = Input(UInt(32.W))
