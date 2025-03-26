@@ -18,17 +18,20 @@ class qspiIO extends Bundle {
 // Currently has a flash read implementation (that is untested :) )
 
 class SPIOffChipMemoryController(
-  val addrWidth: Int = 24,
-  val dataWidth: Int = 32,
-  val spiFreq: Int = 1000000,
-  val freq: Int = 50000000,
-  val configuredIntoQSPI: Boolean = false
+    val addrWidth: Int = 24,
+    val dataWidth: Int = 32,
+    val spiFreq: Int = 1000000,
+    val freq: Int = 50000000,
+    val configuredIntoQSPI: Boolean = false
 ) extends Module {
   val interconnectPort = IO(new PipeCon(addrWidth))
   val qspiPort = IO(new qspiIO)
 
   object State extends ChiselEnum {
-    val idle, configure_into_qspi_instr_transmit, configure_into_qspi_data_transmit, read_instr_transmit, write_instr_transmit, addr_transmit, read_data_transmit, write_data_transmit, waiting = Value
+    val idle, configure_into_qspi_instr_transmit,
+        configure_into_qspi_data_transmit, read_instr_transmit,
+        write_instr_transmit, addr_transmit, read_data_transmit,
+        write_data_transmit, waiting = Value
   }
   val configuredReg = RegInit(configuredIntoQSPI.B)
 
@@ -37,7 +40,7 @@ class SPIOffChipMemoryController(
   val pointerReg = RegInit(0.U(32.W))
   val spiClkCounterReg = RegInit(0.U(32.W))
 
-  val spiClkCounterMax = ((freq / spiFreq / 2)-1).U
+  val spiClkCounterMax = ((freq / spiFreq / 2) - 1).U
 
   val spiClkReg = RegInit(false.B)
 
@@ -45,8 +48,10 @@ class SPIOffChipMemoryController(
 
   val readInstruction = "b01101011".U // 0x6B (Read Data Bytes), table 8.1.3
   val writeInstruction = "b00110010".U // 0x32 (Page Program), table 8.1.3
-  val writeStatusRegister2Instruction = "b00110001".U // 0x31 (Write Status Register 2), table 8.1.2
-  val configureIntoQSPIInstruction = "b00000010".U // 0x03 (Write Status Register 1), tfigure 4.b
+  val writeStatusRegister2Instruction =
+    "b00110001".U // 0x31 (Write Status Register 2), table 8.1.2
+  val configureIntoQSPIInstruction =
+    "b00000010".U // 0x03 (Write Status Register 1), tfigure 4.b
 
   val regAddr = RegInit(0.U(addrWidth.W))
   val dataOutRegs = RegInit(VecInit(Seq.fill(dataWidth)(0.U(1.W))))
@@ -70,7 +75,7 @@ class SPIOffChipMemoryController(
   switch(stateReg) {
     is(State.idle) {
       qspiPort.chipSelect := true.B
-      when (!configuredReg){
+      when(!configuredReg) {
         stateReg := State.configure_into_qspi_instr_transmit
         qspiPort.chipSelect := false.B
         pointerReg := 7.U
@@ -107,7 +112,7 @@ class SPIOffChipMemoryController(
           pointerReg := 0.U
         }
       }
-      
+
       qspiPort.data0Out := configureIntoQSPIInstruction(pointerReg)
     }
     is(State.read_instr_transmit) {
@@ -120,7 +125,7 @@ class SPIOffChipMemoryController(
           pointerReg := 23.U
         }
       }
-      
+
       qspiPort.data0Out := readInstruction(pointerReg)
     }
     is(State.addr_transmit) {
@@ -134,9 +139,9 @@ class SPIOffChipMemoryController(
           pointerReg := 8.U
         }
       }
-      
+
       qspiPort.data0Out := regAddr(pointerReg)
-  
+
     }
     is(State.waiting) {
       when(risingEdgeOfSpiClk) {
@@ -147,25 +152,33 @@ class SPIOffChipMemoryController(
           pointerReg := 32.U
         }
       }
-      
+
     }
     is(State.read_data_transmit) {
       when(risingEdgeOfSpiClk) {
         pointerReg := pointerReg - 4.U
 
-        when(pointerReg === 0.U) { 
+        when(pointerReg === 0.U) {
           stateReg := State.idle
           pointerReg := 0.U
           interconnectPort.ack := true.B
         }
       }
-      
-      dataOutRegs(pointerReg - 1.U) := qspiPort.data3In // 31, 27, 23, 19, 15, 11, 7, 3
-      dataOutRegs(pointerReg - 2.U) := qspiPort.data2In // 30, 26, 22, 18, 14, 10, 6, 2
-      dataOutRegs(pointerReg - 3.U) := qspiPort.data1In // 29, 25, 21, 17, 13,  9, 5, 1
-      dataOutRegs(pointerReg - 4.U) := qspiPort.data0In // 28, 24, 20, 16, 12,  8, 4, 0
+
+      dataOutRegs(
+        pointerReg - 1.U
+      ) := qspiPort.data3In // 31, 27, 23, 19, 15, 11, 7, 3
+      dataOutRegs(
+        pointerReg - 2.U
+      ) := qspiPort.data2In // 30, 26, 22, 18, 14, 10, 6, 2
+      dataOutRegs(
+        pointerReg - 3.U
+      ) := qspiPort.data1In // 29, 25, 21, 17, 13,  9, 5, 1
+      dataOutRegs(
+        pointerReg - 4.U
+      ) := qspiPort.data0In // 28, 24, 20, 16, 12,  8, 4, 0
     }
-    is (State.write_instr_transmit) {
+    is(State.write_instr_transmit) {
       when(risingEdgeOfSpiClk) {
         pointerReg := pointerReg - 1.U
 
@@ -174,10 +187,10 @@ class SPIOffChipMemoryController(
           pointerReg := 23.U
         }
       }
-      
+
       qspiPort.data0Out := writeInstruction(pointerReg)
     }
-    is (State.write_data_transmit) {
+    is(State.write_data_transmit) {
       when(risingEdgeOfSpiClk) {
         pointerReg := pointerReg - 4.U
 
@@ -187,7 +200,7 @@ class SPIOffChipMemoryController(
           interconnectPort.ack := true.B
         }
       }
-      
+
       qspiPort.data0Out := dataInRegs(pointerReg - 1.U)
       qspiPort.data1Out := dataInRegs(pointerReg - 2.U)
       qspiPort.data2Out := dataInRegs(pointerReg - 3.U)
