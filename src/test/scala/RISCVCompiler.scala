@@ -31,6 +31,14 @@ private object Deferable {
 object RISCVCompiler {
   type CompiledProgram = (Array[Int], Array[Int])
 
+  private def getToolchainPrefix = {
+    // Allow overriding the toolchain prefix with an environment variable
+    Option(System.getenv("RISCV_PREFIX")) match {
+      case Some(prefix) => prefix
+      case None => "riscv64-unknown-elf"
+    }
+  }
+
   private def readAndSplitIntoTextAndData(file: Path): CompiledProgram = Deferable { defer =>
     val textSectionBin = Files.createTempFile("wildcat_text", ".bin")
 
@@ -44,8 +52,10 @@ object RISCVCompiler {
       Files.deleteIfExists(dataSectionBin)
     }
 
-    f"riscv64-unknown-elf-objcopy -O binary -j .text $file $textSectionBin".!
-    f"riscv64-unknown-elf-objcopy -O binary -j .data $file $dataSectionBin".!
+    val prefix = getToolchainPrefix
+
+    f"$prefix-objcopy -O binary -j .text $file $textSectionBin".!
+    f"$prefix-objcopy -O binary -j .data $file $dataSectionBin".!
 
     val textSection = Files.readAllBytes(textSectionBin)
     val dataSection = Files.readAllBytes(dataSectionBin)
@@ -84,7 +94,6 @@ object RISCVCompiler {
       return
     }
 
-
     val cacheFile = s"$devCache/dyn_compilation/cache/${source.hashCode}.bin"
 
     if (!Files.exists(Path.of(cacheFile))) {
@@ -118,7 +127,7 @@ object RISCVCompiler {
 
     Files.write(sourceFile, c.getBytes)
 
-    // Get path to ressources crt0.c and linker.ld
+    // Get path to resources crt0.c and linker.ld
     val crt0 = resolveResourceAsTemp("/dyn_compilation/crt0.c")
     defer {
       Files.deleteIfExists(crt0)
@@ -144,11 +153,11 @@ object RISCVCompiler {
       Files.deleteIfExists(aoutPath)
     }
 
-    f"riscv64-unknown-elf-gcc -march=rv32i_zicsr -mabi=ilp32 $crt0 -c -o $crt0ObjPath".!
-    f"riscv64-unknown-elf-gcc -march=rv32i_zicsr -mabi=ilp32 $sourceFile -c -o $sourceObjPath".!
-    f"riscv64-unknown-elf-ld -melf32lriscv -T $linkerFile $crt0ObjPath $sourceObjPath -o $aoutPath".!
+    val prefix = getToolchainPrefix
 
-    println(f"riscv64-unknown-elf-objdump -d $aoutPath".!!)
+    f"$prefix-gcc -march=rv32i_zicsr -mabi=ilp32 $crt0 -c -o $crt0ObjPath".!
+    f"$prefix-gcc -march=rv32i_zicsr -mabi=ilp32 $sourceFile -c -o $sourceObjPath".!
+    f"$prefix-ld -melf32lriscv -T $linkerFile $crt0ObjPath $sourceObjPath -o $aoutPath".!
 
     readAndSplitIntoTextAndData(aoutPath).tap {
       writeCompiledProgramCache(c, _)
@@ -174,7 +183,8 @@ object RISCVCompiler {
       Files.deleteIfExists(objectPath)
     }
 
-    f"riscv64-unknown-elf-as -march=rv32i_zicsr $sourceFile -o $objectPath".!
+    val prefix = getToolchainPrefix
+    f"$prefix-as -march=rv32i_zicsr $sourceFile -o $objectPath".!
 
     readAndSplitIntoTextAndData(objectPath).tap {
       writeCompiledProgramCache(asmProgram, _)
@@ -184,49 +194,4 @@ object RISCVCompiler {
   def emptyProgram: CompiledProgram = {
     (Array(0), Array(0))
   }
-}
-
-object TestTRISCVCompiler extends App {
-  RISCVCompiler.inlineASM(
-    """.text
-addi x1, x0, 42
-sw x1, 0(x0)
-"""
-  )
-
-  RISCVCompiler.inlineC(
-    """
-int main() {
-  // UART on 0xf0000004: status and output
-  volatile int *ptr = (int *) 0xf0000004;
-  char *str = "Hello World!";
-  for (int i = 0; i < 12; i++) {
-    *ptr = str[i];
-  }
-}
-
-    """)
-
-  val p = RISCVCompiler.inlineASM(
-    """
-.global _start
-.text
-
-_start:                    /* x0  = 0    0x000 */
-    /* Test ADDI */
-    addi x1 , x0,   1000  /* x1  = 1000 0x3E8 */
-    addi x2 , x1,   2000  /* x2  = 3000 0xBB8 */
-    addi x3 , x2,  -1000  /* x3  = 2000 0x7D0 */
-    addi x4 , x3,  -2000  /* x4  = 0    0x000 */
-    addi x5 , x4,   1000  /* x5  = 1000 0x3E8 */
-
-    la x6, variable
-    addi x6, x6, 4
-
-.data
-variable:
-	.word 0xdeadbeef
-                    
-    """
-  )
 }
