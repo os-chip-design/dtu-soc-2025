@@ -105,12 +105,10 @@ object RISCVCompiler {
   }
 
   // Take a C program and compile it with gnu tool chain, get output as 4-byte instructions
-  def inlineC(c: String, useCache: Boolean = true): CompiledProgram = Deferable { defer =>
-    if (useCache) {
-      compiledProgramCacheLookup(c) match {
-        case Some(p) => return p
-        case None =>
-      }
+  def inlineC(c: String): CompiledProgram = Deferable { defer =>
+    compiledProgramCacheLookup(c) match {
+      case Some(p) => return p
+      case None =>
     }
 
     val sourceFile = Files.createTempFile("wildcat_source", ".c")

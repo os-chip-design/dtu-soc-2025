@@ -1,7 +1,6 @@
 import chisel3._
 import chisel3.util.experimental.BoringUtils
 import chiseltest._
-import chiseltest.iotesters._
 import org.scalatest.flatspec.AnyFlatSpec
 import wildcat.pipeline.{InstrIO, InstructionROM, MemIO, ScratchPadMem, ThreeCats}
 
