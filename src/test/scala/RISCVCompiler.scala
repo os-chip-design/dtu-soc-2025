@@ -1,8 +1,8 @@
-import sys.process._
-import scala.util.chaining._
-import scala.collection.mutable.ListBuffer
 import java.io.{FileInputStream, FileOutputStream, ObjectInputStream, ObjectOutputStream}
 import java.nio.file.{Files, Path, Paths}
+import scala.collection.mutable.ListBuffer
+import scala.sys.process._
+import scala.util.chaining._
 
 private trait Deferable {
   private val stack = ListBuffer.empty[() => Unit]
@@ -146,8 +146,8 @@ object RISCVCompiler {
       Files.deleteIfExists(aoutPath)
     }
 
-    f"riscv64-unknown-elf-gcc -march=rv32i -mabi=ilp32 $crt0 -c -o $crt0ObjPath".!
-    f"riscv64-unknown-elf-gcc -march=rv32i -mabi=ilp32 $sourceFile -c -o $sourceObjPath".!
+    f"riscv64-unknown-elf-gcc -march=rv32i_zicsr -mabi=ilp32 $crt0 -c -o $crt0ObjPath".!
+    f"riscv64-unknown-elf-gcc -march=rv32i_zicsr -mabi=ilp32 $sourceFile -c -o $sourceObjPath".!
     f"riscv64-unknown-elf-ld -melf32lriscv -T $linkerFile $crt0ObjPath $sourceObjPath -o $aoutPath".!
 
     println(f"riscv64-unknown-elf-objdump -d $aoutPath".!!)
@@ -176,7 +176,7 @@ object RISCVCompiler {
       Files.deleteIfExists(objectPath)
     }
 
-    f"riscv64-unknown-elf-as -march=rv32i -mabi=ilp32 $sourceFile -o $objectPath".!
+    f"riscv64-unknown-elf-as -march=rv32i_zicsr $sourceFile -o $objectPath".!
 
     readAndSplitIntoTextAndData(objectPath).tap {
       writeCompiledProgramCache(asmProgram, _)
