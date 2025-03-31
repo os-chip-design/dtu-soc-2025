@@ -75,3 +75,6 @@ project/build.properties
 # chisel
 /test_run_dir
 /generated
+# build cache
+/src/main/resources/dyn_compilation/cache
+/data*.hex
