@@ -5,6 +5,8 @@
  *
 */
 
+package SpiControllerG4
+
 import chisel3._
 import chisel3.util._
 
@@ -60,7 +62,7 @@ class SpiControllerG4 extends Module {
 
     io.cpuReadData := 0.U
     io.spiMosi := txShiftReg(31)
-    rxShiftReg(31) := io.spiMiso
+    // rxShiftReg(31) := io.spiMiso , cannot assign a register combinationally
     spiData := io.cpuWriteData
 
     when (txBufferEmpty) {
@@ -113,7 +115,7 @@ class SpiControllerG4 extends Module {
         }
         is (receiveData) {
             when (spiClkReg) {
-                rxShiftReg := rxShiftReg >> 1
+                rxShiftReg := rxShiftReg << 1
                 bitCounter := bitCounter + 1.U
                 when (bitCounter === io.receiveLength) {
                     when (rxBufferEmpty) {
