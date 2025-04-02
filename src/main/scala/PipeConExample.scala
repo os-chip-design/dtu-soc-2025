@@ -1,55 +1,51 @@
+import wildcat.pipeline.ThreeCats
 import chisel3._
 
 class PipeConExample(addrWidth: Int) extends Module {
   val io = IO(new Bundle {
-    val pipe = new PipeCon(addrWidth)
+    val UART   = new PipeCon(addrWidth)
+//    val SPI    = new PipeCon(addrWidth)
+//    val SPImem = new PipeCon(addrWidth)
+//    val VGA    = new PipeCon(addrWidth)
+//    val KBD    = new PipeCon(addrWidth)
+//    val Mem    = new PipeCon(addrWidth)
+//    val IOcell = new PipeCon(addrWidth)
   })
 
+  val cpu = Module(new ThreeCats())
+  
+
+  cpu.io.imem.stall  := false.B  
+  cpu.io.dmem.stall  := false.B  
+  cpu.io.imem.data   := "h00000000".U(32.W)  
+  cpu.io.dmem.rdData := "h00000000".U(32.W)
+
+  val wrDataCPU   = cpu.io.dmem.wrData
+  val wrMaskCPU   = cpu.io.dmem.wrEnable
+  val wrAddrCPU   = cpu.io.dmem.wrAddress  
+  val rdAddrCPU   = cpu.io.dmem.rdAddress  
+  val rdEnableCPU = cpu.io.dmem.rdEnable  
+  
   // Simple memory to simulate a read/write behavior
   val mem = Mem(256, UInt(32.W))  // 256 locations, 32 bits wide
 
-  // Intermediate values for ack and read data
-  val ack = Wire(Bool())
-  val rdData = Wire(UInt(32.W))
+  io.UART.rdData := 0.U  // Default read data = 0
+  io.UART.ack := false.B // Default acknowledge = false
 
-  val addr = io.pipe.address
-  val data = io.pipe.wrData
-  val mask = io.pipe.wrMask
+  
 
-  // Default to zero
-  rdData := 0.U
-  ack := false.B
-
-  // Read/Write logic
-  when(io.pipe.wr) {
-    // Write operation
-    when(mask(0)) { 
-      mem(addr) := data & "h000000FF".U(32.W)
-    } 
-    when(mask(1)) { 
-      mem(addr) := data & "h0000FF00".U(32.W)
-    } 
-    when(mask(2)) { 
-      mem(addr) := data & "h00FF0000".U(32.W)
-    } 
-    when(mask(3)) { 
-      mem(addr) := data & "hFF000000".U(32.W)
+  when(wrMaskCPU.asUInt =/= "b0000".U) {
+    for(i <- 0 until addrWidth) {
+      if (wrAddrCPU(31-i) == "b1") {
+        
+      }
     }
-
-    ack := true.B
-  }.elsewhen(io.pipe.rd) {
-    // Read operation
-    rdData := mem(addr)
-
-    ack := true.B
-  }.otherwise {
-    // No operation, ack remains low
-    ack := false.B
   }
 
-  // Assign outputs to the interface
-  io.pipe.rdData := rdData
-  io.pipe.ack := ack
+
+  io.UART.rdData := 123.U  // Example read operation
+  io.UART.ack := true.B  // Example write acknowledgment
+
 }
 
 object PipeConExample extends App {
