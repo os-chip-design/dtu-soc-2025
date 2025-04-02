@@ -4,7 +4,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import chisel3._
 import chiseltest._
 
-// to run this write in the terminal: sbt "testOnly SpoControllerG4.SpiControllerTest"
+// to run this write in the terminal: sbt "testOnly SpiControllerG4.SpiControllerTest"
 class SpiControllerTest extends AnyFlatSpec with ChiselScalatestTester {
   "SPI Controller" should "transmit data correctly" in {
     test(new SpiControllerG4.SpiControllerG4).withAnnotations(Seq(WriteVcdAnnotation)) { c =>
@@ -27,12 +27,12 @@ class SpiControllerTest extends AnyFlatSpec with ChiselScalatestTester {
 
       // check 8 MOSI bits (MSB first)
       for (i <- 0 until 8) {
-        // Wait for falling edge
-        while (c.io.spiClk.peek().litToBoolean) {
+        // Wait for rising edge
+        while (!c.io.spiClk.peek().litToBoolean) {
           c.clock.step(1)
         }
         c.io.spiMosi.expect(((0xAA >> (7 - i)) & 1).U) // Check bit
-        c.clock.step(4) // Wait for next falling edge
+        c.clock.step(4) // Wait for next rising edge
       }
 
       // verifie
