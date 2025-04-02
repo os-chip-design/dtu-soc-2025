@@ -15,7 +15,7 @@ class Prescaler extends Module {
 
 // increment counter and toggle output when divisor is reached
   counter := counter + 1.U
-  when(counter === (divisor - 1).U) {
+  when(counter === (io.pwm_div - 1.U)) {
     counter := 0.U
     toggle := ~toggle
   }
