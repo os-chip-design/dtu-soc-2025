@@ -10,7 +10,7 @@ class SpiControllerTest extends AnyFlatSpec with ChiselScalatestTester {
     test(new SpiControllerG4.SpiControllerG4).withAnnotations(Seq(WriteVcdAnnotation)) { c =>
       // Basic setup
       c.io.enable.poke(false.B)
-      c.io.prescale.poke(3.U) // SPI clock = system clock / 8
+      c.io.prescale.poke(4.U) // SPI clock = system clock / 8
       c.io.rw.poke(true.B) // Write-only mode
       c.io.sendLength.poke(8.U) // Send 8 bits
       c.io.cpuWriteData.poke(0xAA000000L.U) // 0xAA in upper 8 bits
@@ -44,7 +44,7 @@ class SpiControllerTest extends AnyFlatSpec with ChiselScalatestTester {
     test(new SpiControllerG4.SpiControllerG4).withAnnotations(Seq(WriteVcdAnnotation)) { c =>
       // Basic setup
       c.io.enable.poke(false.B)
-      c.io.prescale.poke(3.U) // Same clock as TX test
+      c.io.prescale.poke(4.U) // Same clock as TX test
       c.io.rw.poke(false.B) // Receive mode
       c.io.receiveLength.poke(8.U) // Receive 8 bits
       c.io.sendLength.poke(0.U) // Don't send anything
