@@ -36,6 +36,10 @@ import chisel3.util._
  * @param txBufferDepth depth of transmit buffer
  * @param rxBufferDepth depth of receive buffer
  */
+import chisel.lib.uart._
+import chisel3._
+import chisel3.util._
+
 class MemoryMappedUart(
                         freq: Int,
                         baud: Int,
@@ -43,13 +47,11 @@ class MemoryMappedUart(
                         rxBufferDepth: Int
                       ) extends Module {
   val io = IO(new Bundle {
-
     /** bus port */
     val port = Bus.RespondPort()
 
     /** UART tx and rx pins */
     val pins = MemoryMappedUart.UartPins()
-
   })
 
   // UART controllers
@@ -71,32 +73,32 @@ class MemoryMappedUart(
       init = 0.B
     )
 
-  // connect transmitter buffer to bus
+  // connect transmitter buffer to bus with flow control
   txBuffer.io.enq.bits := io.port.wrData
-  txBuffer.io.enq.valid := io.port.hasWriteRequestAt(0.U)
+  txBuffer.io.enq.valid := io.port.hasWriteRequestAt(0.U) && io.pins.cts
 
   // connect receiver buffer to bus
   rxBuffer.io.deq.ready := hadDataReadRequest
 
-  // connect UART pins
-  io.pins.tx := transmitter.io.txd
+  // connect UART pins with flow control
+  io.pins.tx := Mux(io.pins.cts, transmitter.io.txd, 1.U)
   receiver.io.rxd := io.pins.rx
 
+  // Fix: Change the status bit to consider CTS for transmitter ready
   // select payload of response
   io.port.rdData := Mux(
     hadDataReadRequest,
     rxBuffer.io.deq.bits,
-    rxBuffer.io.deq.valid ## txBuffer.io.enq.ready
+    rxBuffer.io.deq.valid ## (txBuffer.io.enq.ready && io.pins.cts)
   )
-
 }
 
 object MemoryMappedUart {
-
-  /** Rx and Tx pins for UART */
+  /** Rx and Tx pins for UART with flow control */
   case class UartPins() extends Bundle {
     val tx = Output(Bool())
     val rx = Input(Bool())
+    val cts = Input(Bool())  // Clear To Send - when high, we're allowed to transmit
   }
 
   /** Create a [[MemoryMappedUart]].
@@ -114,5 +116,4 @@ object MemoryMappedUart {
            ): MemoryMappedUart = Module(
     new MemoryMappedUart(freq, baud, txBufferDepth, rxBufferDepth)
   )
-
 }
