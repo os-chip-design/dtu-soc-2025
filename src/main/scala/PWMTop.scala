@@ -1,4 +1,5 @@
 import chisel3._
+import chisel3.util._
 
 class PWMTop extends Module {
     val io = IO(new Bundle {
