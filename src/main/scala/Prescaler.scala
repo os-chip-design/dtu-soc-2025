@@ -20,6 +20,6 @@ class Prescaler(divisor: Int) extends Module {
     counter := 0.U
     toggle := ~toggle
   }
-
+  
   io.clk_out := toggle
 }
