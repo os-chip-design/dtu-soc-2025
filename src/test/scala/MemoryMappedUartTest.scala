@@ -14,31 +14,35 @@ class MemoryMappedUartTest extends AnyFlatSpec with ChiselScalatestTester {
     test(new MemoryMappedUart(10000, 3000, 2, 2)) { dut =>
       val messageLength = 500
 
-      val driver = MemoryMappedUartDriver(dut) // create UART driver
+      // Set CTS high since you're using flow control now
+      dut.io.pins.cts.poke(true.B)
+      val driver = MemoryMappedUartDriver(dut)
 
-      fork { // connect uart tx to rx
-        while (true) {
-          dut.io.pins.rx.poke(dut.io.pins.tx.peek())
-          dut.clock.step()
-        }
-      }
-
-      // generate test data to be transmitted
-      val message =
-        Seq.fill(messageLength)(Random.nextPrintableChar().U(8.W))
-
-      // send and receive characters eagerly
-      sendAndReceive(messageLength)(driver, message.iterator)
-        .zip(message)
-        .zipWithIndex
-        .foreach { case ((received, expected), i) =>
-          assert(
-            received.litValue == expected.litValue,
-            s"For character $i: received 0x${received.litValue
-              .toString(16)} but expected: 0x${expected.litValue.toString(16)}"
-          ) // check if received data is equal to sent data
+      // Use timescope to limit the lifetime of the fork
+      timescope {
+        fork { // connect uart tx to rx
+          while (true) {
+            dut.io.pins.rx.poke(dut.io.pins.tx.peek())
+            dut.clock.step()
+          }
         }
 
+        // generate test data to be transmitted
+        val message =
+          Seq.fill(messageLength)(Random.nextPrintableChar().U(8.W))
+
+        // send and receive characters eagerly
+        sendAndReceive(messageLength)(driver, message.iterator)
+          .zip(message)
+          .zipWithIndex
+          .foreach { case ((received, expected), i) =>
+            assert(
+              received.litValue == expected.litValue,
+              s"For character $i: received 0x${received.litValue
+                .toString(16)} but expected: 0x${expected.litValue.toString(16)}"
+            )
+          }
+      } // The fork will be terminated when timescope ends
     }
   }
 
