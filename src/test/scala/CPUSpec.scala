@@ -1,81 +1,39 @@
 import chisel3._
 import chisel3.util.experimental.BoringUtils
+import chisel3.util.log2Up
 import chiseltest._
 import org.scalatest.flatspec.AnyFlatSpec
-import wildcat.pipeline.{InstrIO, InstructionROM, MemIO, ScratchPadMem, ThreeCats}
+import wildcat.pipeline.{InstructionROM, MemIO, ThreeCats}
 
-class NOPInstrMemory(data: Array[Int]) extends Module {
-  val io = IO(Flipped(new InstrIO()))
-  val idxReg = RegInit(0.U(32.W))
-
-  val instructions = VecInit(data.toIndexedSeq.map(_.S(32.W).asUInt))
-
-  idxReg := io.address / 4.U
-
-  when(idxReg >= instructions.length.U) {
-    io.data := 0x00000013.U
-  }.otherwise {
-    io.data := instructions(idxReg)
-  }
-
-  io.stall := false.B
-}
-
-
-class SingleCPUMem(data: Array[Int], size: Int = 4096) extends Module {
+class TestRAM(data: Array[Int], nrBytes: Int = 4096) extends Module {
   val io = IO(Flipped(new MemIO()))
-  val mem = SyncReadMem(
-    size,
-    UInt(32.W),
-    SyncReadMem.WriteFirst
-  )
+  val mems = Seq.fill(4)(SyncReadMem(nrBytes / 4, UInt(8.W), SyncReadMem.WriteFirst))
 
-  // Assert that the program fits in memory
-  assert(data.length <= size)
-
-  data.zipWithIndex.foreach(x => {
-    mem.write(x._2.U, x._1.U)
+  // Write default memory correctly into the memory
+  data.map(x => (0 until 4).map(i => (x >> (i * 8)) & 0xff).toArray).transpose.zipWithIndex.map(x => {
+    val (data, i) = x
+    data.zipWithIndex.map(y => {
+      val (byte, j) = y
+      mems(i).write(j.U, byte.U)
+    })
   })
 
-  private val truncatedRdAddress = io.rdAddress
-  private val truncatedWrAddress = io.wrAddress
+  val idx = log2Up(nrBytes / 4)
+  val truncatedWrAddress = io.wrAddress(idx + 2, 2)
+  val truncatedRdAddress = io.rdAddress(idx + 2, 2)
 
-  io.rdData := mem.read(truncatedRdAddress)
+  io.rdData := mems.reverse.map(_.read(truncatedRdAddress)).reduce(_ ## _)
 
-  printf(p"[rd] addr: $truncatedRdAddress | data: ${io.rdData}\n")
-
-  // Read the current 32-bit word from memory
-  private val oldData = mem.read(truncatedWrAddress)
-
-  // Compute the new data by modifying only enabled bytes.
-  // Here we use a fold that updates the accumulated value (acc) for each byte.
-  private val newData = (0 until 4).foldLeft(oldData) { (acc, i) =>
-    val shift = i * 8
-    // Create a mask for the 8 bits to update: 0xff shifted to the correct position.
-    val byteMask = (0xff.U(32.W) << shift)
-    // Extract the new byte from wrData.
-    val newByte = io.wrData((i + 1) * 8 - 1, i * 8) << shift
-    // If the write-enable for this byte is high, update; otherwise, keep the accumulated value.
-    Mux(io.wrEnable(i), (acc & (~byteMask).asUInt) | newByte.asUInt, acc)
-  }
-
-  // Write the modified word back to memory
-  mem.write(truncatedWrAddress, newData)
-
-  // when any wrEnable printf newData
-  when(io.wrEnable.reduce(_ || _)) {
-    printf(p"[wr] addr: $truncatedWrAddress | input: ${io.wrData} | newData: ${newData}\n")
-  }
+  (0 until 4).foreach(i => {
+    when(io.wrEnable(i)) {
+      mems(i).write(truncatedWrAddress, io.wrData(i * 8 + 7, i * 8))
+    }
+  })
 
   io.stall := false.B
 }
 
 class CPUTestTop(program: RISCVCompiler.CompiledProgram) extends Module {
-  println(".text")
-  program._1.foreach(x => println(f"${x}%08x"))
-  println(".data")
-  program._2.foreach(x => println(f"${x}%08x"))
-
   val nrBytes = 4096
 
   val debugMemory = IO(Flipped(new MemIO()))
@@ -85,7 +43,8 @@ class CPUTestTop(program: RISCVCompiler.CompiledProgram) extends Module {
   val cpu = Module(new ThreeCats())
   // val cpu = Module(new WildFour())
   // val cpu = Module(new StandardFive())
-  val dmem = Module(new ScratchPadMem(program._2, nrBytes))
+
+  val dmem = Module(new TestRAM(program._2, nrBytes))
   val imem = Module(new InstructionROM(program._1))
 
   cpu.io.imem <> imem.io
@@ -245,6 +204,31 @@ fail:
       }
 
       expectMemory(dut, 0x10, 42)
+    })
+  }
+
+  it should "store large integers from C" in {
+    val p = RISCVCompiler.inlineC(
+      """
+      int main() {
+        volatile unsigned int *ptr1 = (int *) 0x0;
+        volatile unsigned int *ptr2 = (int *) 0x4;
+        volatile unsigned int *ptr3 = (int *) 0x8;
+        *ptr1 = 0x7fffffff;
+        *ptr2 = 0x7;
+        *ptr3 = *ptr1 - *ptr2;
+        
+        asm("ecall");
+      }""")
+
+    test(new CPUTestTop(p))(dut => {
+      while (!dut.debugCpuStop.peek().litToBoolean) {
+        dut.clock.step()
+      }
+
+      expectMemory(dut, 0x0, 0x7fffffff)
+      expectMemory(dut, 0x4, 0x7)
+      expectMemory(dut, 0x8, 0x7fffffff - 0x7)
     })
   }
 }
