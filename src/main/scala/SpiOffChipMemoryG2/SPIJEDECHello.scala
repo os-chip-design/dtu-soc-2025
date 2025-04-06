@@ -11,15 +11,14 @@ class spiIO extends Bundle {
 }
 
 class JEDECout extends Bundle{
+  val start = Input(Bool())
   val dataOut = Output(UInt(24.W))
+  val states = Output(UInt(2.W))
 }
 
 class SPIJEDECHello(
-    val addrWidth: Int = 24,
-    val dataWidth: Int = 32,
     val spiFreq: Int = 1000000,
-    val freq: Int = 50000000,
-    val configuredIntoQSPI: Boolean = false
+    val freq: Int = 50000000
 ) extends Module {
   val spiPort = IO(new spiIO)
   val JEDECout = IO(new JEDECout)
@@ -46,8 +45,8 @@ class SPIJEDECHello(
   val readJEDECInstruction = "b10011111".U
 
   spiPort.dataOut := 0.U
-  spiPort.chipSelect := false.B
   spiPort.spiClk := spiClkReg
+  spiPort.chipSelect := true.B
   JEDECout.dataOut := JEDECReg.reduce(_ ## _)
 
   when(spiClkCounterReg === spiClkCounterMax) {
@@ -56,18 +55,22 @@ class SPIJEDECHello(
   }.otherwise {
     spiClkCounterReg := spiClkCounterReg + 1.U
   }
+  JEDECout.states := 0.U
 
 
   switch(stateReg) {
     // --- starting ---
     is(State.start) {
-      spiPort.chipSelect := false.B
-      pointerReg := 7.U
-      stateReg := State.configure_into_spi_instr_transmit
+      when (JEDECout.start) {
+        spiPort.chipSelect := false.B
+        stateReg := State.configure_into_spi_instr_transmit
+        pointerReg := 7.U
+      }
     }
 
     // -- sending the command --
     is(State.configure_into_spi_instr_transmit) {
+      spiPort.chipSelect := false.B
       when(risingEdgeOfSpiClk) {
         pointerReg := pointerReg - 1.U
 
@@ -77,26 +80,35 @@ class SPIJEDECHello(
         }
       }
       spiPort.dataOut := readJEDECInstruction(pointerReg)
+      JEDECout.states := 1.U
     }
 
     // -- obtaining the data from the device --
     is (State.receiveData)
     {
+      spiPort.chipSelect := false.B
       when(risingEdgeOfSpiClk) {
         pointerReg := pointerReg - 1.U
 
         when(pointerReg === 0.U) {
           stateReg := State.finished
-          pointerReg := 0.U
         }
         JEDECReg(pointerReg) := spiPort.dataIn
       }
+      JEDECout.states := 2.U
     }
 
     is (State.finished)
     {
-      // do nothing?
+      JEDECout.states := 3.U
     }
   }
   
+}
+
+object SPIJEDECBasys3 extends App {
+  val basys3ClockFreq = 100000000 // 100MHz
+  val spiFreq = 1000000 // 1MHz
+  // Use ChiselStage instead of Driver
+  (new chisel3.stage.ChiselStage).emitVerilog(new SPIJEDECHello(spiFreq, basys3ClockFreq), Array("--target-dir", "generated"))
 }

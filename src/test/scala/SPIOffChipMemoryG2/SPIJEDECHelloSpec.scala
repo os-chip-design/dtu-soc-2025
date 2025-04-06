@@ -58,18 +58,15 @@ class SPIJEDECHelloSpec
   it should "Read the JEDEC of the memory" in {
     test(
       new SPIJEDECHello(
-        addrWidth = 24,
-        dataWidth = 32,
         spiFreq = 2,
-        freq = 10,
-        configuredIntoQSPI = true
+        freq = 10
       )
     ) { dut =>
 
       // dut.clock.step()  
     
       val spi = new SpiIoBFM(dut.spiPort, dut.clock)
-
+      dut.JEDECout.start.poke(true.B)
       // chip select should be false
       spi.expectChipEnable(false)
       dut.clock.step(1)
@@ -120,8 +117,6 @@ class SPIJEDECHelloSpec
   it should "Handle SPIO clk correctly" in {
     test(
       new SPIJEDECHello(
-        addrWidth = 24,
-        dataWidth = 32,
         spiFreq = 1000000,
         freq = 50000000
       )
