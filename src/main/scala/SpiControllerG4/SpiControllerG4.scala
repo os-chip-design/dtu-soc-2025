@@ -82,6 +82,11 @@ class SpiControllerG4 extends Module {
     }
     io.spiClk := spiClkReg
 
+    // Edge detection registers
+    val spiClkRegPrev = RegNext(spiClkReg)
+    val fallingEdge = !spiClkReg && spiClkRegPrev
+    val risingEdge = spiClkReg && !spiClkRegPrev
+
     switch (stateReg) {
         is (idle) {
             when (io.enable) {
@@ -90,32 +95,28 @@ class SpiControllerG4 extends Module {
         }
         is (loadData) {
             csReg := false.B
-            txShiftReg := Cat(io.cpuCommand, io.cpuWriteData)
+            txShiftReg := Cat(io.cpuWriteData, 0.U(8.W))
             bitCounter := io.sendLength
             stateReg := sendData
         }
         is (sendData) {
-            when (!spiClkReg) {
+            when (fallingEdge) {
                 txShiftReg := txShiftReg << 1
                 bitCounter := bitCounter - 1.U
 
                 when (bitCounter === 0.U) {
-
-                    when (!io.rw) {
-                        bitCounter := 0.U
-                        stateReg := receiveData
-                    } .otherwise {
-                        stateReg := deassertCS
-                    }
+                    stateReg := Mux(!io.rw, receiveData, deassertCS)
                 }
             }
         }
         is (receiveData) {
-            rxShiftReg := rxShiftReg << 1
-            bitCounter := bitCounter + 1.U
-            when (bitCounter === 32.U) {
-                io.cpuReadData := rxShiftReg
-                stateReg := deassertCS
+            when(risingEdge){
+                rxShiftReg := rxShiftReg << 1
+                bitCounter := bitCounter + 1.U
+                when(bitCounter === 32.U) {
+                    io.cpuReadData := rxShiftReg
+                    stateReg := deassertCS
+                }
             }
         }
         is (deassertCS) {
