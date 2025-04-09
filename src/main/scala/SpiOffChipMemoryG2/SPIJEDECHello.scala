@@ -7,21 +7,15 @@ class spiIO extends Bundle {
 
   val dataIn = Input(Bool())
   val dataOut = Output(Bool())
-
-}
-
-class JEDECout extends Bundle{
-  val start = Input(Bool())
-  val dataOut = Output(UInt(24.W))
-  val states = Output(UInt(2.W))
 }
 
 class SPIJEDECHello(
     val spiFreq: Int = 1000000,
-    val freq: Int = 50000000
+    val freq: Int = 50000000,
+    val addrWidth: Int = 24,
 ) extends Module {
   val spiPort = IO(new spiIO)
-  val JEDECout = IO(new JEDECout)
+  val interconnectPort = IO(new PipeCon(addrWidth))
   
   object State extends ChiselEnum {
     val start, configure_into_spi_instr_transmit,
@@ -34,7 +28,6 @@ class SPIJEDECHello(
 
   val pointerReg = RegInit(0.U(32.W))
   
-
   val spiClkCounterReg = RegInit(0.U(32.W))
 
   val spiClkCounterMax = ((freq / spiFreq / 2) - 1).U
@@ -43,11 +36,15 @@ class SPIJEDECHello(
 
   val risingEdgeOfSpiClk = !RegNext(spiClkReg) && spiClkReg
   val readJEDECInstruction = "b10011111".U
+  val writeEnableInstruction = "b00000110".U // 0x06 (Write Enable), table 8.1.3
+
+
 
   spiPort.dataOut := 0.U
   spiPort.spiClk := spiClkReg
   spiPort.chipSelect := true.B
-  JEDECout.dataOut := JEDECReg.reduce(_ ## _)
+  interconnectPort.rdData := JEDECReg.reduce(_ ## _)
+  interconnectPort.ack := false.B
 
   when(spiClkCounterReg === spiClkCounterMax) {
     spiClkCounterReg := 0.U
@@ -55,13 +52,11 @@ class SPIJEDECHello(
   }.otherwise {
     spiClkCounterReg := spiClkCounterReg + 1.U
   }
-  JEDECout.states := 0.U
-
 
   switch(stateReg) {
     // --- starting ---
     is(State.start) {
-      when (JEDECout.start) {
+      when (interconnectPort.rd) {
         spiPort.chipSelect := false.B
         stateReg := State.configure_into_spi_instr_transmit
         pointerReg := 7.U
@@ -80,7 +75,6 @@ class SPIJEDECHello(
         }
       }
       spiPort.dataOut := readJEDECInstruction(pointerReg)
-      JEDECout.states := 1.U
     }
 
     // -- obtaining the data from the device --
@@ -95,12 +89,11 @@ class SPIJEDECHello(
         }
         JEDECReg(pointerReg) := spiPort.dataIn
       }
-      JEDECout.states := 2.U
     }
 
     is (State.finished)
     {
-      JEDECout.states := 3.U
+      interconnectPort.ack := true.B
     }
   }
   
