@@ -54,14 +54,6 @@ module user_project_wrapper #(
 */
 
 class CaravelIO(MPRJ_IO_PADS: Int = 38, USE_POWER_PINS: Boolean = false) extends Bundle {
-  val vdda1: Option[Analog] = if (USE_POWER_PINS) Some(Analog(1.W)) else None
-  val vdda2: Option[Analog] = if (USE_POWER_PINS) Some(Analog(1.W)) else None
-  val vssa1: Option[Analog] = if (USE_POWER_PINS) Some(Analog(1.W)) else None
-  val vssa2: Option[Analog] = if (USE_POWER_PINS) Some(Analog(1.W)) else None
-  val vccd1: Option[Analog] = if (USE_POWER_PINS) Some(Analog(1.W)) else None
-  val vccd2: Option[Analog] = if (USE_POWER_PINS) Some(Analog(1.W)) else None
-  val vssd1: Option[Analog] = if (USE_POWER_PINS) Some(Analog(1.W)) else None
-  val vssd2: Option[Analog] = if (USE_POWER_PINS) Some(Analog(1.W)) else None
   // Wishbone
   val wb_clk_i: Clock = Input(Clock())
   val wb_rst_i: Bool = Input(Bool())
@@ -81,8 +73,7 @@ class CaravelIO(MPRJ_IO_PADS: Int = 38, USE_POWER_PINS: Boolean = false) extends
   val io_in: UInt = Input(UInt(MPRJ_IO_PADS.W))
   val io_out: UInt = Output(UInt(MPRJ_IO_PADS.W))
   val io_oeb: UInt = Output(UInt(MPRJ_IO_PADS.W))
-  // Analog IO (offset by 7)
-  val analog_io: Vec[Analog] = Vec(MPRJ_IO_PADS - 10, Analog(1.W))
+
   // Independent clock
   val user_clock2: Clock = Input(Clock())
   // IRQs
@@ -128,7 +119,7 @@ class CaravelTopLevel extends RawModule {
     rst := io.wb_rst_i
   }
 
-  withClockAndReset(io.wb_clk_i, io.wb_rst_i) {
+  withClockAndReset(clk, rst) {
     io.la_data_out := !rst.asUInt
   }
 }
