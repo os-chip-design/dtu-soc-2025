@@ -10,13 +10,11 @@ class TestRAM(data: Array[Int], nrBytes: Int = 4096) extends Module {
   val mems = Seq.fill(4)(SyncReadMem(nrBytes / 4, UInt(8.W), SyncReadMem.WriteFirst))
 
   // Write default memory correctly into the memory
-  data.map(x => (0 until 4).map(i => (x >> (i * 8)) & 0xff).toArray).transpose.zipWithIndex.map(x => {
-    val (data, i) = x
-    data.zipWithIndex.map(y => {
-      val (byte, j) = y
+  for ((data, i) <- data.map(x => (0 until 4).map(i => (x >> (i * 8)) & 0xff).toArray).transpose.zipWithIndex) {
+    for ((byte, j) <- data.zipWithIndex) {
       mems(i).write(j.U, byte.U)
-    })
-  })
+    }
+  }
 
   val idx = log2Up(nrBytes / 4)
   val truncatedWrAddress = io.wrAddress(idx + 2, 2)
