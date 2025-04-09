@@ -66,7 +66,7 @@ class SPIJEDECHelloSpec
       // dut.clock.step()  
     
       val spi = new SpiIoBFM(dut.spiPort, dut.clock)
-      dut.JEDECout.start.poke(true.B)
+      dut.interconnectPort.rd.poke(true.B)
       // chip select should be false
       spi.expectChipEnable(false)
       dut.clock.step(1)
@@ -108,7 +108,7 @@ class SPIJEDECHelloSpec
       dut.clock.step()
       dut.clock.step(200)
       // dut.JEDECout.dataOut.expect(response)
-      val obtained = dut.JEDECout.dataOut.peek()
+      val obtained = dut.interconnectPort.rdData.peek()
       assert(response.litValue == obtained.litValue, s"[expectDataOut] Expected $response, got $obtained")
 
     }
