@@ -103,8 +103,33 @@ class CaravelTopLevel extends RawModule {
   // Analog logic here.
 
   // Digital logic inside this block.
-  withClockAndReset(io.wb_clk_i, io.wb_rst_i) {
 
+  /**
+   * assign la_data_out = {{(128-BITS){1'b0}}, count};
+   * // Assuming LA probes [63:32] are for controlling the count register  
+   * assign la_write = ~la_oenb[63:64-BITS] & ~{BITS{valid}};
+   * // Assuming LA probes [65:64] are for controlling the count clk & reset  
+   * assign clk = (~la_oenb[64]) ? la_data_in[64]: wb_clk_i;
+   * assign rst = (~la_oenb[65]) ? la_data_in[65]: wb_rst_i;
+   */
+
+  private val clk = Wire(Clock())
+  private val rst = Wire(Bool())
+
+  when(!io.la_oenb(64)) {
+    clk := io.la_data_in(64).asClock
+  }.otherwise {
+    clk := io.wb_clk_i
+  }
+
+  when(!io.la_oenb(65)) {
+    rst := io.la_data_in(65)
+  }.otherwise {
+    rst := io.wb_rst_i
+  }
+
+  withClockAndReset(io.wb_clk_i, io.wb_rst_i) {
+    io.la_data_out := !rst.asUInt
   }
 }
 
