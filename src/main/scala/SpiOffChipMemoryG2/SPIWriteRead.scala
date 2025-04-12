@@ -22,9 +22,10 @@ class SPIWriteRead(
   
   val io = IO(new Bundle { // connections for FPGA testing
     val currInstr = Input(UInt(3.W))
-    val display_select = Input(UInt(2.W))
+    val display_select = Input(UInt(3.W))
     val seg = Output(UInt(7.W))
     val an = Output(UInt(4.W))
+    val state = Output(UInt(3.W))
   })
   
   object State extends ChiselEnum {
@@ -54,7 +55,8 @@ class SPIWriteRead(
   val sectorEraseInstruction = "b00100000".U // 0x20 (Sector Erase), table 8.1.3
 
   val addressReg = RegInit(0.U(addrWidth.W)) // Stores the address to access in the flash memory
-  val data = "b01000100010001001111111111111111".U(32.W) // Data to be written to the flash memory
+  //val data = "b01000100010001001111111111111111".U(32.W) // Data to be written to the flash memory
+  val data = "hDEADBEEF".U(32.W) // Data to be written to the flash memory
   val instrReg = RegInit(0.U(8.W))
 
   val rdData = WireDefault(0.U(dataWidth.W))
@@ -71,8 +73,9 @@ class SPIWriteRead(
   }.otherwise {
     spiClkCounterReg := spiClkCounterReg + 1.U
   }
-  
+  io.state := stateReg.asUInt
   switch(stateReg) {
+
     // --- starting ---
     is(State.start) {
       when (interconnectPort.rd) {
@@ -92,13 +95,12 @@ class SPIWriteRead(
         addressReg := addressReg(23, 8) ## interconnectPort.address(7, 0)
       }
     }
+    
 
     // -- sending the command --
     is(State.spiInstrTransmit) {
       spiPort.chipSelect := false.B
       when(risingEdgeOfSPIClk) {
-        pointerReg := pointerReg - 1.U
-
         when(pointerReg === 0.U) {
           when(instrReg === readJEDECInstruction){  // ReadJeDECInstruction
             stateReg := State.receiveData
@@ -109,17 +111,15 @@ class SPIWriteRead(
             stateReg := State.sendAddress
             pointerReg := (addrWidth - 1).U 
           }
+        }.otherwise {
+          pointerReg := pointerReg - 1.U
         }
       }
-
       spiPort.dataOut := instrReg(pointerReg)
     }
-
     is (State.sendAddress) {
       spiPort.chipSelect := false.B
       when(risingEdgeOfSPIClk) {
-        pointerReg := pointerReg - 1.U
-
         when(pointerReg === 0.U) {
           when(instrReg === pageProgramInstruction){
             stateReg := State.writeData
@@ -133,6 +133,8 @@ class SPIWriteRead(
             stateReg := State.receiveData
             pointerReg := 7.U
           }
+        }.otherwise {
+          pointerReg := pointerReg - 1.U
         }
       }
       spiPort.dataOut := addressReg(pointerReg)
@@ -142,14 +144,13 @@ class SPIWriteRead(
     {
       spiPort.chipSelect := false.B
       when(risingEdgeOfSPIClk) {
-        pointerReg := pointerReg - 1.U
-
         when(pointerReg === 0.U) {
           stateReg := State.finished
+        }.otherwise {
+          pointerReg := pointerReg - 1.U
         }
-
-        spiPort.dataOut := data(pointerReg)
       }
+      spiPort.dataOut := data(pointerReg)
     }
 
     // -- obtaining the data from the device --
@@ -157,15 +158,15 @@ class SPIWriteRead(
     {
       spiPort.chipSelect := false.B
       when(risingEdgeOfSPIClk) {
-        pointerReg := pointerReg - 1.U
-
         when(pointerReg === 0.U) {
           stateReg := State.finished
+        }.otherwise {
+          pointerReg := pointerReg - 1.U
         }
-
-        dataOutReg(pointerReg) := spiPort.dataIn
       }
+      dataOutReg(pointerReg) := spiPort.dataIn
     }
+
 
     is (State.finished)
     {
@@ -178,19 +179,30 @@ class SPIWriteRead(
         instrReg := 0.U
       }
     }
-  }
+    
 
+  }
+  
   val displayDriver = Module(new DisplayDriver(refreshRate))
-  displayDriver.io.input := data(15, 0) // default value
+  displayDriver.io.input := "b1010101110111010".U(16.W) // ABBA, value to know when not displaying anything
   switch(io.display_select) {
-    is(1.U) { 
+    is(0.U) { // 000
+      displayDriver.io.input := data(15, 0)
+    }
+    is(1.U) { // 001
       displayDriver.io.input := data(31, 16)
     }
-    is(2.U) {
+    is(2.U) { // 010
       displayDriver.io.input := rdData(15, 0)
     }
-    is(3.U) { 
+    is(3.U) { // 011
       displayDriver.io.input := rdData(31, 16)
+    } 
+    is(4.U) { // 100 
+      displayDriver.io.input := pointerReg(15, 0)
+    }
+    is(5.U) { // 101
+      displayDriver.io.input := pointerReg(31, 16)
     }
   }
 
@@ -202,5 +214,6 @@ object SPIWriteReadBasys3 extends App {
   val basys3ClockFreq = 100000000 // 100MHz
   val spiFreq =         1000000 // 1MHz
   val refreshRate =     100000  // 1ms refresh rate for the seven segment display
-  (new chisel3.stage.ChiselStage).emitVerilog(new SPIWriteRead(spiFreq, basys3ClockFreq, 24, refreshRate), Array("--target-dir", "generated"))
+  (new chisel3.stage.ChiselStage).emitVerilog(new SPIWriteRead(spiFreq, basys3ClockFreq, 24, 32, refreshRate), Array("--target-dir", "generated"))
+  //(new chisel3.stage.ChiselStage).emitVerilog(new DisplayDriver(refreshRate), Array("--target-dir", "generated"))
 }
