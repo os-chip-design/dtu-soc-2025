@@ -25,9 +25,9 @@ This document uses a clean field table format for each SPI register.
 | Bit Range | Field Name           | Width | Description                                |
 |-----------|----------------------|--------|--------------------------------------------|
 | 31:26     | Reserved             | 6      | Reserved (must write 0)                    |
-| 25:23     | `spi_cs_select`      | 3      | Chip select index (0–7)                    |
+| 25:23     | `spi_cs_select`      | 3      | Chip select index (0–7)    (maybe)         |
 | 22:18     | `spi_receive_length` | 5      | Number of bits to receive                  |
-| 17:13     | `spi_delay_cycles`   | 5      | Delay cycles between transfers             |
+| 17:13     | `spi_delay_cycles`   | 5      | Delay cycles between send and recevie      |
 | 12:8      | `spi_send_length`    | 5      | Number of bits to transmit                 |
 | 7         | `spi_enable`         | 1      | Enable SPI controller                      |
 | 6:2       | `spi_prescale`       | 5      | SPI clock divider                          |
