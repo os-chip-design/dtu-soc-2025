@@ -11,17 +11,19 @@ class SPIWriteRead(
 ) extends Module {
   val spiPort = IO(new spiIO)
   val interconnectPort = IO(new Bundle { // temporary interconnect port for testing
-    val address = Input(UInt(8.W))
+    //val address = Input(UInt(addrWidth.W))
     val rd = Input(Bool()) // currently used as control signals for testing
     val wr = Input(Bool()) // currently used as control signals for testing
     //val rdData = Output(UInt(dataWidth.W))
     //val wrData = Input(UInt(dataWidth.W))
-    val wrMask = Input(UInt(4.W))
+    //val wrMask = Input(UInt(4.W))
     val ack = Output(Bool())
   })
   
   val io = IO(new Bundle { // connections for FPGA testing
     val currInstr = Input(UInt(3.W))
+    val addr_select = Input(UInt(2.W))
+    val data_select = Input(UInt(2.W))
     val display_select = Input(UInt(3.W))
     val seg = Output(UInt(7.W))
     val an = Output(UInt(4.W))
@@ -47,19 +49,45 @@ class SPIWriteRead(
   val risingEdgeOfSPIClk = risingEdge(spiClkReg)
 
   //-------------------------------
-  val pageProgramInstruction =  "b00000010".U
+  val readJEDECInstruction   =  "b10011111".U // 0x9F (Read JeDEC ID), table 8.1.3
   val writeEnableInstruction =  "b00000110".U // 0x06 (Write Enable), table 8.13
-  val readJEDECInstruction   =  "b10011111".U
-  val readDataInstruction    =  "b00000011".U // 0x03 (Read Data), table 8.1.3
+  val pageProgramInstruction =  "b00000010".U // 0x02 (Page Program), table 8.1.3
+  val readDataInstruction    =  "b00000011".U      // 0x03 (Read Data), table 8.1.3
   val readStatusRegisterInstruction = "b00000101".U // 0x05 (Read Status Register), table 8.1.3
   val sectorEraseInstruction = "b00100000".U // 0x20 (Sector Erase), table 8.1.3
 
+  val addresses = VecInit(Seq.fill(4)(0.U(addrWidth.W))) // 4 addresses for the flash memory
+  addresses(0) := "h000000".U
+  addresses(1) := "h008123".U
+  addresses(2) := "hABABAB".U
+  addresses(3) := "hFFFFFF".U
+
+  val datas = VecInit(Seq.fill(4)(0.U(dataWidth.W))) // 4 data for the flash memory
+  datas(0) := "hDEADBEEF".U
+  datas(1) := "hABCDEFFF".U
+  datas(2) := "hBAAAAAAD".U
+  datas(3) := "hABABABAB".U
+
+  val instructions = VecInit(Seq.fill(8)(0.U(8.W))) // 4 instructions for the flash memory
+  instructions(0) := readJEDECInstruction
+  instructions(1) := writeEnableInstruction
+  instructions(2) := pageProgramInstruction
+  instructions(3) := readDataInstruction
+  instructions(4) := readStatusRegisterInstruction
+  instructions(5) := sectorEraseInstruction
+  instructions(6) := readJEDECInstruction
+  instructions(7) := readJEDECInstruction
+
   val addressReg = RegInit(0.U(addrWidth.W)) // Stores the address to access in the flash memory
-  //val data = "b01000100010001001111111111111111".U(32.W) // Data to be written to the flash memory
-  val data = "hDEADBEEF".U(32.W) // Data to be written to the flash memory
+  val dataReg = RegInit(0.U(dataWidth.W)) // Stores the data to be written to the flash memory
   val instrReg = RegInit(0.U(8.W))
 
   val rdData = WireDefault(0.U(dataWidth.W))
+
+  val data = datas(io.data_select) // Select the data to be written to the flash memory
+  val address = addresses(io.addr_select) // Select the address to be accessed in the flash memory
+  val instruction = instructions(io.currInstr) // Select the instruction to be sent to the flash memory
+
 
   spiPort.dataOut         := 0.U
   spiPort.spiClk          := spiClkReg
@@ -83,16 +111,10 @@ class SPIWriteRead(
         stateReg := State.spiInstrTransmit
         pointerReg := 7.U
 
-        instrReg := readJEDECInstruction // default instruction
-        switch(io.currInstr) {
-          is(1.U) { instrReg := writeEnableInstruction }
-          is(2.U) { instrReg := pageProgramInstruction }
-          is(3.U) { instrReg := readDataInstruction }
-          is(4.U) { instrReg := readStatusRegisterInstruction }
-          is(5.U) { instrReg := sectorEraseInstruction }
-        }
-
-        addressReg := addressReg(23, 8) ## interconnectPort.address(7, 0)
+        instrReg := instructions(io.currInstr) // load the instruction to be sent to the flash memory
+        addressReg := addresses(io.addr_select) 
+        dataReg := datas(io.data_select) 
+        dataOutReg := VecInit(Seq.fill(dataWidth)(0.U(1.W))) // reset the dataOut register
       }
     }
     
@@ -150,7 +172,7 @@ class SPIWriteRead(
           pointerReg := pointerReg - 1.U
         }
       }
-      spiPort.dataOut := data(pointerReg)
+      spiPort.dataOut := dataReg(pointerReg)
     }
 
     // -- obtaining the data from the device --
@@ -175,8 +197,6 @@ class SPIWriteRead(
       when(interconnectPort.wr)
       {
         stateReg := State.start
-        dataOutReg := VecInit(Seq.fill(dataWidth)(0.U(1.W)))
-        instrReg := 0.U
       }
     }
     
@@ -203,6 +223,12 @@ class SPIWriteRead(
     }
     is(5.U) { // 101
       displayDriver.io.input := pointerReg(31, 16)
+    }
+    is(6.U) { // 110
+      displayDriver.io.input := address(15, 0)
+    }
+    is(7.U) { // 111
+      displayDriver.io.input := instruction(7, 0) ## address(23, 16) // 8 bits of instruction + 8 bits of address
     }
   }
 
