@@ -59,7 +59,7 @@ class SPIWriteRead(
   val addresses = VecInit(Seq.fill(4)(0.U(addrWidth.W))) // 4 addresses for the flash memory
   addresses(0) := "h000000".U
   addresses(1) := "h008123".U
-  addresses(2) := "hABABAB".U
+  addresses(2) := "h008124".U
   addresses(3) := "hFFFFFF".U
 
   val datas = VecInit(Seq.fill(4)(0.U(dataWidth.W))) // 4 data for the flash memory
