@@ -2,26 +2,27 @@ import chisel3._
 import chisel3.util._
 
 
+
+
 class SPIController(
-    val spiFreq: Int = 1000000,
-    val freq: Int = 50000000,
-    val addrWidth: Int = 24,
-    val dataWidth: Int = 32,
+    val clockDivision : Int = 50,
 ) extends Module {
   val spiPort = IO(new spiIO)
 
   val interconnectPort = IO(new Bundle {
     val valid = Input(Bool())
     val ready = Input(Bool())
-    val currInstr = Input(UInt(2.W))
-    val dataIn = Input(UInt(dataWidth.W))
-    val address = Input(UInt(addrWidth.W))
-    val dataOut = Output(UInt(dataWidth.W))
+    val instruction = Input(UInt(8.W))
+    val dataIn = Input(UInt(32.W))
+    val address = Input(UInt(24.W))
+    val dataOut = Output(UInt(32.W))
     val done = Output(Bool())
+
+    val flashMemory = Input(Bool()) // toggle to indicate targetting flash memory / RAM
   })
 
   object State extends ChiselEnum {
-    val idle, spiInstrTransmit, sendAddress,
+    val idle, instructionTransmit, sendAddress,
         receiveData, writeData, finished= Value        
   }
 
@@ -29,90 +30,102 @@ class SPIController(
 
   // Registers
   val stateReg = RegInit(State.idle)
-  val dataOutReg = RegInit(VecInit(Seq.fill(dataWidth)(0.U(1.W))))
+  val dataOutReg = RegInit(VecInit(Seq.fill(32)(0.U(1.W))))
   val pointerReg = RegInit(0.U(32.W))
   
   //  SPI clock counter 
   val spiClkCounterReg = RegInit(0.U(32.W))
-  val spiClkCounterMax = ((freq / spiFreq / 2) - 1).U 
+  val spiClkCounterMax = ((clockDivision / 2) - 1).U 
   val spiClkReg = RegInit(false.B)
   val risingEdgeOfSPIClk = risingEdge(spiClkReg)
 
-  // Instructions
-  val readJEDECInstruction   =  "b10011111".U // 0x9F (Read JeDEC ID), table 8.1.3
-  val writeEnableInstruction =  "b00000110".U // 0x06 (Write Enable), table 8.13
-  val pageProgramInstruction =  "b00000010".U // 0x02 (Page Program), table 8.1.3
-  val readDataInstruction    =  "b00000011".U // 0x03 (Read Data), table 8.1.3
+  val rdData = dataOutReg.reduce(_ ## _)
 
-  val instructions = VecInit(Seq.fill(4)(0.U(8.W))) // 4 instructions for the flash memory
-  instructions(0) := readJEDECInstruction
-  instructions(1) := writeEnableInstruction
-  instructions(2) := pageProgramInstruction
-  instructions(3) := readDataInstruction
-
-  val rdData = dataOutReg.reverse.reduce(_ ## _)
+  val instruction = interconnectPort.instruction // Instruction to be sent to the flash memory
 
   val data = interconnectPort.dataIn // Data to be sent to the flash memory
   val address = interconnectPort.address // Address to be sent to the flash memory
-  val instruction = instructions(interconnectPort.currInstr) // Select the instruction to be sent to the flash memory
-
+  val startClock = WireDefault(false.B) // Start clock signal for the SPI communication
+  
   spiPort.dataOut          := 0.U
-  spiPort.spiClk           := spiClkReg
   spiPort.chipSelect       := true.B
+  spiPort.spiClk           := spiClkReg
   interconnectPort.done    := false.B
   interconnectPort.dataOut := rdData
 
-  when(spiClkCounterReg === spiClkCounterMax) {
-    spiClkCounterReg := 0.U
-    spiClkReg := !spiClkReg
+  when (startClock) {
+    when(spiClkCounterReg === spiClkCounterMax) {
+      spiClkCounterReg := 0.U
+      spiClkReg := !spiClkReg
+    }.otherwise {
+      spiClkCounterReg := spiClkCounterReg + 1.U
+    }
   }.otherwise {
-    spiClkCounterReg := spiClkCounterReg + 1.U
+    spiClkCounterReg := 0.U
+    spiClkReg := true.B
   }
+
+  when (risingEdge(startClock)) {
+    spiPort.spiClk := false.B
+    spiClkReg := false.B
+  }
+  
 
   switch(stateReg) {
 
-    // --- starting ---
     is(State.idle) {
       when (interconnectPort.valid) {
         spiPort.chipSelect := false.B
-        stateReg := State.spiInstrTransmit
+        stateReg := State.instructionTransmit
         pointerReg := 7.U
-
-        dataOutReg := VecInit(Seq.fill(dataWidth)(0.U(1.W))) // reset the dataOut register
+        dataOutReg := VecInit(Seq.fill(32)(0.U(1.W))) // reset the dataOut register
+        startClock := true.B
       }
     }
     
-    // -- sending the command --
-    is(State.spiInstrTransmit) {
+    is(State.instructionTransmit) {
       spiPort.chipSelect := false.B
+      spiPort.dataOut := instruction(pointerReg)
+      startClock := true.B 
+
       when(risingEdgeOfSPIClk) {
         when(pointerReg === 0.U) {
-          when(instruction === readJEDECInstruction){  // ReadJeDECInstruction
+          when(instruction === SPIInstructions.readJEDECInstruction && interconnectPort.flashMemory){  // ReadJeDECInstruction
             stateReg := State.receiveData
             pointerReg := 23.U
-          }.elsewhen(instruction === writeEnableInstruction){ // WriteEnableInstruction
+          }.elsewhen(instruction === SPIInstructions.writeEnableInstruction || 
+                    instruction === SPIInstructions.chipEraseInstruction){ // WriteEnableInstruction or ChipEraseInstruction
             stateReg := State.finished
+            startClock := false.B
+          }.elsewhen(instruction === SPIInstructions.readStatusRegister1Instruction) {
+            stateReg := State.receiveData
+            pointerReg := 7.U
           }.otherwise{ 
             stateReg := State.sendAddress
-            pointerReg := (addrWidth - 1).U 
+            pointerReg := 23.U 
           }
         }.otherwise {
           pointerReg := pointerReg - 1.U
         }
       }
-      spiPort.dataOut := instruction(pointerReg)
     }
     
     is (State.sendAddress) {
       spiPort.chipSelect := false.B
+      spiPort.dataOut := address(pointerReg)
+      startClock := true.B
+
       when(risingEdgeOfSPIClk) {
         when(pointerReg === 0.U) {
-          when(instruction === pageProgramInstruction){
+          when(instruction === SPIInstructions.pageProgramInstruction){
             stateReg := State.writeData
-            pointerReg := (dataWidth - 1).U
-          }.elsewhen(instruction === readDataInstruction){
+            pointerReg := 31.U
+          }.elsewhen(instruction === SPIInstructions.readDataInstruction){
             stateReg := State.receiveData
-            pointerReg := (dataWidth - 1).U
+            pointerReg := 31.U
+          }.elsewhen(instruction === SPIInstructions.readJEDECInstruction && !interconnectPort.flashMemory){
+            stateReg := State.receiveData
+            pointerReg := 19.U
           }.otherwise {
             stateReg := State.receiveData
             pointerReg := 7.U
@@ -121,34 +134,39 @@ class SPIController(
           pointerReg := pointerReg - 1.U
         }
       }
-      spiPort.dataOut := address(pointerReg)
     }
 
     is (State.writeData)
     {
       spiPort.chipSelect := false.B
+      spiPort.dataOut := data(pointerReg)
+      startClock := true.B
+
       when(risingEdgeOfSPIClk) {
         when(pointerReg === 0.U) {
           stateReg := State.finished
+          startClock := false.B
         }.otherwise {
           pointerReg := pointerReg - 1.U
         }
       }
-      spiPort.dataOut := data(pointerReg)
     }
 
     // -- obtaining the data from the device --
     is (State.receiveData)
     {
       spiPort.chipSelect := false.B
+      dataOutReg(pointerReg) := spiPort.dataIn
+      startClock := true.B
+
       when(risingEdgeOfSPIClk) {
         when(pointerReg === 0.U) {
           stateReg := State.finished
+          startClock := false.B
         }.otherwise {
           pointerReg := pointerReg - 1.U
         }
       }
-      dataOutReg(pointerReg) := spiPort.dataIn
     }
 
     is (State.finished)

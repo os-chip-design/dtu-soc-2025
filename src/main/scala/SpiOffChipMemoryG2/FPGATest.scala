@@ -2,7 +2,7 @@ import chisel3._
 import chisel3.util._
 
 ///////////////////// Pin guide /////////////////////
-// --- Transition inputs --- (fpga_start, fpga_again, fpga_jedec, fpga_justRead)
+// --- Transition inputs --- (fpga_start, fpga_again, fpga_justRead, fpga_jedec)
 // From idle:
 // xxx1 : read JEDEC ID -> goes to either done or error state
 // xx10 : just read     -> goes to justRead1 state
@@ -33,13 +33,14 @@ import chisel3.util._
 ///////////////////// ////////// /////////////////////
 
 class FPGATest(
-    val spiFreq: Int = 1000000,
-    val freq: Int = 50000000,
+    val clockDivision: Int = 2, // SPI clock division factor
     val refreshRate: Int = 1000000, // for showing the data on the seven segment display
     val testCases: Int = 4,
+    val printTestCases: Boolean = false // print the test cases to the console
 ) extends Module {
   
   val spiPort = IO(new spiIO)
+
   val fpga = IO(new Bundle {
     val start = Input(Bool())
     val again = Input(Bool()) 
@@ -53,47 +54,64 @@ class FPGATest(
     val an  = Output(UInt(4.W))
 
     val states = Output(UInt(3.W))
+
+    val clear = Input(Bool()) // clear the memory
+    val flashMemory = Input(Bool()) // toggle to indicate targetting flash memory / RAM
   })
 
   object State extends ChiselEnum {
-    val idle, jedec, reading, writing, justRead0, justRead1, justRead2, error, done = Value        
+    val idle, jedec, reading, writing, justRead0, justRead1, justRead2, error, clearing, done = Value        
   }
 
-  val expectedJEDEC = "h00EF7018".U // table 8.1.1
+  val rand: scala.util.Random = {
+    val r = new scala.util.Random()
+    r.setSeed(0) // set the seed to 0 for reproducibility
+    r
+  }
+  
+  //val expectedJEDEC = "h00EF7018".U // table 8.1.1
+  val expectedJEDEC = "h180EF700".U // above reversed
 
   // Registers
   val stateReg = RegInit(State.idle)
+  val flashMemoryReg = RegInit(false.B)
 
   fpga.states := stateReg.asUInt
 
-  val bridge = Module(new Bridge(spiFreq, freq, 24))
-  spiPort <> bridge.spiPort
+  val bridge = Module(new Bridge(clockDivision))
   bridge.debug.jedec := false.B
+  bridge.debug.clear := false.B
+
   bridge.pipeCon.rd := false.B
   bridge.pipeCon.wr := false.B
   bridge.pipeCon.wrMask := "b1111".U
+  bridge.config.flashMemory := flashMemoryReg
+  spiPort <> bridge.spiPort
   
   val readData = bridge.pipeCon.rdData
 
   val pointerReg = RegInit(0.U(32.W))
 
-  val dataOffset = 36
-  val dataMultiplier = 4
   val data = VecInit(Seq.fill(testCases)(0.U(32.W))) 
   for (i <- 0 until testCases) {
-    data(i) := (dataMultiplier*i + dataOffset).U(32.W)
-    println(s"data($i) = ${dataMultiplier*i + dataOffset}")
+    // make a random number
+    val ran = BigInt(32, rand).toLong
+    data(i) := ran.U(32.W)
+    if (printTestCases) {
+      println(f"data($i) = 0x${ran}%08X")
+    }
   }
 
-  val addressesOffset = 12
-  val addressesMultiplier = 4
   val addresses = VecInit(Seq.fill(testCases)(0.U(24.W))) 
   for (i <- 0 until testCases) {
-    addresses(i) := (addressesMultiplier*i + addressesOffset).U(24.W)
-    println(s"addresses($i) = ${addressesMultiplier*i + addressesOffset}")
+    val ran = BigInt(24, rand).toLong
+    addresses(i) := (ran).U(24.W)
+    if (printTestCases) {
+      // print the address in hex format
+      println(f"addresses($i) = 0x${ran}%06X")
+    }
   }
   
-
   bridge.pipeCon.address := addresses(pointerReg)
   bridge.pipeCon.wrData  := data(pointerReg)
 
@@ -117,19 +135,32 @@ class FPGATest(
 
   switch(stateReg) {
     is(State.idle) {
-      when (fpga.jedec) {
+      when (fpga.clear) {
+        stateReg := State.clearing
+      }.elsewhen (fpga.jedec) {
         stateReg := State.jedec
       }.elsewhen (fpga.justRead) {
         stateReg := State.justRead0
+        bridge.pipeCon.rd := true.B
       }.elsewhen (fpga.start) {
         stateReg := State.writing
+        bridge.pipeCon.wr := true.B
+      }
+
+      flashMemoryReg := fpga.flashMemory
+    }
+
+    is(State.clearing) {
+      bridge.debug.clear := true.B
+      when (bridge.pipeCon.ack) {
+        stateReg := State.done
       }
     }
 
     is(State.jedec) {
       bridge.debug.jedec := true.B
       when (bridge.pipeCon.ack) {
-        when (bridge.pipeCon.rdData =/= expectedJEDEC) {
+        when (readData =/= expectedJEDEC) {
           stateReg := State.error
         }.otherwise {
           stateReg := State.done
@@ -138,14 +169,13 @@ class FPGATest(
     }
 
     is(State.writing) {
-      bridge.pipeCon.wr := true.B
       when (bridge.pipeCon.ack) {
         stateReg := State.reading
+        bridge.pipeCon.rd := true.B
       }
     }
 
     is(State.reading) {
-      bridge.pipeCon.rd := true.B
       when (bridge.pipeCon.ack) {
         when (readData =/= data(pointerReg)) {
           stateReg := State.error
@@ -161,24 +191,30 @@ class FPGATest(
     }
 
     is(State.justRead0) {
-      bridge.pipeCon.rd := true.B
       when (bridge.pipeCon.ack) {
         stateReg := State.justRead1
+      }
+      when (readData =/= data(pointerReg)) {
+        fpga.error := true.B
       }
     }
 
     is(State.justRead1) {
-      when (!fpga.justRead || (pointerReg === (testCases - 1).U)) {
+      when (!fpga.justRead) {
         stateReg := State.done
       }.elsewhen (fpga.again) {
         stateReg := State.justRead2
         pointerReg := pointerReg + 1.U
+      }
+      when (readData =/= data(pointerReg)) {
+        fpga.error := true.B
       }
     }
 
     is(State.justRead2) {
       when (fpga.start) {
         stateReg := State.justRead0
+        bridge.pipeCon.rd := true.B
       }
     }
 
@@ -203,7 +239,8 @@ class FPGATest(
 object SPIOffChipBasys3 extends App {
   val basys3ClockFreq = 100000000 // 100MHz
   val spiFreq =         1000000 // 1MHz
+  val clockDivision = basys3ClockFreq / spiFreq // SPI clock division factor
   val refreshRate =     100000  // 1ms refresh rate for the seven segment display
   val testCases =      4 // number of test cases to be tested
-  (new chisel3.stage.ChiselStage).emitVerilog(new FPGATest(spiFreq, basys3ClockFreq, refreshRate, testCases), Array("--target-dir", "generated"))
+  (new chisel3.stage.ChiselStage).emitVerilog(new FPGATest(clockDivision, refreshRate, testCases, true), Array("--target-dir", "generated"))
 }
