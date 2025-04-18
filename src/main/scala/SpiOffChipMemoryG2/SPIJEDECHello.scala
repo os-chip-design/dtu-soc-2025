@@ -1,14 +1,6 @@
 import chisel3._
 import chisel3.util._
 
-class spiIO extends Bundle {
-  val spiClk = Output(Bool())
-  val chipSelect = Output(Bool())
-
-  val dataIn = Input(Bool())
-  val dataOut = Output(Bool())
-}
-
 class SPIJEDECHello(
     val spiFreq: Int = 1000000,
     val freq: Int = 50000000,

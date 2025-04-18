@@ -1,20 +1,5 @@
 import chisel3._
 import chisel3.util._
-
-class qspiIO extends Bundle {
-  val spiClk = Output(Bool())
-  val chipSelect = Output(Bool())
-
-  val data0In = Input(Bool())
-  val data1In = Input(Bool())
-  val data2In = Input(Bool())
-  val data3In = Input(Bool())
-  val data0Out = Output(Bool())
-  val data1Out = Output(Bool())
-  val data2Out = Output(Bool())
-  val data3Out = Output(Bool())
-}
-
 // Currently has a flash read implementation (that is untested :) )
 
 class SPIOffChipMemoryController(
