@@ -142,7 +142,7 @@ class PipeConExampleTest extends AnyFlatSpec with ChiselScalatestTester {
 
       // Write 32-bit data
       c.io.cpuAddress.poke(uartAddress.U)
-      c.io.cpuWrData.poke("CCCCCCCC".U)  // 32-bit data
+      c.io.cpuWrData.poke("hCCCCCCCC".U)  // 32-bit data
       c.io.cpuWr.poke(true.B)
       c.clock.step()
 
@@ -150,7 +150,20 @@ class PipeConExampleTest extends AnyFlatSpec with ChiselScalatestTester {
       c.io.cpuWr.poke(false.B)
       c.io.cpuRd.poke(true.B)
       c.clock.step()
-      c.io.cpuRdData.expect("CCCCCCCC".U)
+      c.io.cpuRdData.expect("hCCCCCCCC".U)
+      c.io.cpuRd.poke(false.B)
+
+      // Write 24-bit data
+      c.io.cpuAddress.poke(uartAddress.U)
+      c.io.cpuWrData.poke("hFFFFFF".U)  // 24-bit data
+      c.io.cpuWr.poke(true.B)
+      c.clock.step()
+
+      // Read back 24-bit data
+      c.io.cpuWr.poke(false.B)
+      c.io.cpuRd.poke(true.B)
+      c.clock.step()
+      c.io.cpuRdData.expect("hFFFFFF".U)
       c.io.cpuRd.poke(false.B)
       
       
