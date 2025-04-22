@@ -83,7 +83,7 @@ class SPIOffChipMemoryController(
         stateReg := State.read_instr_transmit
         qspiPort.chipSelect := false.B
         pointerReg := 7.U
-      }.elsewhen(interconnectPort.wr) {
+      }.elsewhen(interconnectPort.wrMask.contains(true.B)) {
         stateReg := State.write_instr_transmit
         dataInRegs := interconnectPort.wrData.asTypeOf(Vec(dataWidth, Bool()))
         qspiPort.chipSelect := false.B

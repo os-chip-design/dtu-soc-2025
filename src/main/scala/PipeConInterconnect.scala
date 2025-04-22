@@ -4,19 +4,25 @@ class PipeConInterconnect(addrWidth: Int) extends Module {
   val io = IO(new Bundle {
     val cpu = (new PipeCon(addrWidth))  // From CPU
     val uart = Flipped(new PipeCon(addrWidth))          // To UART
+    val SPI = Flipped(new PipeCon(addrWidth))
   })
 
   // Defaults
   io.uart.rd := false.B
-  io.uart.wr := false.B
   io.uart.address := 0.U
   io.uart.wrData := 0.U
   io.uart.wrMask := VecInit(Seq.fill(4)(false.B))
+
+  io.SPI.rd := false.B
+  io.SPI.address := 0.U
+  io.SPI.wrData := 0.U
+  io.SPI.wrMask := VecInit(Seq.fill(4)(false.B))
 
   io.cpu.ack := false.B
   io.cpu.rdData := 0.U
 
   val uartAddress = 0x01.U(addrWidth.W)
+  val SPIAddress = 0x02.U(addrWidth.W)
   // Debugging: Print the CPU address to the console
   //printf(p"CPU address:  ${io.cpu.address}\n")
   //printf(p"UART address: ${uartAddress}\n")
@@ -25,17 +31,28 @@ class PipeConInterconnect(addrWidth: Int) extends Module {
   when(io.cpu.address === uartAddress) {
     when(io.cpu.rd) {
       io.uart.rd := true.B
-      io.uart.wr := false.B
       io.uart.address := io.cpu.address
       io.cpu.rdData := io.uart.rdData
       io.cpu.ack := io.uart.ack
-    }.elsewhen(io.cpu.wr) {
-      io.uart.wr := true.B
+    }.elsewhen(io.cpu.wrMask.contains(true.B)) {
       io.uart.rd := false.B
       io.uart.address := io.cpu.address
       io.uart.wrData := io.cpu.wrData
       io.uart.wrMask := io.cpu.wrMask
       io.cpu.ack := io.uart.ack
+    }
+  }.elsewhen(io.cpu.address === SPIAddress) {
+    when(io.cpu.rd) {
+      io.SPI.rd := true.B
+      io.SPI.address := io.cpu.address
+      io.cpu.rdData := io.SPI.rdData
+      io.cpu.ack := io.SPI.ack
+    }.elsewhen(io.cpu.wrMask.contains(true.B)) {
+      io.SPI.rd := false.B
+      io.SPI.address := io.cpu.address
+      io.SPI.wrData := io.cpu.wrData
+      io.SPI.wrMask := io.cpu.wrMask
+      io.cpu.ack := io.SPI.ack
     }
   }
 }

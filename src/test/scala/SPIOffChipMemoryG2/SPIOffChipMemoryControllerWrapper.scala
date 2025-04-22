@@ -15,7 +15,7 @@ class SPIOffChipMemoryControllerWrapper(
     val MINAddr = 0.U //TODO: Figure out the correct restraints
     interconnectPort <> m.interconnectPort
     qspiPort <> m.qspiPort
-    assert(!(interconnectPort.rd == 1 && interconnectPort.wr == 1))
+    assert(!(interconnectPort.rd == 1 && interconnectPort.wrMask.contains(true.B)))
     assert(m.addrWidth == interconnectPort.address.getWidth)
     assert(m.dataWidth == interconnectPort.wrData.getWidth)
     assert(m.dataWidth == interconnectPort.rdData.getWidth)
@@ -25,7 +25,7 @@ class SPIOffChipMemoryControllerWrapper(
         assert(interconnectPort.address >= MINAddr)
         assert(interconnectPort.wrData === 0.U)
     }
-    when(interconnectPort.wr === 1.U){
+    when(interconnectPort.wrMask.contains(true.B)){
         assert(interconnectPort.address <= MAXAddr)
         assert(interconnectPort.address >= MINAddr)
         assert(interconnectPort.rdData === 0.U)

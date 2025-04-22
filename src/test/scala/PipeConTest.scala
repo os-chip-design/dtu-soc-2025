@@ -10,22 +10,28 @@ class PipeConExampleTest extends AnyFlatSpec with ChiselScalatestTester {
       val uartAddress = 0x01
 
       // --- Initial state ---
-      c.io.uartWr.expect(false.B)
+      c.io.uartWrMask(0).expect(false.B)
+      c.io.uartWrMask(1).expect(false.B)
+      c.io.uartWrMask(2).expect(false.B)
+      c.io.uartWrMask(3).expect(false.B)
+
 
       // --- Write to UART ---
       c.io.cpuAddress.poke(uartAddress.U)
       c.io.cpuWrData.poke("hCAFEBABE".U)
-      c.io.cpuWr.poke(true.B)
+      c.io.cpuWrMask(0).poke(true.B)
+      c.io.cpuWrMask(1).poke(true.B)
+      c.io.cpuWrMask(2).poke(true.B)
+      c.io.cpuWrMask(3).poke(true.B)
       c.io.cpuRd.poke(false.B)
       c.clock.step()
 
       // Check that the UART received the write
-      c.io.uartWr.expect(true.B)
+      c.io.uartWrMask(0).expect(true.B)
+      c.io.uartWrMask(1).expect(true.B)
+      c.io.uartWrMask(2).expect(true.B)
+      c.io.uartWrMask(3).expect(true.B)
       c.io.uartWrData.expect("hCAFEBABE".U)
-
-      // Clear write
-      c.io.cpuWr.poke(false.B)
-      c.clock.step()
 
       // --- Simulate UART producing read data ---
       // Inject test read data
@@ -34,7 +40,6 @@ class PipeConExampleTest extends AnyFlatSpec with ChiselScalatestTester {
       // --- Read from UART ---
       c.io.cpuAddress.poke(uartAddress.U)
       c.io.cpuRd.poke(true.B)
-      c.io.cpuWr.poke(false.B)
 
       // Wait until the design signals that it's reading from UART
       var rdSeen = false
@@ -60,7 +65,6 @@ class PipeConExampleTest extends AnyFlatSpec with ChiselScalatestTester {
       // Perform a read operation without any prior write
       c.io.cpuAddress.poke(uartAddress.U)
       c.io.cpuRd.poke(true.B)
-      c.io.cpuWr.poke(false.B)
       c.clock.step()
 
       // Check that the UART did not return any unexpected data
@@ -74,32 +78,52 @@ class PipeConExampleTest extends AnyFlatSpec with ChiselScalatestTester {
 
       // First Write
       c.io.cpuAddress.poke(uartAddress.U)
+      c.io.cpuWrMask(0).poke(true.B)
+      c.io.cpuWrMask(1).poke(true.B)
+      c.io.cpuWrMask(2).poke(false.B)
+      c.io.cpuWrMask(3).poke(false.B)
       c.io.cpuWrData.poke("h0000AAAA".U)
-      c.io.cpuWr.poke(true.B)
       c.io.cpuRd.poke(false.B)
       c.clock.step()
 
       // Check UART received first write
-      c.io.uartWr.expect(true.B)
+      c.io.uartWrMask(0).expect(true.B)
+      c.io.uartWrMask(1).expect(true.B)
+      c.io.uartWrMask(2).expect(false.B)
+      c.io.uartWrMask(3).expect(false.B)
+
       c.io.uartWrData.expect("h0000AAAA".U)
 
       // Second Write
+      c.io.cpuWrMask(0).poke(true.B)
+      c.io.cpuWrMask(1).poke(true.B)
+      c.io.cpuWrMask(2).poke(false.B)
+      c.io.cpuWrMask(3).poke(false.B)
       c.io.cpuWrData.poke("h0000BBBB".U)
-      c.io.cpuWr.poke(true.B)
       c.clock.step()
 
       // Check UART received second write
-      c.io.uartWr.expect(true.B)
+      c.io.uartWrMask(0).expect(true.B)
+      c.io.uartWrMask(1).expect(true.B)
+      c.io.uartWrMask(2).expect(false.B)
+      c.io.uartWrMask(3).expect(false.B)
       c.io.uartWrData.expect("h0000BBBB".U)
       c.clock.step()
 
       // Reset write signal
-      c.io.cpuWr.poke(false.B)
+      c.io.cpuWrMask(0).poke(false.B)
+      c.io.cpuWrMask(1).poke(false.B)
+      c.io.cpuWrMask(2).poke(false.B)
+      c.io.cpuWrMask(3).poke(false.B)
+
       c.clock.step()
 
       // Third Write
+      c.io.cpuWrMask(0).poke(true.B)
+      c.io.cpuWrMask(1).poke(true.B)
+      c.io.cpuWrMask(2).poke(false.B)
+      c.io.cpuWrMask(3).poke(false.B)
       c.io.cpuWrData.poke("h0000CCCC".U)
-      c.io.cpuWr.poke(true.B)
       c.clock.step()
 
       // Read from UART again
@@ -116,12 +140,19 @@ class PipeConExampleTest extends AnyFlatSpec with ChiselScalatestTester {
 
       // Write 8-bit data
       c.io.cpuAddress.poke(uartAddress.U)
+      c.io.cpuWrMask(0).poke(true.B)
+      c.io.cpuWrMask(1).poke(false.B)
+      c.io.cpuWrMask(2).poke(false.B)
+      c.io.cpuWrMask(3).poke(false.B)
       c.io.cpuWrData.poke("hAA".U)  // 8-bit data
-      c.io.cpuWr.poke(true.B)
       c.clock.step()
 
       // Read back 8-bit data
-      c.io.cpuWr.poke(false.B)
+      c.io.cpuWrMask(0).poke(false.B)
+      c.io.cpuWrMask(1).poke(false.B)
+      c.io.cpuWrMask(2).poke(false.B)
+      c.io.cpuWrMask(3).poke(false.B)
+
       c.io.cpuRd.poke(true.B)
       c.clock.step()
       c.io.cpuRdData.expect("hAA".U)
@@ -129,12 +160,18 @@ class PipeConExampleTest extends AnyFlatSpec with ChiselScalatestTester {
 
       // Write 16-bit data
       c.io.cpuAddress.poke(uartAddress.U)
+      c.io.cpuWrMask(0).poke(true.B)
+      c.io.cpuWrMask(1).poke(true.B)
+      c.io.cpuWrMask(2).poke(false.B)
+      c.io.cpuWrMask(3).poke(false.B)
       c.io.cpuWrData.poke("hBBBB".U)  // 16-bit data
-      c.io.cpuWr.poke(true.B)
       c.clock.step()
 
       // Read back 16-bit data
-      c.io.cpuWr.poke(false.B)
+      c.io.cpuWrMask(0).poke(false.B)
+      c.io.cpuWrMask(1).poke(false.B)
+      c.io.cpuWrMask(2).poke(false.B)
+      c.io.cpuWrMask(3).poke(false.B)
       c.io.cpuRd.poke(true.B)
       c.clock.step()
       c.io.cpuRdData.expect("hBBBB".U)
@@ -142,12 +179,18 @@ class PipeConExampleTest extends AnyFlatSpec with ChiselScalatestTester {
 
       // Write 32-bit data
       c.io.cpuAddress.poke(uartAddress.U)
+      c.io.cpuWrMask(0).poke(true.B)
+      c.io.cpuWrMask(1).poke(true.B)
+      c.io.cpuWrMask(2).poke(true.B)
+      c.io.cpuWrMask(3).poke(true.B)
       c.io.cpuWrData.poke("hCCCCCCCC".U)  // 32-bit data
-      c.io.cpuWr.poke(true.B)
       c.clock.step()
 
       // Read back 32-bit data
-      c.io.cpuWr.poke(false.B)
+      c.io.cpuWrMask(0).poke(false.B)
+      c.io.cpuWrMask(1).poke(false.B)
+      c.io.cpuWrMask(2).poke(false.B)
+      c.io.cpuWrMask(3).poke(false.B)
       c.io.cpuRd.poke(true.B)
       c.clock.step()
       c.io.cpuRdData.expect("hCCCCCCCC".U)
@@ -155,18 +198,47 @@ class PipeConExampleTest extends AnyFlatSpec with ChiselScalatestTester {
 
       // Write 24-bit data
       c.io.cpuAddress.poke(uartAddress.U)
+      c.io.cpuWrMask(0).poke(true.B)
+      c.io.cpuWrMask(1).poke(true.B)
+      c.io.cpuWrMask(2).poke(true.B)
+      c.io.cpuWrMask(3).poke(false.B)
       c.io.cpuWrData.poke("hFFFFFF".U)  // 24-bit data
-      c.io.cpuWr.poke(true.B)
       c.clock.step()
 
       // Read back 24-bit data
-      c.io.cpuWr.poke(false.B)
+      c.io.cpuWrMask(0).poke(false.B)
+      c.io.cpuWrMask(1).poke(false.B)
+      c.io.cpuWrMask(2).poke(false.B)
+      c.io.cpuWrMask(3).poke(false.B)
       c.io.cpuRd.poke(true.B)
       c.clock.step()
       c.io.cpuRdData.expect("hFFFFFF".U)
       c.io.cpuRd.poke(false.B)
       
       
+    }
+  }
+
+  it should "handle write with wrMask and read the correct data" in {
+    test(new PipeConExample(8)).withAnnotations(Seq(WriteVcdAnnotation)) { c =>
+      val SPIAddress = 0x02
+
+      c.io.cpuAddress.poke(SPIAddress.U)
+      c.io.cpuWrMask(0).poke(true.B)
+      c.io.cpuWrMask(1).poke(true.B)
+      c.io.cpuWrMask(2).poke(true.B)
+      c.io.cpuWrMask(3).poke(false.B)
+      c.io.cpuWrData.poke("hFFFFFFFF".U)  // 24-bit data
+      c.clock.step()
+
+      c.io.cpuWrMask(0).poke(false.B)
+      c.io.cpuWrMask(1).poke(false.B)
+      c.io.cpuWrMask(2).poke(false.B)
+      c.io.cpuWrMask(3).poke(false.B)
+      c.io.cpuRd.poke(true.B)
+      c.clock.step()
+      c.io.cpuRdData.expect("h00FFFFFF".U)
+      c.io.cpuRd.poke(false.B)
     }
   }
 
