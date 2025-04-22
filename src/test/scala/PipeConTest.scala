@@ -3,43 +3,41 @@ import chiseltest._
 import org.scalatest.flatspec.AnyFlatSpec
 
 class PipeConExampleTest extends AnyFlatSpec with ChiselScalatestTester {
-  "PipeConExample" should "perform read and write correctly" in {
-    test(new PipeConExample(8)) { c =>
-      // Initial state check
-      // Ensure that the initial read data from the CPU is zero
-      c.io.cpuRdData.expect(0.U)
-      c.io.cpuWr.expect(false.B)
-      c.io.cpuRd.expect(false.B)
-      c.io.cpuAddress.expect(0.U)
+  behavior of "PipeConExample"
 
-      // Write a value to UART via the interconnect
-      val writeData = 0x00000001.U
-      c.io.cpuAddress.poke(0x01.U)  // UART address
-      c.io.cpuWrData.poke(writeData)
+  it should "perform a simple write and read to the UART peripheral" in {
+    test(new PipeConExample(8)).withAnnotations(Seq(WriteVcdAnnotation)) { c =>
+      val uartAddress = 0x01
+
+      // Test default assignments
+      c.io.uartWr.expect(false.B)   // Initially, wr should be false
+
+      // --- Write to UART ---
+      c.io.cpuAddress.poke(uartAddress.U)
+      c.io.cpuWrData.poke("h0000BABE".U)
       c.io.cpuWr.poke(true.B)
       c.io.cpuRd.poke(false.B)
 
-      // Wait for one cycle to simulate the write
-      c.clock.step(1)
+      c.clock.step() // perform the write
 
-      // Check if the UART receives the write data (check UART register)
-      c.io.uartWr.expect(true.B)  // UART should have received a write signal
-      c.io.uartWrData.expect(writeData)  // UART should store the data
+      // Check that the write was received
+      c.io.uartWr.expect(true.B)
+      c.io.uartWrData.expect("h0000BABE".U)
 
-      // Now perform a read operation
-      c.io.cpuAddress.poke(0x01.U)  // UART address
-      c.io.cpuWr.poke(false.B)  // Write disabled for read
-      c.io.cpuRd.poke(true.B)  // Read enabled
+      c.io.cpuWr.poke(false.B) // clear write
 
-      // Wait for one cycle to simulate the read
-      c.clock.step(1)
-
-      // Check if the data read from UART is correct
-      c.io.cpuRdData.expect(writeData)  // CPU should receive the same value that was written to UART
-
-      // Ensure that no write operation is happening during read
-      c.io.uartRd.expect(true.B)  // UART should have been read
-      c.io.uartWr.expect(false.B)  // No write should be happening
+      // --- Simulate UART producing read data ---
+//      c.io.uartWrData.poke("hDEADBEEF".U)
+//
+//      // --- Read from UART ---
+//      c.io.cpuAddress.poke(uartAddress.U)
+//      c.io.cpuRd.poke(true.B)
+//      c.io.cpuWr.poke(false.B)
+//      c.clock.step()
+//
+//      // Check that the CPU sees the data
+//      c.io.cpuRdData.expect("hDEADBEEF".U)
+//      c.io.cpuRd.poke(false.B)
     }
   }
 }

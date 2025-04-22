@@ -3,17 +3,23 @@ import chisel3._
 class UARTPeripheral(addrWidth: Int) extends Module {
   val io = IO(new PipeCon(addrWidth))  // Use PipeCon as the interface
   
-  // Simulate UART behavior for this example
-  // This is a simple behavior where we store data on write and return it on read.
-  val uartMemory = RegInit(0.U(32.W))  // 32-bit register for UART data
-
+  // Register for UART data (simulating a simple UART with a single 32-bit register)
+  val uartMemory = RegInit(0.U(32.W))  // 32-bit register to store UART data
+  
+  // Acknowledge signal (ack to signal the completion of the transaction)
   io.ack := false.B
   
-  // If the write signal is asserted, store the write data in uartMemory
+  // If a write operation is requested, store the data in uartMemory
   when(io.wr) {
     uartMemory := io.wrData
+    io.ack := true.B  // Acknowledge that the write is complete
   }
-
-  // If the read signal is asserted, return the stored data
-  io.rdData := Mux(io.rd, uartMemory, 0.U)  // Return stored data on read
+  
+  // If a read operation is requested, provide the stored data
+  when(io.rd) {
+    io.rdData := uartMemory  // Return the stored data on read
+    io.ack := true.B  // Acknowledge that the read is complete
+  }.otherwise {
+    io.rdData := 0.U  // If not reading, return 0 by default
+  }
 }
