@@ -15,6 +15,3 @@ import chisel3._
    val wrMask = Input(Vec (4, Bool()))
    val ack = Output(Bool())
  }
-
-
- 
