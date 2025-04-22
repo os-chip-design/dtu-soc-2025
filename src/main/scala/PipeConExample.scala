@@ -8,6 +8,7 @@ class PipeConExample(addrWidth: Int) extends Module {
     val cpuWr = Input(Bool())
     val cpuRdData = Output(UInt(32.W))
 
+    val uartRdDataTest = Input(UInt(32.W))  // Test data input for UART read simulation
     val uartRdData = Output(UInt(32.W))
     val uartWr = Output(Bool())
     val uartRd = Output(Bool())
@@ -29,10 +30,12 @@ class PipeConExample(addrWidth: Int) extends Module {
   // Connect interconnect to UART
   uart.io <> interconnect.io.uart
 
+  // Connect uartRdDataTest to testRdData for simulation
+  uart.testIo.testRdData := io.uartRdDataTest  // Drive the test data to the UART peripheral
+
   // Expose UART signals
-  io.uartRdData := uart.io.rdData
+  io.uartRdData := uart.io.rdData  // UART read data from the peripheral
   io.uartWr := uart.io.wr
-  //io.uartWr := interconnect.io.uart.wr
   io.uartRd := uart.io.rd
   io.uartWrData := uart.io.wrData
 }

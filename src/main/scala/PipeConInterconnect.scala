@@ -18,10 +18,10 @@ class PipeConInterconnect(addrWidth: Int) extends Module {
 
   val uartAddress = 0x01.U(addrWidth.W)
   // Debugging: Print the CPU address to the console
-  printf(p"CPU address:  ${io.cpu.address}\n")
-  printf(p"UART address: ${uartAddress}\n")
-  printf(p"CPU rd: ${io.cpu.rd}\n")
-  printf(p"CPU wr: ${io.cpu.wr}\n")
+  //printf(p"CPU address:  ${io.cpu.address}\n")
+  //printf(p"UART address: ${uartAddress}\n")
+  //printf(p"CPU rd: ${io.cpu.rd}\n")
+  //printf(p"CPU wr: ${io.cpu.wr}\n")
   when(io.cpu.address === uartAddress) {
     when(io.cpu.rd) {
       io.uart.rd := true.B
