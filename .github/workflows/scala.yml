@@ -57,15 +57,15 @@ jobs:
           sbt "runMain CaravelTopLevel"
           git config --global user.name "github-actions"
           git config --global user.email "action@github.com"
-          
-          ls -R .
-          
-          cp generated/CaravelTopLevel.v soc-dtu-2025/verilog/rtl/CaravelTopLevel.v
 
           pushd soc-dtu-2025
           
           git checkout main
           git pull origin main
+
+          ls -R .
+          
+          cp ../generated/CaravelTopLevel.v soc-dtu-2025/verilog/rtl/CaravelTopLevel.v
 
           if git diff --quiet; then
               echo "No changes to commit"
