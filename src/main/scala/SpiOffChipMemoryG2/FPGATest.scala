@@ -56,7 +56,6 @@ class FPGATest(
     val states = Output(UInt(3.W))
 
     val clear = Input(Bool()) // clear the memory
-    val flashMemory = Input(Bool()) // toggle to indicate targetting flash memory / RAM
   })
 
   object State extends ChiselEnum {
@@ -74,18 +73,18 @@ class FPGATest(
 
   // Registers
   val stateReg = RegInit(State.idle)
-  val flashMemoryReg = RegInit(false.B)
 
   fpga.states := stateReg.asUInt
 
-  val bridge = Module(new Bridge(clockDivision))
+  val bridge = Module(new Bridge())
   bridge.debug.jedec := false.B
   bridge.debug.clear := false.B
 
   bridge.pipeCon.rd := false.B
   bridge.pipeCon.wr := false.B
   bridge.pipeCon.wrMask := "b1111".U
-  bridge.config.flashMemory := flashMemoryReg
+
+  bridge.config.clockDivision := clockDivision.U
   spiPort <> bridge.spiPort
   
   val readData = bridge.pipeCon.rdData
@@ -147,24 +146,25 @@ class FPGATest(
         bridge.pipeCon.wr := true.B
       }
 
-      flashMemoryReg := fpga.flashMemory
     }
 
     is(State.clearing) {
-      bridge.debug.clear := true.B
       when (bridge.pipeCon.ack) {
         stateReg := State.done
+      }.otherwise {
+        bridge.debug.clear := true.B
       }
     }
 
     is(State.jedec) {
-      bridge.debug.jedec := true.B
       when (bridge.pipeCon.ack) {
         when (readData =/= expectedJEDEC) {
           stateReg := State.error
         }.otherwise {
           stateReg := State.done
         }
+      }.otherwise {
+        bridge.debug.jedec := true.B
       }
     }
 
@@ -185,6 +185,7 @@ class FPGATest(
           }.otherwise {
             pointerReg := pointerReg + 1.U
             stateReg := State.writing
+            bridge.pipeCon.wr := true.B
           }
         }
       }
@@ -239,7 +240,7 @@ class FPGATest(
 object SPIOffChipBasys3 extends App {
   val basys3ClockFreq = 100000000 // 100MHz
   val spiFreq =         1000000 // 1MHz
-  val clockDivision = basys3ClockFreq / spiFreq // SPI clock division factor
+  val clockDivision = basys3ClockFreq / spiFreq / 2 // SPI clock division factor divided by 2 as there is a positive edge and a negative edge
   val refreshRate =     100000  // 1ms refresh rate for the seven segment display
   val testCases =      4 // number of test cases to be tested
   (new chisel3.stage.ChiselStage).emitVerilog(new FPGATest(clockDivision, refreshRate, testCases, true), Array("--target-dir", "generated"))

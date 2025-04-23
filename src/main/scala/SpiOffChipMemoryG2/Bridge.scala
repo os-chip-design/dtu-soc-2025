@@ -1,9 +1,7 @@
 import chisel3._
 import chisel3.util._
 
-class Bridge(
-    val clockDivision : Int = 50,
-) extends Module {
+class Bridge() extends Module {
   
   val spiPort = IO(new spiIO)
   val pipeCon = IO(new PipeCon(24))
@@ -12,21 +10,25 @@ class Bridge(
     val clear = Input(Bool())
   })
   val config = IO(new Bundle {
-    val flashMemory = Input(Bool()) // toggle to indicate targetting flash memory / RAM
+    val clockDivision = Input(UInt(32.W))
   })
 
   object State extends ChiselEnum {
-    val idle, jedec, write0, write1, write2, read0, clear0, clear1 = Value        
+    val idle, jedec, write0, write1, write2, read0, clear0, clear1, clear2 = Value        
   }
 
-  // Registers
   val stateReg = RegInit(State.idle)
 
+  // Need these two registers as we can't be sure that the data won't change in the middle of the transaction
+  val addressReg = RegInit(0.U(24.W))
+  val dataReg = RegInit(0.U(32.W))
+
+  // Hardware generation of the mask
   def mask(data: UInt, mask: UInt): UInt = {
     val maskedData = VecInit(Seq.fill(32)(0.U(1.W)))
     var maskIndex = 0
     for (i <- 0 until 32) {
-      maskedData(i) := Mux(mask(maskIndex), data(i), 0.U(1.W))
+      maskedData(i) := data(i) & mask(maskIndex)
       if (i % 8 == 7) { // 7, 15, 23, 31
         maskIndex += 1
       }
@@ -34,21 +36,23 @@ class Bridge(
     maskedData.reduce(_ ## _)
   }
 
-  val spiController = Module(new SPIController(clockDivision))
+  val spiController = Module(new SPIController())
   spiPort <> spiController.spiPort
-  spiController.interconnectPort.address := pipeCon.address
-  spiController.interconnectPort.dataIn  := mask(pipeCon.wrData, pipeCon.wrMask)
+  spiController.interconnectPort.address := addressReg
+  spiController.interconnectPort.dataIn  := dataReg
+  spiController.interconnectPort.clockDivision := config.clockDivision
   pipeCon.rdData := spiController.interconnectPort.dataOut
 
   spiController.interconnectPort.valid := false.B
   spiController.interconnectPort.ready := false.B
-  spiController.interconnectPort.instruction := 0.U // Read JEDEC ID Instruction
-  spiController.interconnectPort.flashMemory := config.flashMemory
+  spiController.interconnectPort.instruction := 0.U 
+
+  val busy = spiController.interconnectPort.dataOut(0) // Busy flag from the flash memory
+  val done = spiController.interconnectPort.done // Done flag from the spi controller
+
+  val maskedData = mask(pipeCon.wrData, pipeCon.wrMask)
 
   pipeCon.ack := false.B
-
-  // TODO: how should we support read / write at the same time. 
-  // TODO: check the pipecon at https://github.com/t-crest/soc-comm to see if all rules are covered
 
   switch(stateReg) {
     is(State.idle) {
@@ -56,10 +60,11 @@ class Bridge(
         stateReg := State.jedec
       }.elsewhen (pipeCon.rd) {
         stateReg := State.read0
-      }.elsewhen (pipeCon.wr && config.flashMemory) {
-        stateReg := State.write0
+        addressReg := pipeCon.address 
       }.elsewhen (pipeCon.wr) {
-        stateReg := State.write1
+        stateReg := State.write0
+        addressReg := pipeCon.address
+        dataReg := maskedData
       }.elsewhen (debug.clear) {
         stateReg := State.clear0
       }
@@ -70,8 +75,21 @@ class Bridge(
       spiController.interconnectPort.valid := true.B
       spiController.interconnectPort.ready := true.B
 
-      when (spiController.interconnectPort.done) {
-        stateReg := State.idle
+      when (done) {
+        when (debug.jedec) {
+          stateReg := State.jedec
+        }.elsewhen (pipeCon.rd) {
+          stateReg := State.read0
+          addressReg := pipeCon.address 
+        }.elsewhen (pipeCon.wr) {
+          stateReg := State.write0
+          addressReg := pipeCon.address
+          dataReg := maskedData
+        }.elsewhen (debug.clear) {
+          stateReg := State.clear0
+        }.otherwise {
+          stateReg := State.idle
+        }
         pipeCon.ack := true.B
       }
     }
@@ -81,8 +99,21 @@ class Bridge(
       spiController.interconnectPort.valid := true.B
       spiController.interconnectPort.ready := true.B
 
-      when (spiController.interconnectPort.done) {
-        stateReg := State.idle
+      when (done) {
+        when (debug.jedec) {
+          stateReg := State.jedec
+        }.elsewhen (pipeCon.rd) {
+          stateReg := State.read0
+          addressReg := pipeCon.address 
+        }.elsewhen (pipeCon.wr) {
+          stateReg := State.write0
+          addressReg := pipeCon.address
+          dataReg := maskedData
+        }.elsewhen (debug.clear) {
+          stateReg := State.clear0
+        }.otherwise {
+          stateReg := State.idle
+        }
         pipeCon.ack := true.B
       }
     } 
@@ -92,7 +123,7 @@ class Bridge(
       spiController.interconnectPort.valid := true.B
       spiController.interconnectPort.ready := true.B
 
-      when (spiController.interconnectPort.done) {
+      when (done) {
         stateReg := State.write1
       }
     }
@@ -102,7 +133,7 @@ class Bridge(
       spiController.interconnectPort.valid := true.B
       spiController.interconnectPort.ready := true.B
 
-      when (spiController.interconnectPort.done) {
+      when (done) {
         stateReg := State.write2
       }
     }
@@ -112,30 +143,66 @@ class Bridge(
       spiController.interconnectPort.valid := true.B
       spiController.interconnectPort.ready := true.B
 
-      when (spiController.interconnectPort.done && !spiController.interconnectPort.dataOut(0)) { 
+      when (done && !busy) { 
+        when (debug.jedec) {
+          stateReg := State.jedec
+        }.elsewhen (pipeCon.rd) {
+          stateReg := State.read0
+          addressReg := pipeCon.address 
+        }.elsewhen (pipeCon.wr) {
+          stateReg := State.write0
+          addressReg := pipeCon.address
+          dataReg := maskedData
+        }.elsewhen (debug.clear) {
+          stateReg := State.clear0
+        }.otherwise {
+          stateReg := State.idle
+        }
         pipeCon.ack := true.B
-        stateReg := State.idle
       }
     }
 
     is (State.clear0) {
-      spiController.interconnectPort.instruction := SPIInstructions.chipEraseInstruction
+      spiController.interconnectPort.instruction := SPIInstructions.writeEnableInstruction
       spiController.interconnectPort.valid := true.B
       spiController.interconnectPort.ready := true.B
 
-      when (spiController.interconnectPort.done) {
+      when (done) {
         stateReg := State.clear1
       }
     }
 
     is (State.clear1) {
+      spiController.interconnectPort.instruction := SPIInstructions.chipEraseInstruction
+      spiController.interconnectPort.valid := true.B
+      spiController.interconnectPort.ready := true.B
+
+      when (done) {
+        stateReg := State.clear2
+      }
+    }
+
+    is (State.clear2) {
       spiController.interconnectPort.instruction := SPIInstructions.readStatusRegister1Instruction
       spiController.interconnectPort.valid := true.B
       spiController.interconnectPort.ready := true.B
 
-      when (spiController.interconnectPort.done && !spiController.interconnectPort.dataOut(0)) { 
+      when (done && !busy) { 
+        when (debug.jedec) {
+          stateReg := State.jedec
+        }.elsewhen (pipeCon.rd) {
+          stateReg := State.read0
+          addressReg := pipeCon.address 
+        }.elsewhen (pipeCon.wr) {
+          stateReg := State.write0
+          addressReg := pipeCon.address
+          dataReg := maskedData
+        }.elsewhen (debug.clear) {
+          stateReg := State.clear0
+        }.otherwise {
+          stateReg := State.idle
+        }
         pipeCon.ack := true.B
-        stateReg := State.idle
       }
     }
   }

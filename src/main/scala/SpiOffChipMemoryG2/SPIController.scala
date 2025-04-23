@@ -5,7 +5,6 @@ import chisel3.util._
 
 
 class SPIController(
-    val clockDivision : Int = 50,
 ) extends Module {
   val spiPort = IO(new spiIO)
 
@@ -17,8 +16,7 @@ class SPIController(
     val address = Input(UInt(24.W))
     val dataOut = Output(UInt(32.W))
     val done = Output(Bool())
-
-    val flashMemory = Input(Bool()) // toggle to indicate targetting flash memory / RAM
+    val clockDivision = Input(UInt(32.W))
   })
 
   object State extends ChiselEnum {
@@ -35,7 +33,7 @@ class SPIController(
   
   //  SPI clock counter 
   val spiClkCounterReg = RegInit(0.U(32.W))
-  val spiClkCounterMax = ((clockDivision / 2) - 1).U 
+  val spiClkCounterMax = interconnectPort.clockDivision - 1.U 
   val spiClkReg = RegInit(false.B)
   val risingEdgeOfSPIClk = risingEdge(spiClkReg)
 
@@ -90,7 +88,7 @@ class SPIController(
 
       when(risingEdgeOfSPIClk) {
         when(pointerReg === 0.U) {
-          when(instruction === SPIInstructions.readJEDECInstruction && interconnectPort.flashMemory){  // ReadJeDECInstruction
+          when(instruction === SPIInstructions.readJEDECInstruction){  // ReadJeDECInstruction
             stateReg := State.receiveData
             pointerReg := 23.U
           }.elsewhen(instruction === SPIInstructions.writeEnableInstruction || 
@@ -123,9 +121,6 @@ class SPIController(
           }.elsewhen(instruction === SPIInstructions.readDataInstruction){
             stateReg := State.receiveData
             pointerReg := 31.U
-          }.elsewhen(instruction === SPIInstructions.readJEDECInstruction && !interconnectPort.flashMemory){
-            stateReg := State.receiveData
-            pointerReg := 19.U
           }.otherwise {
             stateReg := State.receiveData
             pointerReg := 7.U
