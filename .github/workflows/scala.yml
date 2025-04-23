@@ -14,6 +14,9 @@ on:
 permissions:
   contents: read
 
+environment:
+  CARAVEL_ROOT: ${{ github.workspace }}/soc-chip-2025
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -52,20 +55,20 @@ jobs:
           export RISCV_PREFIX="$HOME/.local/xPacks/@xpack-dev-tools/riscv-none-elf-gcc/14.2.0-3.1/.content/bin/riscv-none-elf"
           sbt test
 
-      - name: Build CaravelTopLevel.v and commit to soc-dtu-2025
+      - name: Build CaravelTopLevel.v and commit to ${CARAVEL_ROOT}
         run: |
           sbt "runMain CaravelTopLevel"
           git config --global user.name "github-actions"
           git config --global user.email "action@github.com"
 
-          pushd soc-dtu-2025
+          pushd ${CARAVEL_ROOT}
           
           git checkout main
           git pull origin main
 
           ls -R .
           
-          cp ../generated/CaravelTopLevel.v soc-dtu-2025/verilog/rtl/CaravelTopLevel.v
+          cp ../generated/CaravelTopLevel.v ./verilog/rtl/CaravelTopLevel.v
 
           if git diff --quiet; then
               echo "No changes to commit"
