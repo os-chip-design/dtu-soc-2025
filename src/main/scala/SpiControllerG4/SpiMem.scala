@@ -46,10 +46,10 @@ class SpiMem extends Module {
     val spiDataOut = RegInit(0.U(32.W))
     io.cpuReadData := spiDataOut
 
-    val display = Module(new SevenSegmentDisplay)
+    /*val display = Module(new SevenSegmentDisplay)
     io.seg := display.io.seg
     io.an := display.io.an
-    display.io.hexDigits := VecInit(io.cpuReadData(15, 12), io.cpuReadData(11, 8), io.cpuReadData(7, 4), io.cpuReadData(3, 0))
+    display.io.hexDigits := VecInit(io.cpuReadData(15, 12), io.cpuReadData(11, 8), io.cpuReadData(7, 4), io.cpuReadData(3, 0))*/
 
     /*val display0 = Module(new SevSegDec)
     io.seg*/
