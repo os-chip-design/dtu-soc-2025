@@ -250,6 +250,27 @@ To be added.
 
 - Be sure to initialize submodules with `git submodule update --init --recursive` or by cloning with `git clone --recurse-submodules`
 
+### Setting up riscv-gnu-toolchain
+
+Download the correct binary based on your operating system (Linux only): <https://github.com/riscv-collab/riscv-gnu-toolchain/releases/https://github.com/riscv-collab/riscv-gnu-toolchain/releases/>.
+
+This will typically be `riscv64-elf-ubuntu-22.04-gcc-nightly-2025.01.20-nightly.tar.xz` or the Ubuntu 24.04 variant (depending on glibc/gcc version).
+
+```sh
+cd /tmp
+wget https://github.com/riscv-collab/riscv-gnu-toolchain/releases/download/2025.01.20/riscv64-elf-ubuntu-22.04-gcc-nightly-2025.01.20-nightly.tar.xz
+tar -xvf riscv64-elf-ubuntu-22.04-gcc-nightly-2025.01.20-nightly.tar.xz -C /opt
+chmod +x /opt/riscv/bin/* # if this fails something went wrong
+
+# For ease of use link directly to usr bin directory.
+# OR add the previous folder to $PATH
+# OR change the RISCV_PREFIX enviroment varible to /opt/riscv/bin/riscv64-unknown-elf
+for file in /opt/riscv/bin/*; do
+    sudo ln -s "$file" /usr/bin/$(basename "$file")
+done
+```
+
+
 ## Repository structure
 
 - [Wildcat CPU](https://github.com/schoeberl/wildcat) in ./wildcat
