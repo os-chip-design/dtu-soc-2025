@@ -17,14 +17,15 @@ class UARTPeripheral(addrWidth: Int) extends Module {
   io.ack := false.B
 
   // Expand each Bool to a full 8-bit mask
-  val byteMasks = io.wrMask.map(b => Mux(b, "hFF".U(8.W), 0.U(8.W)))
+  val byteMasks = (0 until 4).map { i =>
+  Mux(io.wrMask(i), "hFF".U(8.W), 0.U(8.W))}
   // Concatenate to get a full 32-bit mask (MSB to LSB)
   val fullMask = Cat(byteMasks.reverse)  // Vec is LSB-first, Cat expects MSB-first
 
 
 
   // If a write operation is requested, store the data in uartMemory
-  when(io.wrMask.contains(true.B)) {
+  when(io.wrMask.orR) {
     uartMemory := io.wrData & fullMask
     io.ack := true.B  // Acknowledge that the write is complete
   }

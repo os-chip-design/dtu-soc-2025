@@ -6,21 +6,21 @@ class PipeConExample(addrWidth: Int) extends Module {
     val cpuWrData = Input(UInt(32.W))
     val cpuRd = Input(Bool())
     val cpuWr = Input(Bool())
-    val cpuWrMask = Input(Vec (4, Bool()))
+    val cpuWrMask = Input(UInt(4.W))
     val cpuRdData = Output(UInt(32.W))
 
     val uartRdDataTest = Input(UInt(32.W))  // Test data input for UART read simulation
     val uartRdData = Output(UInt(32.W))
     val uartRd = Output(Bool())
     val uartWr = Output(Bool())
-    val uartWrMask = Output(Vec (4, Bool()))
+    val uartWrMask = Output(UInt(4.W))
     val uartWrData = Output(UInt(32.W))
 
     val SPIRdDataTest = Input(UInt(32.W))  // Test data input for UART read simulation
     val SPIRdData = Output(UInt(32.W))
     val SPIRd = Output(Bool())
     val SPIWr = Output(Bool())
-    val SPIWrMask = Output(Vec (4, Bool()))
+    val SPIWrMask = Output(UInt(4.W))
     val SPIWrData = Output(UInt(32.W))
   })
 

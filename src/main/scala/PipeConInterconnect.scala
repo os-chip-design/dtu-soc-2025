@@ -1,4 +1,8 @@
+
 import chisel3._
+import chisel3.util._
+import wildcat.pipeline.ThreeCats
+import wildcat.pipeline.ScratchPadMem
 
 class PipeConInterconnect(addrWidth: Int) extends Module {
   val io = IO(new Bundle {
@@ -7,18 +11,24 @@ class PipeConInterconnect(addrWidth: Int) extends Module {
     val SPI = Flipped(new PipeCon(addrWidth))
   })
 
+  //val addrmem = Array(1,2,3)
+  //val dmem = Module(new ScratchPadMem(addrmem))
+  //val cpu2 = Module(new ThreeCats())
+  //cpu2.io.dmem <> dmem.io
+
+
   // Defaults
   io.uart.rd := false.B
   io.uart.wr := false.B
   io.uart.address := 0.U
   io.uart.wrData := 0.U
-  io.uart.wrMask := VecInit(Seq.fill(4)(false.B))
+  io.uart.wrMask := "b0000".U
 
   io.SPI.rd := false.B
   io.SPI.wr := false.B
   io.SPI.address := 0.U
   io.SPI.wrData := 0.U
-  io.SPI.wrMask := VecInit(Seq.fill(4)(false.B))
+  io.SPI.wrMask := "b0000".U
 
   io.cpu.ack := false.B
   io.cpu.rdData := 0.U
@@ -37,7 +47,7 @@ class PipeConInterconnect(addrWidth: Int) extends Module {
       io.uart.address := io.cpu.address
       io.cpu.rdData := io.uart.rdData
       io.cpu.ack := io.uart.ack
-    }.elsewhen(io.cpu.wrMask.contains(true.B)) {
+    }.elsewhen(io.cpu.wrMask.orR) {
       io.uart.rd := false.B
       io.uart.wr := true.B
       io.uart.address := io.cpu.address
@@ -52,7 +62,7 @@ class PipeConInterconnect(addrWidth: Int) extends Module {
       io.SPI.address := io.cpu.address
       io.cpu.rdData := io.SPI.rdData
       io.cpu.ack := io.SPI.ack
-    }.elsewhen(io.cpu.wrMask.contains(true.B)) {
+    }.elsewhen(io.cpu.wrMask.orR) {
       io.SPI.rd := false.B
       io.SPI.wr := true.B
       io.SPI.address := io.cpu.address
