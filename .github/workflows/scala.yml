@@ -14,7 +14,7 @@ on:
 permissions:
   contents: read
 
-environment:
+env:
   CARAVEL_ROOT: ${{ github.workspace }}/soc-chip-2025
 
 jobs:
