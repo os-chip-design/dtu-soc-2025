@@ -9,10 +9,7 @@ class MemoryInterface extends AnyFlatSpec with ChiselScalatestTester {
         test(new MemoryInterface16KB(32)) {
           (dut => {
                 // Write enable
-                dut.io.pipe.wrMask(0).poke(true.B)
-                dut.io.pipe.wrMask(1).poke(true.B)
-                dut.io.pipe.wrMask(2).poke(true.B)
-                dut.io.pipe.wrMask(3).poke(true.B)
+                dut.io.pipe.wr.poke(true.B)
 
 
                 // Don't acknowledge the same clock cycle
@@ -21,10 +18,7 @@ class MemoryInterface extends AnyFlatSpec with ChiselScalatestTester {
 
                 // Acknowledge the following clock cycle
                 dut.clock.step(1)
-                dut.io.pipe.wrMask(0).poke(false.B)
-                dut.io.pipe.wrMask(1).poke(false.B)
-                dut.io.pipe.wrMask(2).poke(false.B)
-                dut.io.pipe.wrMask(3).poke(false.B)
+                dut.io.pipe.wr.poke(false.B)
 
                 dut.io.pipe.ack.expect(true.B)
                 dut.io.memcs.expect(false.B)

@@ -11,7 +11,7 @@ class MemoryInterface16KB(addrWidth: Int) extends Module {
   })
 
   val ackreg = RegInit(false.B)
-  val enable = io.pipe.rd || io.pipe.wrMask.contains(true.B)
+  val enable = io.pipe.rd || io.pipe.wr
 
   // Chip select, writemask
   io.memcs := enable
