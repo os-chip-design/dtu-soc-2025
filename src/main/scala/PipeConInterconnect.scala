@@ -9,11 +9,13 @@ class PipeConInterconnect(addrWidth: Int) extends Module {
 
   // Defaults
   io.uart.rd := false.B
+  io.uart.wr := false.B
   io.uart.address := 0.U
   io.uart.wrData := 0.U
   io.uart.wrMask := VecInit(Seq.fill(4)(false.B))
 
   io.SPI.rd := false.B
+  io.SPI.wr := false.B
   io.SPI.address := 0.U
   io.SPI.wrData := 0.U
   io.SPI.wrMask := VecInit(Seq.fill(4)(false.B))
@@ -31,11 +33,13 @@ class PipeConInterconnect(addrWidth: Int) extends Module {
   when(io.cpu.address === uartAddress) {
     when(io.cpu.rd) {
       io.uart.rd := true.B
+      io.uart.wr := false.B
       io.uart.address := io.cpu.address
       io.cpu.rdData := io.uart.rdData
       io.cpu.ack := io.uart.ack
     }.elsewhen(io.cpu.wrMask.contains(true.B)) {
       io.uart.rd := false.B
+      io.uart.wr := true.B
       io.uart.address := io.cpu.address
       io.uart.wrData := io.cpu.wrData
       io.uart.wrMask := io.cpu.wrMask
@@ -44,11 +48,13 @@ class PipeConInterconnect(addrWidth: Int) extends Module {
   }.elsewhen(io.cpu.address === SPIAddress) {
     when(io.cpu.rd) {
       io.SPI.rd := true.B
+      io.SPI.wr := false.B
       io.SPI.address := io.cpu.address
       io.cpu.rdData := io.SPI.rdData
       io.cpu.ack := io.SPI.ack
     }.elsewhen(io.cpu.wrMask.contains(true.B)) {
       io.SPI.rd := false.B
+      io.SPI.wr := true.B
       io.SPI.address := io.cpu.address
       io.SPI.wrData := io.cpu.wrData
       io.SPI.wrMask := io.cpu.wrMask

@@ -9,6 +9,7 @@ import chisel3._
  class PipeCon(private val addrWidth: Int) extends Bundle {
    val address = Input(UInt(addrWidth.W))
    val rd = Input(Bool())
+   val wr = Input(Bool())
    val rdData = Output(UInt(32.W))
    val wrData = Input(UInt(32.W))
    val wrMask = Input(Vec (4, Bool()))
