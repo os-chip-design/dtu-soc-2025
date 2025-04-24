@@ -25,6 +25,7 @@ class SPIController(
   }
 
   def risingEdge(x: Bool) = x && !RegNext(x)
+  def fallingEdge(x: Bool) = !x && RegNext(x)
 
   // Registers
   val stateReg = RegInit(State.idle)
@@ -36,6 +37,7 @@ class SPIController(
   val spiClkCounterMax = interconnectPort.clockDivision - 1.U 
   val spiClkReg = RegInit(false.B)
   val risingEdgeOfSPIClk = risingEdge(spiClkReg)
+  val fallingEdgeOfSPIClk = fallingEdge(spiClkReg)
 
   val rdData = dataOutReg.reduce(_ ## _)
 
@@ -43,48 +45,41 @@ class SPIController(
 
   val data = interconnectPort.dataIn // Data to be sent to the flash memory
   val address = interconnectPort.address // Address to be sent to the flash memory
-  val startClock = WireDefault(false.B) // Start clock signal for the SPI communication
+
+  val currentOutputReg = RegInit(0.U(1.W)) // Current output register for the SPI communication
   
-  spiPort.dataOut          := 0.U
+  spiPort.dataOut          := currentOutputReg
   spiPort.chipSelect       := true.B
   spiPort.spiClk           := spiClkReg
   interconnectPort.done    := false.B
   interconnectPort.dataOut := rdData
 
-  when (startClock) {
-    when(spiClkCounterReg === spiClkCounterMax) {
-      spiClkCounterReg := 0.U
-      spiClkReg := !spiClkReg
-    }.otherwise {
-      spiClkCounterReg := spiClkCounterReg + 1.U
-    }
-  }.otherwise {
+  when(spiClkCounterReg === spiClkCounterMax) {
     spiClkCounterReg := 0.U
-    spiClkReg := true.B
+    spiClkReg := !spiClkReg
+  }.otherwise {
+    spiClkCounterReg := spiClkCounterReg + 1.U
   }
-
-  when (risingEdge(startClock)) {
-    spiPort.spiClk := false.B
-    spiClkReg := false.B
-  }
-  
 
   switch(stateReg) {
 
     is(State.idle) {
       when (interconnectPort.valid) {
         spiPort.chipSelect := false.B
+        spiPort.spiClk := false.B
+        spiClkReg := false.B
         stateReg := State.instructionTransmit
         pointerReg := 7.U
-        dataOutReg := VecInit(Seq.fill(32)(0.U(1.W))) // reset the dataOut register
-        startClock := true.B
+      }
+
+      when (fallingEdgeOfSPIClk) {
+        currentOutputReg := 0.U
+        spiPort.dataOut := 0.U
       }
     }
     
     is(State.instructionTransmit) {
       spiPort.chipSelect := false.B
-      spiPort.dataOut := instruction(pointerReg)
-      startClock := true.B 
 
       when(risingEdgeOfSPIClk) {
         when(pointerReg === 0.U) {
@@ -94,7 +89,6 @@ class SPIController(
           }.elsewhen(instruction === SPIInstructions.writeEnableInstruction || 
                     instruction === SPIInstructions.chipEraseInstruction){ // WriteEnableInstruction or ChipEraseInstruction
             stateReg := State.finished
-            startClock := false.B
           }.elsewhen(instruction === SPIInstructions.readStatusRegister1Instruction) {
             stateReg := State.receiveData
             pointerReg := 7.U
@@ -106,12 +100,15 @@ class SPIController(
           pointerReg := pointerReg - 1.U
         }
       }
+
+      when (fallingEdgeOfSPIClk) {
+        currentOutputReg := instruction(pointerReg)
+        spiPort.dataOut := instruction(pointerReg)
+      }
     }
     
     is (State.sendAddress) {
       spiPort.chipSelect := false.B
-      spiPort.dataOut := address(pointerReg)
-      startClock := true.B
 
       when(risingEdgeOfSPIClk) {
         when(pointerReg === 0.U) {
@@ -129,21 +126,29 @@ class SPIController(
           pointerReg := pointerReg - 1.U
         }
       }
+
+      when (fallingEdgeOfSPIClk) {
+        currentOutputReg := address(pointerReg)
+        spiPort.dataOut := address(pointerReg)
+      }
     }
 
     is (State.writeData)
     {
       spiPort.chipSelect := false.B
-      spiPort.dataOut := data(pointerReg)
-      startClock := true.B
 
       when(risingEdgeOfSPIClk) {
         when(pointerReg === 0.U) {
           stateReg := State.finished
-          startClock := false.B
+          currentOutputReg := 0.U
         }.otherwise {
           pointerReg := pointerReg - 1.U
         }
+      }
+
+      when (fallingEdgeOfSPIClk) {
+        currentOutputReg := data(pointerReg)
+        spiPort.dataOut := data(pointerReg)
       }
     }
 
@@ -151,23 +156,35 @@ class SPIController(
     is (State.receiveData)
     {
       spiPort.chipSelect := false.B
-      dataOutReg(pointerReg) := spiPort.dataIn
-      startClock := true.B
 
       when(risingEdgeOfSPIClk) {
+        dataOutReg(pointerReg) := spiPort.dataIn
         when(pointerReg === 0.U) {
           stateReg := State.finished
-          startClock := false.B
         }.otherwise {
           pointerReg := pointerReg - 1.U
         }
+      }
+
+      when (fallingEdgeOfSPIClk) {
+        currentOutputReg := 0.U
+        spiPort.dataOut := 0.U
       }
     }
 
     is (State.finished)
     {
+      spiPort.spiClk := false.B
+      spiClkReg := false.B
+
       when(interconnectPort.ready) {
+        dataOutReg := VecInit(Seq.fill(32)(0.U(1.W))) // reset the dataOut register
         stateReg := State.idle
+      }
+
+      when (fallingEdgeOfSPIClk) {
+        currentOutputReg := 0.U
+        spiPort.dataOut := 0.U
       }
 
       interconnectPort.done := true.B

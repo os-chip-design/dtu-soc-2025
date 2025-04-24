@@ -89,6 +89,11 @@ class FPGATest(
   
   val readData = bridge.pipeCon.rdData
 
+  val lastValidData = RegInit(0.U(32.W))
+  when (bridge.pipeCon.ack) {
+    lastValidData := readData
+  }
+
   val pointerReg = RegInit(0.U(32.W))
 
   val data = VecInit(Seq.fill(testCases)(0.U(32.W))) 
@@ -119,8 +124,8 @@ class FPGATest(
   fpga.an  := displayDriver.io.an
   displayDriver.io.input := "hABBA".U // default value for the display
   switch (fpga.sel) {
-    is(0.U) { displayDriver.io.input := readData(15, 0) }                     // 000
-    is(1.U) { displayDriver.io.input := readData(31, 16) }                    // 001
+    is(0.U) { displayDriver.io.input := lastValidData(15, 0) }                     // 000
+    is(1.U) { displayDriver.io.input := lastValidData(31, 16) }                    // 001
     is(2.U) { displayDriver.io.input := (data(pointerReg))(15, 0) }             // 010
     is(3.U) { displayDriver.io.input := (data(pointerReg))(31, 16) }            // 011
     is(4.U) { displayDriver.io.input := (addresses(pointerReg))(15, 0) }        // 100
@@ -145,7 +150,6 @@ class FPGATest(
         stateReg := State.writing
         bridge.pipeCon.wr := true.B
       }
-
     }
 
     is(State.clearing) {

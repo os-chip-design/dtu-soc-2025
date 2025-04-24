@@ -13,8 +13,8 @@ class FPGATestSpec extends AnyFlatSpec with ChiselScalatestTester {
         dut.clock.setTimeout(clockCycles + 1)
         var cnt = 0
         dut.spiPort.dataIn.poke(0.U)
-        dut.fpga.jedec.poke(true.B)
-        dut.fpga.start.poke(false.B)
+        dut.fpga.jedec.poke(false.B)
+        dut.fpga.start.poke(true.B)
         dut.fpga.justRead.poke(false.B)
         dut.fpga.again.poke(false.B)
         dut.fpga.clear.poke(false.B)
