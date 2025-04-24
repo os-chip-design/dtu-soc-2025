@@ -3,12 +3,20 @@ import chisel3._
 // Wrapper for the black box... Is needed for chisel to be able to test
 class GpioPadTop extends Module {
     val io = IO(new Bundle {
+        val OUT               = Input(Bool())
+        val OE_N              = Input(Bool())
+        val IN                = Output(Bool())
 
-    val OUT                 = Input(Bool())
-    val OE_N                = Input(Bool())
-    val IN                  = Output(Bool())
-
+        // to be implemented:
+        // need to integrate the pullup/down and open drain enabling functionality with the gpio pad
+        /*
+        val PULLUP_EN         = Input(Bool())
+        val PULLDOWN_EN       = Input(Bool())
+        val OPEN_DRAIN_EN     = Input(Bool())
+        val DRIVE_STRENGTH    = Input(UInt(2.W)) // need to assess what value io cell expects from "drive strength"
+        */
     })
+
     // Instantiate the black box gpio module
     val gpioPad             = Module(new GpioPad)
 
@@ -19,8 +27,8 @@ class GpioPadTop extends Module {
 
     // Lets hardcore the rest configurations for now
     // Moving the complexity from the test to the module instead:
-    
-    // Enable input buffer during reset 
+
+    // Enable input buffer during reset
     // (dont care about current consumption atm)
     gpioPad.io.ENABLE_INP_H         := true.B
     
@@ -28,12 +36,12 @@ class GpioPadTop extends Module {
     gpioPad.io.ENABLE_VSWITCH_H     := true.B
 
     // Enable input buffer
-    gpioPad.io.ENABLE_H             := true.B
+    gpioPad.io.ENABLE_H             := true.B    
     gpioPad.io.INP_DIS              := false.B
 
     // Use VDDIO for voltage thresholds
     gpioPad.io.IB_MODE_SEL          := false.B
-    gpioPad.io.ENABLE_VDDIO         := true.B
+    gpioPad.io.ENABLE_VDDIO         := true.B    
 
     // Set input buffer to CMOS voltage lvls, i.e. 30%/70%.
     gpioPad.io.VTRIP_SEL            := false.B
