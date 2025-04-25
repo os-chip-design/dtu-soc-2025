@@ -13,17 +13,22 @@ class GPIOModule extends Module {
     val gpio_output = Input(Bool())    // data to output when in output mode
     val gpio_input = Output(Bool())    // data read from the pin
     
+    // pad config
+    val drivestrength = Input(UInt(2.W)) // drive strength configuration
+    val pullup_en = Input(Bool())        // pullup enable
+    val pulldown_en = Input(Bool())      // pulldown enable
+    val opendrain_en = Input(Bool())     // open drain enable
+    
     // pwm config
-    val pwm_div = Input(UInt(8.W))             // divisor for prescaler
-    val duty_cycle = Input(UInt(8.W))          // duty cycle, value between 0 and 255
-    val pwm_en = Input(Bool())                 // enable PWM functionality
+    val pwm_div = Input(UInt(8.W))       // divisor for prescaler
+    val duty_cycle = Input(UInt(8.W))    // duty cycle, value between 0 and 255
+    val pwm_en = Input(Bool())           // enable PWM functionality
   })
   
   // instantiate gpio pad
   val gpioPadTop = Module(new GpioPadTop)
   
   // instantiate pwm module
-  // maybe this should rather be done in a top level module, hierarchy needs to be looked at a bit
   val pwmTop = Module(new PWMTop)
   pwmTop.io.pwm_div := io.pwm_div
   pwmTop.io.duty_cycle := io.duty_cycle
@@ -33,10 +38,14 @@ class GPIOModule extends Module {
   // connect gpio config signals to pad
   io.gpio_input := gpioPadTop.io.IN
   
-  // Mux-based selection between gpio output and pwm output, no idea if this is the right way
+  // Mux-based selection between gpio output and pwm output
   val outputData = Mux(io.pwm_en, pwmOutput, io.gpio_output)
   
   // connect to the pad
   gpioPadTop.io.OUT := outputData
-  gpioPadTop.io.OE_N := !io.gpio_direction  // OE_N is active low, so negate direction
+  gpioPadTop.io.OE_N := !io.gpio_direction  // OE_N is active low
+  gpioPadTop.io.drivestrength := io.drivestrength
+  gpioPadTop.io.pullup_en := io.pullup_en
+  gpioPadTop.io.pulldown_en := io.pulldown_en
+  gpioPadTop.io.opendrain_en := io.opendrain_en
 }
