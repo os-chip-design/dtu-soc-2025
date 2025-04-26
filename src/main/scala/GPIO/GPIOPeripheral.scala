@@ -33,11 +33,11 @@ class GPIOPeripheral(addrWidth: Int) extends Module {
     val PWM_POLARITY_OFFSET        = 0x0020.U(addrWidth.W) // PWM polarity register
 
     // Default values, inputs 
-    io.mem_ifc.address      := 0.U
-    io.mem_ifc.rd           := false.B
-    io.mem_ifc.wr           := false.B
-    io.mem_ifc.wrData       := 0.U
-    io.mem_ifc.wrMask       := "b0000".U
+    //io.mem_ifc.address      := 0.U
+    //io.mem_ifc.rd           := false.B
+    //io.mem_ifc.wr           := false.B
+    //io.mem_ifc.wrData       := 0.U
+    //io.mem_ifc.wrMask       := "b0000".U
     
     // Default values, outputs
     io.mem_ifc.ack          := false.B
