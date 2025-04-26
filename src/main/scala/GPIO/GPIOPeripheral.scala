@@ -1,6 +1,5 @@
 import chisel3._
-import java.nio.channels.Pipe
-
+import chisel3.util._
 
 // This module is the top level GPIO and PWM peripheral
 // Instantiation of the modules are done here and
