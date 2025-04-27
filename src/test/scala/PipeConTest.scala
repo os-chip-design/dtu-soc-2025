@@ -26,20 +26,20 @@ class PipeConExampleTest extends AnyFlatSpec with ChiselScalatestTester {
         }
       }
 
-      var readDetected2 = false
-      while (!readDetected2) {
-        c.clock.step(1)
-        /*if (c.interconnect.cpu.io.dmem.wrEnable(0).peek().litToBoolean) {  // Check if UART read signal is active
-          println("wrEnable detected")
-          readDetected2 = true
-        } else */
-        if (c.interconnect.io.rdEnableTest.litToBoolean) {
-          println("rdEnable detected")
-          readDetected2 = true
-        } else {
-          println("Nothing detected...")
-        }
-      }
+      //var readDetected2 = false
+      //while (!readDetected2) {
+      //  c.clock.step(1)
+      //  if (c.interconnect.cpu.io.dmem.wrEnable(0).peek().litToBoolean) {  // Check if UART read signal is active
+      //    println("wrEnable detected")
+      //    readDetected2 = true
+      //  } else
+      //  if (c.interconnect.io.rdEnableTest.litToBoolean) {
+      //    println("rdEnable detected")
+      //    readDetected2 = true
+      //  } else {
+      //    println("Nothing detected...")
+      //  }
+      //}
     }
   }
 
