@@ -43,8 +43,7 @@ class Bridge() extends Module {
   spiController.interconnectPort.clockDivision := config.clockDivision
   pipeCon.rdData := spiController.interconnectPort.dataOut
 
-  spiController.interconnectPort.valid := false.B
-  spiController.interconnectPort.ready := false.B
+  spiController.interconnectPort.start := false.B
   spiController.interconnectPort.instruction := 0.U 
 
   val busy = spiController.interconnectPort.dataOut(0) // Busy flag from the flash memory
@@ -72,8 +71,7 @@ class Bridge() extends Module {
 
     is (State.jedec) {
       spiController.interconnectPort.instruction := SPIInstructions.readJEDECInstruction
-      spiController.interconnectPort.valid := true.B
-      spiController.interconnectPort.ready := true.B
+      spiController.interconnectPort.start := true.B
 
       when (done) {
         when (debug.jedec) {
@@ -96,8 +94,7 @@ class Bridge() extends Module {
 
     is (State.read0) {
       spiController.interconnectPort.instruction := SPIInstructions.readDataInstruction
-      spiController.interconnectPort.valid := true.B
-      spiController.interconnectPort.ready := true.B
+      spiController.interconnectPort.start := true.B
 
       when (done) {
         when (debug.jedec) {
@@ -120,8 +117,8 @@ class Bridge() extends Module {
 
     is (State.write0) {
       spiController.interconnectPort.instruction := SPIInstructions.writeEnableInstruction
-      spiController.interconnectPort.valid := true.B
-      spiController.interconnectPort.ready := true.B
+      spiController.interconnectPort.start := true.B
+
 
       when (done) {
         stateReg := State.write1
@@ -130,8 +127,8 @@ class Bridge() extends Module {
 
     is (State.write1) {
       spiController.interconnectPort.instruction := SPIInstructions.pageProgramInstruction
-      spiController.interconnectPort.valid := true.B
-      spiController.interconnectPort.ready := true.B
+      spiController.interconnectPort.start := true.B
+
 
       when (done) {
         stateReg := State.write2
@@ -140,8 +137,7 @@ class Bridge() extends Module {
 
     is (State.write2) {
       spiController.interconnectPort.instruction := SPIInstructions.readStatusRegister1Instruction
-      spiController.interconnectPort.valid := true.B
-      spiController.interconnectPort.ready := true.B
+      spiController.interconnectPort.start := true.B
 
       when (done && !busy) { 
         when (debug.jedec) {
@@ -164,8 +160,8 @@ class Bridge() extends Module {
 
     is (State.clear0) {
       spiController.interconnectPort.instruction := SPIInstructions.writeEnableInstruction
-      spiController.interconnectPort.valid := true.B
-      spiController.interconnectPort.ready := true.B
+      spiController.interconnectPort.start := true.B
+
 
       when (done) {
         stateReg := State.clear1
@@ -174,8 +170,8 @@ class Bridge() extends Module {
 
     is (State.clear1) {
       spiController.interconnectPort.instruction := SPIInstructions.chipEraseInstruction
-      spiController.interconnectPort.valid := true.B
-      spiController.interconnectPort.ready := true.B
+      spiController.interconnectPort.start := true.B
+
 
       when (done) {
         stateReg := State.clear2
@@ -184,8 +180,8 @@ class Bridge() extends Module {
 
     is (State.clear2) {
       spiController.interconnectPort.instruction := SPIInstructions.readStatusRegister1Instruction
-      spiController.interconnectPort.valid := true.B
-      spiController.interconnectPort.ready := true.B
+      spiController.interconnectPort.start := true.B
+
 
       when (done && !busy) { 
         when (debug.jedec) {

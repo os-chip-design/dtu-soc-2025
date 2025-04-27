@@ -109,12 +109,15 @@ class FPGATest(
   val addresses = VecInit(Seq.fill(testCases)(0.U(24.W))) 
   for (i <- 0 until testCases) {
     val ran = BigInt(24, rand).toLong
-    addresses(i) := (ran).U(24.W)
+    //addresses(i) := (ran).U(24.W)
+    addresses(i) := (i << 8).U(24.W) // left shift to make it 24 bits
     if (printTestCases) {
       // print the address in hex format
-      println(f"addresses($i) = 0x${ran}%06X")
+      //println(f"addresses($i) = 0x${ran}%06X")
+      println(f"addresses($i) = 0x${(i << 8).toLong}%06X")
     }
   }
+  
   
   bridge.pipeCon.address := addresses(pointerReg)
   bridge.pipeCon.wrData  := data(pointerReg)

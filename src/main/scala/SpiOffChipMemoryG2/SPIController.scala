@@ -9,8 +9,7 @@ class SPIController(
   val spiPort = IO(new spiIO)
 
   val interconnectPort = IO(new Bundle {
-    val valid = Input(Bool())
-    val ready = Input(Bool())
+    val start = Input(Bool())
     val instruction = Input(UInt(8.W))
     val dataIn = Input(UInt(32.W))
     val address = Input(UInt(24.W))
@@ -21,7 +20,8 @@ class SPIController(
 
   object State extends ChiselEnum {
     val idle, instructionTransmit, sendAddress,
-        receiveData, writeData, finished= Value        
+        receiveData, writeData, finished, waiting, syncFallEdgeFinish,
+        preAddress, preWriteData, preReceiveData = Value
   }
 
   def risingEdge(x: Bool) = x && !RegNext(x)
@@ -38,6 +38,8 @@ class SPIController(
   val spiClkReg = RegInit(false.B)
   val risingEdgeOfSPIClk = risingEdge(spiClkReg)
   val fallingEdgeOfSPIClk = fallingEdge(spiClkReg)
+
+  val idleClockMode = false.B // SPI clock in idle mode, mode 0 is false, mode 3 is true. // TODO: make a port in the interconnect to select the mode
 
   val rdData = dataOutReg.reduce(_ ## _)
 
@@ -64,13 +66,15 @@ class SPIController(
   switch(stateReg) {
 
     is(State.idle) {
-      when (interconnectPort.valid) {
-        spiPort.chipSelect := false.B
-        spiPort.spiClk := false.B
+      when (interconnectPort.start) {
         spiClkReg := false.B
+        spiClkCounterReg := 0.U
         stateReg := State.instructionTransmit
         pointerReg := 7.U
+        currentOutputReg := instruction(7.U)
       }
+      spiPort.spiClk := idleClockMode
+
 
       when (fallingEdgeOfSPIClk) {
         currentOutputReg := 0.U
@@ -84,16 +88,16 @@ class SPIController(
       when(risingEdgeOfSPIClk) {
         when(pointerReg === 0.U) {
           when(instruction === SPIInstructions.readJEDECInstruction){  // ReadJeDECInstruction
-            stateReg := State.receiveData
+            stateReg := State.preReceiveData
             pointerReg := 23.U
           }.elsewhen(instruction === SPIInstructions.writeEnableInstruction || 
                     instruction === SPIInstructions.chipEraseInstruction){ // WriteEnableInstruction or ChipEraseInstruction
-            stateReg := State.finished
+            stateReg := State.syncFallEdgeFinish
           }.elsewhen(instruction === SPIInstructions.readStatusRegister1Instruction) {
-            stateReg := State.receiveData
+            stateReg := State.preReceiveData
             pointerReg := 7.U
           }.otherwise{ 
-            stateReg := State.sendAddress
+            stateReg := State.preAddress
             pointerReg := 23.U 
           }
         }.otherwise {
@@ -106,6 +110,15 @@ class SPIController(
         spiPort.dataOut := instruction(pointerReg)
       }
     }
+
+    is (State.preAddress) {
+      spiPort.chipSelect := false.B
+      when (fallingEdgeOfSPIClk) {
+        stateReg := State.sendAddress
+        currentOutputReg := address(23.U)
+        spiPort.dataOut := address(23.U)
+      }
+    }
     
     is (State.sendAddress) {
       spiPort.chipSelect := false.B
@@ -113,13 +126,13 @@ class SPIController(
       when(risingEdgeOfSPIClk) {
         when(pointerReg === 0.U) {
           when(instruction === SPIInstructions.pageProgramInstruction){
-            stateReg := State.writeData
+            stateReg := State.preWriteData
             pointerReg := 31.U
           }.elsewhen(instruction === SPIInstructions.readDataInstruction){
-            stateReg := State.receiveData
+            stateReg := State.preReceiveData
             pointerReg := 31.U
-          }.otherwise {
-            stateReg := State.receiveData
+          }.elsewhen(instruction === SPIInstructions.readStatusRegister1Instruction) {
+            stateReg := State.preReceiveData
             pointerReg := 7.U
           }
         }.otherwise {
@@ -133,14 +146,22 @@ class SPIController(
       }
     }
 
+    is (State.preWriteData) {
+      spiPort.chipSelect := false.B
+      when (fallingEdgeOfSPIClk) {
+        stateReg := State.writeData
+        currentOutputReg := data(pointerReg)
+        spiPort.dataOut := data(pointerReg)
+      }
+    }
+
     is (State.writeData)
     {
       spiPort.chipSelect := false.B
 
       when(risingEdgeOfSPIClk) {
         when(pointerReg === 0.U) {
-          stateReg := State.finished
-          currentOutputReg := 0.U
+          stateReg := State.syncFallEdgeFinish
         }.otherwise {
           pointerReg := pointerReg - 1.U
         }
@@ -152,42 +173,65 @@ class SPIController(
       }
     }
 
-    // -- obtaining the data from the device --
-    is (State.receiveData)
-    {
+    is (State.preReceiveData) {
       spiPort.chipSelect := false.B
-
-      when(risingEdgeOfSPIClk) {
-        dataOutReg(pointerReg) := spiPort.dataIn
-        when(pointerReg === 0.U) {
-          stateReg := State.finished
-        }.otherwise {
-          pointerReg := pointerReg - 1.U
-        }
-      }
-
       when (fallingEdgeOfSPIClk) {
+        pointerReg := pointerReg + 1.U
+        stateReg := State.receiveData
         currentOutputReg := 0.U
         spiPort.dataOut := 0.U
       }
     }
 
+    is (State.receiveData)
+    {
+      spiPort.chipSelect := false.B
+
+      when(risingEdgeOfSPIClk) {
+        when(pointerReg === 0.U) {
+          stateReg := State.finished
+          spiPort.spiClk := idleClockMode
+          spiPort.chipSelect := true.B
+        }.otherwise {
+          pointerReg := pointerReg - 1.U
+          dataOutReg(pointerReg - 1.U) := spiPort.dataIn
+        }
+      }
+    }
+
+    is (State.syncFallEdgeFinish
+    ) {
+      spiPort.chipSelect := false.B
+      when (fallingEdgeOfSPIClk) {
+        stateReg := State.finished
+        currentOutputReg := 0.U
+        spiPort.spiClk := idleClockMode
+        spiPort.chipSelect := true.B
+      }
+    }
+
     is (State.finished)
     {
-      spiPort.spiClk := false.B
-      spiClkReg := false.B
+      spiPort.spiClk := idleClockMode
 
-      when(interconnectPort.ready) {
-        dataOutReg := VecInit(Seq.fill(32)(0.U(1.W))) // reset the dataOut register
-        stateReg := State.idle
-      }
-
-      when (fallingEdgeOfSPIClk) {
-        currentOutputReg := 0.U
-        spiPort.dataOut := 0.U
-      }
+      dataOutReg := VecInit(Seq.fill(32)(0.U(1.W))) // reset the dataOut register
+      stateReg := State.waiting
+      pointerReg := 1.U
 
       interconnectPort.done := true.B
+    }
+
+    is (State.waiting) {
+      spiPort.chipSelect := true.B
+      spiPort.spiClk := idleClockMode
+
+      when(risingEdgeOfSPIClk) {
+        when(pointerReg === 0.U) {
+          stateReg := State.idle
+        }.otherwise {
+          pointerReg := pointerReg - 1.U
+        }
+      }
     }
   }
 }
