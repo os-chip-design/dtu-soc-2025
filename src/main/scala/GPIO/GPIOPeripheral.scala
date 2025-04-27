@@ -13,24 +13,24 @@ class GPIOPeripheral(addrWidth: Int, nofGPIO: Int) extends Module {
         val mem_ifc = (new PipeCon(addrWidth)) // From CPU
     })
     // Register address offsets
-    val GPIO_REG_OFFSET         = 0x0000 // Start addr of GPIO registers
-    val PWM_REG_OFFSET          = 0x0400 // Start addr of PWM registers
+    val GPIO_REG_OFFSET             = 0x0000                    // Start addr of GPIO registers
+    val PWM_REG_OFFSET              = (GPIO_REG_OFFSET| 0x0100) // Start addr of PWM registers
 
     // GPIO registers offsets within GPIO address space
-    val GPIO_DIRECTION_OFFSET       = (GPIO_REG_OFFSET | 0x0000) // GPIO direction register
-    val GPIO_OUTPUT_OFFSET          = (GPIO_REG_OFFSET | 0x0008) // GPIO output register
-    val GPIO_INPUT_OFFSET           = (GPIO_REG_OFFSET | 0x0010) // GPIO input register
-    val GPIO_PULLUP_OFFSET          = (GPIO_REG_OFFSET | 0x0018) // GPIO pullup register
-    val GPIO_PULLDOWN_OFFSET        = (GPIO_REG_OFFSET | 0x0020) // GPIO pulldown register
-    val GPIO_OPENDRAIN_OFFSET       = (GPIO_REG_OFFSET | 0x0028) // GPIO open drain register
-    val GPIO_DRIVESTRENGTH_OFFSET   = (GPIO_REG_OFFSET | 0x0030) // GPIO drive strength register
+    val GPIO_DIRECTION_OFFSET       = (GPIO_REG_OFFSET | 0x0000)
+    val GPIO_OUTPUT_OFFSET          = (GPIO_REG_OFFSET | 0x0008)
+    val GPIO_INPUT_OFFSET           = (GPIO_REG_OFFSET | 0x0010)
+    val GPIO_PULLUP_OFFSET          = (GPIO_REG_OFFSET | 0x0018)
+    val GPIO_PULLDOWN_OFFSET        = (GPIO_REG_OFFSET | 0x0020)
+    val GPIO_OPENDRAIN_OFFSET       = (GPIO_REG_OFFSET | 0x0028)
+    val GPIO_DRIVESTRENGTH_OFFSET   = (GPIO_REG_OFFSET | 0x0030)
 
     // PWM registers offsets within PWM address space
-    val PWM_ENABLE_OFFSET          = (PWM_REG_OFFSET | 0x0000) // PWM enable register
-    val PWM_PERIOD_OFFSET          = (PWM_REG_OFFSET | 0x0008) // PWM period register
-    val PWM_DUTY_CYCLE_OFFSET      = (PWM_REG_OFFSET | 0x0010) // PWM duty cycle register    
-    val PWM_PRESCALER_OFFSET       = (PWM_REG_OFFSET | 0x0018) // PWM prescaler register
-    //val PWM_POLARITY_OFFSET        = 0x0020.U(addrWidth.W) // PWM polarity register
+    val PWM_ENABLE_OFFSET           = (PWM_REG_OFFSET | 0x0000)
+    val PWM_PERIOD_OFFSET           = (PWM_REG_OFFSET | 0x0008)
+    val PWM_DUTY_CYCLE_OFFSET       = (PWM_REG_OFFSET | 0x0010)
+    val PWM_PRESCALER_OFFSET        = (PWM_REG_OFFSET | 0x0018)
+    val PWM_POLARITY_OFFSET         = (PWM_REG_OFFSET | 0x0020)
     
     // Default values, outputs
     io.mem_ifc.ack          := false.B
@@ -67,42 +67,120 @@ class GPIOPeripheral(addrWidth: Int, nofGPIO: Int) extends Module {
     }
 
     // Piping read address to statemachine/registers
-    val readRegAddr = io.mem_ifc.address
+    val regAddr     = RegInit(0.U(addrWidth.W))
 
-    // WIP:
-    switch (readRegAddr) {
-        is(GPIO_DIRECTION_OFFSET.U(addrWidth.W)) {
-            io.mem_ifc.rdData := gpio_direction // Read GPIO direction register
+    val rdAckReg    = RegInit(false.B)
+    val wrAckReg    = RegInit(false.B)
+    
+    val writeReg    = RegInit(0.U(addrWidth.W))
+    val readReg     = RegInit(0.U(addrWidth.W))
+
+    io.mem_ifc.ack      := rdAckReg || wrAckReg
+    io.mem_ifc.rdData   := readReg
+
+    when(io.mem_ifc.wr) {
+        writeReg := io.mem_ifc.wrData //& io.mem_ifc.wrMask
+        regAddr := io.mem_ifc.address
+    }
+
+    // Reading state machine
+    switch (io.mem_ifc.rd) {
+        is(true.B) {
+            switch (io.mem_ifc.address) {
+                is(GPIO_DIRECTION_OFFSET.U(addrWidth.W)) {
+                    readReg     := gpio_direction
+                    rdAckReg    := true.B
+                }
+                is(GPIO_OUTPUT_OFFSET.U(addrWidth.W)) {
+                    readReg     := gpio_output
+                    rdAckReg    := true.B
+                }
+                is(GPIO_INPUT_OFFSET.U(addrWidth.W)) {
+                    readReg     := gpio_input
+                    rdAckReg    := true.B
+                }
+                is(GPIO_PULLUP_OFFSET.U(addrWidth.W)) {
+                    readReg     := gpio_pullup
+                    rdAckReg    := true.B
+                }
+                is(GPIO_PULLDOWN_OFFSET.U(addrWidth.W)) {
+                    readReg     := gpio_pulldown
+                    rdAckReg    := true.B
+                }
+                is(GPIO_OPENDRAIN_OFFSET.U(addrWidth.W)) {
+                    readReg     := gpio_opendrain
+                    rdAckReg    := true.B
+                }
+                is(GPIO_DRIVESTRENGTH_OFFSET.U(addrWidth.W)) {
+                    readReg     := gpio_drivestrength
+                    rdAckReg    := true.B
+                }
+                is(PWM_ENABLE_OFFSET.U(addrWidth.W)) {
+                    readReg     := pwm_enable
+                    rdAckReg    := true.B
+                }
+                is(PWM_DUTY_CYCLE_OFFSET.U(addrWidth.W)) {
+                    readReg     := pwm_duty_cycle
+                    rdAckReg    := true.B
+                }
+                is(PWM_PRESCALER_OFFSET.U(addrWidth.W)) {
+                    readReg     := pwm_prescaler
+                    rdAckReg    := true.B
+                }
+            }
         }
-        is(GPIO_OUTPUT_OFFSET.U(addrWidth.W)) {
-            io.mem_ifc.rdData := gpio_output // Read GPIO output register
+
+        is(false.B) {
+            readReg := 0.U // Default value
+            rdAckReg  := false.B
         }
-        is(GPIO_INPUT_OFFSET.U(addrWidth.W)) {
-            io.mem_ifc.rdData := gpio_input // Read GPIO input register
+    }
+
+    // Writing state machine
+    switch (io.mem_ifc.wr) {
+        is(true.B) {
+            switch (io.mem_ifc.address) {
+                is(GPIO_DIRECTION_OFFSET.U(addrWidth.W)) {
+                    gpio_direction := io.mem_ifc.wrData
+                    wrAckReg := true.B
+                }
+                is(GPIO_OUTPUT_OFFSET.U(addrWidth.W)) {
+                    gpio_output := io.mem_ifc.wrData
+                    wrAckReg := true.B
+                }
+                is(GPIO_PULLUP_OFFSET.U(addrWidth.W)) {
+                    gpio_pullup := io.mem_ifc.wrData
+                    wrAckReg := true.B
+                }
+                is(GPIO_PULLDOWN_OFFSET.U(addrWidth.W)) {
+                    gpio_pulldown := io.mem_ifc.wrData
+                    wrAckReg := true.B
+                }
+                is(GPIO_OPENDRAIN_OFFSET.U(addrWidth.W)) {
+                    gpio_opendrain := io.mem_ifc.wrData
+                    wrAckReg := true.B
+                }
+                is(GPIO_DRIVESTRENGTH_OFFSET.U(addrWidth.W)) {
+                    gpio_drivestrength := io.mem_ifc.wrData
+                    wrAckReg := true.B
+                }
+                is(PWM_ENABLE_OFFSET.U(addrWidth.W)) {
+                    pwm_enable := io.mem_ifc.wrData
+                    wrAckReg := true.B
+                }
+                is(PWM_DUTY_CYCLE_OFFSET.U(addrWidth.W)) {
+                    pwm_duty_cycle := io.mem_ifc.wrData
+                    wrAckReg := true.B
+                }
+                is(PWM_PRESCALER_OFFSET.U(addrWidth.W)) {
+                    pwm_prescaler := io.mem_ifc.wrData
+                    wrAckReg := true.B
+                }
+            }
         }
-        is(GPIO_PULLUP_OFFSET.U(addrWidth.W)) {
-            io.mem_ifc.rdData := gpio_pullup // Read GPIO pullup register
-        }
-        is(GPIO_PULLDOWN_OFFSET.U(addrWidth.W)) {
-            io.mem_ifc.rdData := gpio_pulldown // Read GPIO pulldown register
-        }
-        is(GPIO_OPENDRAIN_OFFSET.U(addrWidth.W)) {
-            io.mem_ifc.rdData := gpio_opendrain // Read GPIO open drain register
-        }
-        is(GPIO_DRIVESTRENGTH_OFFSET.U(addrWidth.W)) {
-            io.mem_ifc.rdData := gpio_drivestrength // Read GPIO drive strength register
-        }
-        is(PWM_ENABLE_OFFSET.U(addrWidth.W)) {
-            io.mem_ifc.rdData := pwm_enable // Read PWM enable register
-        }
-        // is(PWM_PERIOD_OFFSET.U(addrWidth.W)) {
-        //     io.mem_ifc.rdData := pwm_period // Read PWM period register
-        // }
-        is(PWM_DUTY_CYCLE_OFFSET.U(addrWidth.W)) {
-            io.mem_ifc.rdData := pwm_duty_cycle // Read PWM duty cycle register
-        }
-        is(PWM_PRESCALER_OFFSET.U(addrWidth.W)) {
-            io.mem_ifc.rdData := pwm_prescaler // Read PWM prescaler register
+
+        is(false.B) {
+            wrAckReg  := false.B
         }
     }
 }
