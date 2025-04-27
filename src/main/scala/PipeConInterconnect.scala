@@ -17,8 +17,14 @@ class PipeConInterconnect(addrWidth: Int) extends Module {
   val uartPeripheral = Module(new UARTPeripheral(addrWidth))  // Actual UART logic
   val spiPeripheral = Module(new SPIPeripheral(addrWidth))    // Actual SPI logic
 
-  io.rdEnableTest := cpu.io.dmem.rdEnable
-
+  
+  if (cpu.io.dmem.rdEnable == true.B) {
+    io.rdEnableTest := cpu.io.dmem.rdEnable
+  } else if (cpu.io.dmem.rdEnable == false.B) {
+    io.rdEnableTest := cpu.io.dmem.rdEnable
+  } else {
+    io.rdEnableTest := false.B
+  }
 
   // Default for peripherals
   uartPeripheral.io.wr := false.B
@@ -45,11 +51,7 @@ class PipeConInterconnect(addrWidth: Int) extends Module {
   io.uart.ack := false.B
   io.SPI.rdData := 0.U
   io.SPI.ack := false.B
-  //io.uart.rd := false.B
-  //io.uart.wr := false.B
-  //io.uart.address := 0.U
-  //io.uart.wrData := 0.U
-  //io.uart.wrMask := "b0000".U
+
 
   // === Internal: Handling reads/writes ===
   val uartAddress = "h01".U(addrWidth.W)
@@ -110,9 +112,5 @@ class PipeConInterconnect(addrWidth: Int) extends Module {
   io.uart.ack := uartPeripheral.io.ack
   io.SPI.rdData := spiPeripheral.io.rdData
   io.SPI.ack := spiPeripheral.io.ack
-  //io.uart.wr := uartPeripheral.io.wr
-  //io.uart.wrMask := uartPeripheral.io.wrMask
-  //io.uart.wrData := uartPeripheral.io.wrData
-  //io.uart.address := uartPeripheral.io.address
 
 }
