@@ -67,21 +67,13 @@ class GPIOPeripheral(addrWidth: Int, nofGPIO: Int) extends Module {
     }
 
     // Piping read address to statemachine/registers
-    val regAddr     = RegInit(0.U(addrWidth.W))
-
     val rdAckReg    = RegInit(false.B)
     val wrAckReg    = RegInit(false.B)
-    
-    val writeReg    = RegInit(0.U(addrWidth.W))
+
     val readReg     = RegInit(0.U(addrWidth.W))
 
     io.mem_ifc.ack      := rdAckReg || wrAckReg
     io.mem_ifc.rdData   := readReg
-
-    when(io.mem_ifc.wr) {
-        writeReg := io.mem_ifc.wrData //& io.mem_ifc.wrMask
-        regAddr := io.mem_ifc.address
-    }
 
     // Reading state machine
     switch (io.mem_ifc.rd) {
