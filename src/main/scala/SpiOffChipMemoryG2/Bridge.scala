@@ -79,28 +79,7 @@ class Bridge() extends Module {
       spiController.interconnectPort.start := true.B
 
       when (done) {
-        when (pipeCon.rd) {
-          when (config.jedec && targettingFlash) {
-            stateReg := State.jedec
-          }.otherwise {
-            stateReg := State.read0
-            addressReg := pipeCon.address 
-          }
-        }.elsewhen (pipeCon.wr) {
-          when (config.clear && targettingFlash) {
-            stateReg := State.clear0
-          }.otherwise {
-            when (targettingFlash) {
-              stateReg := State.write0
-            }.otherwise {
-              stateReg := State.write1
-            }
-            addressReg := pipeCon.address
-            dataReg := maskedData
-          }
-        }.otherwise {
-          stateReg := State.idle
-        }
+        stateReg := State.idle
         pipeCon.ack := true.B
       }
     }
@@ -110,28 +89,7 @@ class Bridge() extends Module {
       spiController.interconnectPort.start := true.B
 
       when (done) {
-        when (pipeCon.rd) {
-          when (config.jedec && targettingFlash) {
-            stateReg := State.jedec
-          }.otherwise {
-            stateReg := State.read0
-            addressReg := pipeCon.address 
-          }
-        }.elsewhen (pipeCon.wr) {
-          when (config.clear && targettingFlash) {
-            stateReg := State.clear0
-          }.otherwise {
-            when (targettingFlash) {
-              stateReg := State.write0
-            }.otherwise {
-              stateReg := State.write1
-            }
-            addressReg := pipeCon.address
-            dataReg := maskedData
-          }
-        }.otherwise {
-          stateReg := State.idle
-        }
+        stateReg := State.idle
         pipeCon.ack := true.B
       }
     } 
@@ -154,16 +112,7 @@ class Bridge() extends Module {
         when (targettingFlash) {
           stateReg := State.write2
         }.otherwise {
-          when (pipeCon.rd) {
-            stateReg := State.read0
-            addressReg := pipeCon.address 
-          }.elsewhen (pipeCon.wr) {
-            stateReg := State.write1
-            addressReg := pipeCon.address
-            dataReg := maskedData
-          }.otherwise {
-            stateReg := State.idle
-          }
+          stateReg := State.idle
           pipeCon.ack := true.B
         }
       }
@@ -174,28 +123,7 @@ class Bridge() extends Module {
       spiController.interconnectPort.start := true.B
 
       when (done && !busy) { 
-        when (pipeCon.rd) {
-          when (config.jedec && targettingFlash) {
-            stateReg := State.jedec
-          }.otherwise {
-            stateReg := State.read0
-            addressReg := pipeCon.address 
-          }
-        }.elsewhen (pipeCon.wr) {
-          when (config.clear && targettingFlash) {
-            stateReg := State.clear0
-          }.otherwise {
-            when (targettingFlash) {
-              stateReg := State.write0
-            }.otherwise {
-              stateReg := State.write1
-            }
-            addressReg := pipeCon.address
-            dataReg := maskedData
-          }
-        }.otherwise {
-          stateReg := State.idle
-        }
+        stateReg := State.idle
         pipeCon.ack := true.B
       }
     }
@@ -226,28 +154,7 @@ class Bridge() extends Module {
 
 
       when (done && !busy) { 
-        when (pipeCon.rd) {
-          when (config.jedec && targettingFlash) {
-            stateReg := State.jedec
-          }.otherwise {
-            stateReg := State.read0
-            addressReg := pipeCon.address 
-          }
-        }.elsewhen (pipeCon.wr) {
-          when (config.clear && targettingFlash) {
-            stateReg := State.clear0
-          }.otherwise {
-            when (targettingFlash) {
-              stateReg := State.write0
-            }.otherwise {
-              stateReg := State.write1
-            }
-            addressReg := pipeCon.address
-            dataReg := maskedData
-          }
-        }.otherwise {
-          stateReg := State.idle
-        }
+        stateReg := State.idle
         pipeCon.ack := true.B
       }
     }

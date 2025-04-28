@@ -37,7 +37,9 @@ class FPGATest(
     val refreshRate: Int = 1000000, // for showing the data on the seven segment display
     val testCases: Int = 4,
     val printTestCases: Boolean = false, // print the test cases to the console
-    val endOnError: Boolean = false // end the simulation on error
+    val endOnError: Boolean = false, // end the simulation on error
+    val randomData: Boolean = false, // generate random test cases
+    val randomAddresses: Boolean = false // generate random addresses
 ) extends Module {
   
   val spiPort = IO(new spiIO)
@@ -114,24 +116,33 @@ class FPGATest(
 
   val data = VecInit(Seq.fill(testCases)(0.U(32.W))) 
   for (i <- 0 until testCases) {
-    // make a random number
-    val ran = BigInt(32, rand).toLong
-    data(i) := ran.U(32.W)
-    //data(i) := "hFFFFFFFF".U // all ones
-    if (printTestCases) {
-      println(f"data($i) = 0x${ran}%08X")
+    if (randomData) {
+      val ran = BigInt(32, rand).toLong
+      data(i) := ran.U(32.W)
+      if (printTestCases) {
+        println(f"data($i) = 0x${ran}%08X")
+      }
+    } else {
+      data(i) := (i).U(32.W)
+      if (printTestCases) {
+        println(f"data($i) = 0x${(i).toLong}%08X")
+      }
     }
   }
 
   val addresses = VecInit(Seq.fill(testCases)(0.U(24.W))) 
   for (i <- 0 until testCases) {
-    val ran = BigInt(24, rand).toLong
-    addresses(i) := (ran).U(24.W)
-    //addresses(i) := (i << 8).U(24.W) // left shift to make it 24 bits
-    if (printTestCases) {
-      // print the address in hex format
-      println(f"addresses($i) = 0x${ran}%06X")
-      //println(f"addresses($i) = 0x${(i << 8).toLong}%06X")
+    if (randomAddresses) {
+      val ran = BigInt(24, rand).toLong
+      addresses(i) := (ran).U(24.W)
+      if (printTestCases) {
+        println(f"addresses($i) = 0x${ran}%06X")
+      }
+    } else {
+      addresses(i) := (i << 2).U(24.W) 
+      if (printTestCases) {
+        println(f"addresses($i) = 0x${(i << 2).toLong}%06X")
+      }
     }
   }
   
@@ -150,8 +161,8 @@ class FPGATest(
     is(3.U) { displayDriver.io.input := (data(pointerReg))(31, 16) }            // 011
     is(4.U) { displayDriver.io.input := (addresses(pointerReg))(15, 0) }        // 100
     is(5.U) { displayDriver.io.input := (addresses(pointerReg))(23, 16) }       // 101
-    is(6.U) { displayDriver.io.input := readData(15, 0) }                   // 110
-    is(7.U) { displayDriver.io.input := readData(23, 16) }                  // 111
+    is(6.U) { displayDriver.io.input := pointerReg(15, 0) }                   // 110
+    is(7.U) { displayDriver.io.input := pointerReg(23, 16) }                  // 111
   }
 
   fpga.done := false.B
@@ -165,23 +176,19 @@ class FPGATest(
         stateReg := State.jedec
       }.elsewhen (fpga.justRead) {
         stateReg := State.justRead0
-        bridge.pipeCon.rd := true.B
       }.elsewhen (fpga.justWrite) {
         stateReg := State.justWrite0
-        bridge.pipeCon.wr := true.B
       }.elsewhen (fpga.start) {
         stateReg := State.writing
-        bridge.pipeCon.wr := true.B
       }
     }
 
     is(State.clearing) {
       when (bridge.pipeCon.ack) {
         stateReg := State.done
-      }.otherwise {
-        bridge.config.clear := true.B
-        bridge.pipeCon.wr := true.B
       }
+      bridge.config.clear := true.B
+      bridge.pipeCon.wr := true.B  
     }
 
     is(State.jedec) {
@@ -191,20 +198,21 @@ class FPGATest(
         }.otherwise {
           stateReg := State.done
         }
-      }.otherwise {
-        bridge.config.jedec := true.B
-        bridge.pipeCon.rd := true.B
       }
+      bridge.config.jedec := true.B
+      bridge.pipeCon.rd := true.B
+      
     }
 
     is(State.writing) {
+      bridge.pipeCon.wr := true.B
       when (bridge.pipeCon.ack) {
         stateReg := State.reading
-        bridge.pipeCon.rd := true.B
       }
     }
 
     is(State.reading) {
+      bridge.pipeCon.rd := true.B
       when (bridge.pipeCon.ack) {
         when (readData =/= data(pointerReg)) {
           if (endOnError) {
@@ -213,7 +221,6 @@ class FPGATest(
             fpga.error := true.B
             pointerReg := pointerReg + 1.U
             stateReg := State.writing
-            bridge.pipeCon.wr := true.B
           }
         }.otherwise {
           when (pointerReg === (testCases - 1).U) {
@@ -221,13 +228,13 @@ class FPGATest(
           }.otherwise {
             pointerReg := pointerReg + 1.U
             stateReg := State.writing
-            bridge.pipeCon.wr := true.B
           }
         }
       }
     }
 
     is(State.justRead0) {
+      bridge.pipeCon.rd := true.B
       when (bridge.pipeCon.ack) {
         stateReg := State.justRead1
       }
@@ -255,11 +262,11 @@ class FPGATest(
     is(State.justRead2) {
       when (fpga.start) {
         stateReg := State.justRead0
-        bridge.pipeCon.rd := true.B
       }
     }
 
     is (State.justWrite0) {
+      bridge.pipeCon.wr := true.B
       when (bridge.pipeCon.ack) {
         stateReg := State.justWrite1
       }
@@ -281,7 +288,6 @@ class FPGATest(
     is (State.justWrite2) {
       when (fpga.start) {
         stateReg := State.justWrite0
-        bridge.pipeCon.wr := true.B
       }
     }
 
@@ -308,6 +314,6 @@ object SPIOffChipBasys3 extends App {
   val spiFreq =         1000000 // 1MHz
   val clockDivision = basys3ClockFreq / spiFreq / 2 // SPI clock division factor divided by 2 as there is a positive edge and a negative edge
   val refreshRate =     100000  // 1ms refresh rate for the seven segment display
-  val testCases =      4 // number of test cases to be tested
-  (new chisel3.stage.ChiselStage).emitVerilog(new FPGATest(clockDivision, refreshRate, testCases, true, true), Array("--target-dir", "generated"))
+  val testCases =      300 // number of test cases to be tested
+  (new chisel3.stage.ChiselStage).emitVerilog(new FPGATest(clockDivision, refreshRate, testCases, true, true, true, false), Array("--target-dir", "generated"))
 }
