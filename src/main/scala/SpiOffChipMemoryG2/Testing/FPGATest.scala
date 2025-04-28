@@ -36,12 +36,14 @@ class FPGATest(
     val clockDivision: Int = 2, // SPI clock division factor
     val refreshRate: Int = 1000000, // for showing the data on the seven segment display
     val testCases: Int = 4,
-    val printTestCases: Boolean = false // print the test cases to the console
+    val printTestCases: Boolean = false, // print the test cases to the console
+    val endOnError: Boolean = false // end the simulation on error
 ) extends Module {
   
   val spiPort = IO(new spiIO)
 
   val fpga = IO(new Bundle {
+
     val start = Input(Bool())
     val again = Input(Bool()) 
     val jedec = Input(Bool())
@@ -49,6 +51,9 @@ class FPGATest(
     val justWrite = Input(Bool())
     val error = Output(Bool())
     val done  = Output(Bool())
+
+    val ramSelect = Output(Bool())
+    val targetFlash = Input(Bool())
 
     val sel = Input(UInt(3.W))
     val seg = Output(UInt(7.W))
@@ -88,7 +93,15 @@ class FPGATest(
   bridge.config.clear := false.B
   bridge.config.clockDivision := clockDivision.U
   bridge.config.mode := false.B // SPI clock mode, 0 (indicated by 0) or 3 (indicated by 1)
+  bridge.config.targetFlash := fpga.targetFlash // target the flash memory or the RAM
   spiPort <> bridge.spiPort
+  
+  when (!fpga.targetFlash) {
+    spiPort.chipSelect := true.B // chip select for the flash memory
+    fpga.ramSelect := bridge.spiPort.chipSelect // chip select for the RAM
+  }.otherwise {
+    fpga.ramSelect := true.B // chip select for the RAM
+  }
   
   val readData = bridge.pipeCon.rdData
 
@@ -194,11 +207,14 @@ class FPGATest(
     is(State.reading) {
       when (bridge.pipeCon.ack) {
         when (readData =/= data(pointerReg)) {
-          stateReg := State.error
-          //fpga.error := true.B
-          //pointerReg := pointerReg + 1.U
-          //stateReg := State.writing
-          //bridge.pipeCon.wr := true.B
+          if (endOnError) {
+            stateReg := State.error
+          } else {
+            fpga.error := true.B
+            pointerReg := pointerReg + 1.U
+            stateReg := State.writing
+            bridge.pipeCon.wr := true.B
+          }
         }.otherwise {
           when (pointerReg === (testCases - 1).U) {
             stateReg := State.done
@@ -293,5 +309,5 @@ object SPIOffChipBasys3 extends App {
   val clockDivision = basys3ClockFreq / spiFreq / 2 // SPI clock division factor divided by 2 as there is a positive edge and a negative edge
   val refreshRate =     100000  // 1ms refresh rate for the seven segment display
   val testCases =      4 // number of test cases to be tested
-  (new chisel3.stage.ChiselStage).emitVerilog(new FPGATest(clockDivision, refreshRate, testCases, true), Array("--target-dir", "generated"))
+  (new chisel3.stage.ChiselStage).emitVerilog(new FPGATest(clockDivision, refreshRate, testCases, true, true), Array("--target-dir", "generated"))
 }

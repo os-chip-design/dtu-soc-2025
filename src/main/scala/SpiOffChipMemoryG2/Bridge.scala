@@ -38,6 +38,8 @@ class Bridge() extends Module {
   spiController.interconnectPort.mode := config.mode 
   pipeCon.rdData := spiController.interconnectPort.dataOut
 
+  val targettingFlash = config.targetFlash
+
   spiController.interconnectPort.start := false.B
   spiController.interconnectPort.instruction := 0.U 
 
@@ -51,40 +53,48 @@ class Bridge() extends Module {
   switch(stateReg) {
     is(State.idle) {
       when (pipeCon.rd) {
-        when (config.jedec) {
+        when (config.jedec && targettingFlash) {
           stateReg := State.jedec
         }.otherwise {
           stateReg := State.read0
           addressReg := pipeCon.address 
         }
       }.elsewhen (pipeCon.wr) {
-        when (config.clear) {
+        when (config.clear && targettingFlash) {
           stateReg := State.clear0
         }.otherwise {
-          stateReg := State.write0
-          addressReg := pipeCon.address
-          dataReg := maskedData
+            when (targettingFlash) {
+              stateReg := State.write0
+            }.otherwise {
+              stateReg := State.write1
+            }
+            addressReg := pipeCon.address
+            dataReg := maskedData
         }
       }
     }
 
     is (State.jedec) {
-      spiController.interconnectPort.instruction := SPIInstructions.readJEDECInstruction
+      spiController.interconnectPort.instruction := FlashInstructions.readJEDECInstruction
       spiController.interconnectPort.start := true.B
 
       when (done) {
         when (pipeCon.rd) {
-          when (config.jedec) {
+          when (config.jedec && targettingFlash) {
             stateReg := State.jedec
           }.otherwise {
             stateReg := State.read0
             addressReg := pipeCon.address 
           }
         }.elsewhen (pipeCon.wr) {
-          when (config.clear) {
+          when (config.clear && targettingFlash) {
             stateReg := State.clear0
           }.otherwise {
-            stateReg := State.write0
+            when (targettingFlash) {
+              stateReg := State.write0
+            }.otherwise {
+              stateReg := State.write1
+            }
             addressReg := pipeCon.address
             dataReg := maskedData
           }
@@ -96,22 +106,26 @@ class Bridge() extends Module {
     }
 
     is (State.read0) {
-      spiController.interconnectPort.instruction := SPIInstructions.readDataInstruction
+      spiController.interconnectPort.instruction := FlashInstructions.readDataInstruction
       spiController.interconnectPort.start := true.B
 
       when (done) {
         when (pipeCon.rd) {
-          when (config.jedec) {
+          when (config.jedec && targettingFlash) {
             stateReg := State.jedec
           }.otherwise {
             stateReg := State.read0
             addressReg := pipeCon.address 
           }
         }.elsewhen (pipeCon.wr) {
-          when (config.clear) {
+          when (config.clear && targettingFlash) {
             stateReg := State.clear0
           }.otherwise {
-            stateReg := State.write0
+            when (targettingFlash) {
+              stateReg := State.write0
+            }.otherwise {
+              stateReg := State.write1
+            }
             addressReg := pipeCon.address
             dataReg := maskedData
           }
@@ -123,7 +137,7 @@ class Bridge() extends Module {
     } 
 
     is (State.write0) {
-      spiController.interconnectPort.instruction := SPIInstructions.writeEnableInstruction
+      spiController.interconnectPort.instruction := FlashInstructions.writeEnableInstruction
       spiController.interconnectPort.start := true.B
 
       when (done) {
@@ -132,32 +146,50 @@ class Bridge() extends Module {
     }
 
     is (State.write1) {
-      spiController.interconnectPort.instruction := SPIInstructions.pageProgramInstruction
+      spiController.interconnectPort.instruction := FlashInstructions.pageProgramInstruction
       spiController.interconnectPort.start := true.B
 
 
       when (done) {
-        stateReg := State.write2
+        when (targettingFlash) {
+          stateReg := State.write2
+        }.otherwise {
+          when (pipeCon.rd) {
+            stateReg := State.read0
+            addressReg := pipeCon.address 
+          }.elsewhen (pipeCon.wr) {
+            stateReg := State.write1
+            addressReg := pipeCon.address
+            dataReg := maskedData
+          }.otherwise {
+            stateReg := State.idle
+          }
+          pipeCon.ack := true.B
+        }
       }
     }
 
     is (State.write2) {
-      spiController.interconnectPort.instruction := SPIInstructions.readStatusRegister1Instruction
+      spiController.interconnectPort.instruction := FlashInstructions.readStatusRegister1Instruction
       spiController.interconnectPort.start := true.B
 
       when (done && !busy) { 
         when (pipeCon.rd) {
-          when (config.jedec) {
+          when (config.jedec && targettingFlash) {
             stateReg := State.jedec
           }.otherwise {
             stateReg := State.read0
             addressReg := pipeCon.address 
           }
         }.elsewhen (pipeCon.wr) {
-          when (config.clear) {
+          when (config.clear && targettingFlash) {
             stateReg := State.clear0
           }.otherwise {
-            stateReg := State.write0
+            when (targettingFlash) {
+              stateReg := State.write0
+            }.otherwise {
+              stateReg := State.write1
+            }
             addressReg := pipeCon.address
             dataReg := maskedData
           }
@@ -169,7 +201,7 @@ class Bridge() extends Module {
     }
 
     is (State.clear0) {
-      spiController.interconnectPort.instruction := SPIInstructions.writeEnableInstruction
+      spiController.interconnectPort.instruction := FlashInstructions.writeEnableInstruction
       spiController.interconnectPort.start := true.B
 
 
@@ -179,7 +211,7 @@ class Bridge() extends Module {
     }
 
     is (State.clear1) {
-      spiController.interconnectPort.instruction := SPIInstructions.chipEraseInstruction
+      spiController.interconnectPort.instruction := FlashInstructions.chipEraseInstruction
       spiController.interconnectPort.start := true.B
 
 
@@ -189,23 +221,27 @@ class Bridge() extends Module {
     }
 
     is (State.clear2) {
-      spiController.interconnectPort.instruction := SPIInstructions.readStatusRegister1Instruction
+      spiController.interconnectPort.instruction := FlashInstructions.readStatusRegister1Instruction
       spiController.interconnectPort.start := true.B
 
 
       when (done && !busy) { 
         when (pipeCon.rd) {
-          when (config.jedec) {
+          when (config.jedec && targettingFlash) {
             stateReg := State.jedec
           }.otherwise {
             stateReg := State.read0
             addressReg := pipeCon.address 
           }
         }.elsewhen (pipeCon.wr) {
-          when (config.clear) {
+          when (config.clear && targettingFlash) {
             stateReg := State.clear0
           }.otherwise {
-            stateReg := State.write0
+            when (targettingFlash) {
+              stateReg := State.write0
+            }.otherwise {
+              stateReg := State.write1
+            }
             addressReg := pipeCon.address
             dataReg := maskedData
           }

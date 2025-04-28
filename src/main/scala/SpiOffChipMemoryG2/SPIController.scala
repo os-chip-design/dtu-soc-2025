@@ -40,7 +40,9 @@ class SPIController(
   val risingEdgeOfSPIClk = risingEdge(spiClkReg)
   val fallingEdgeOfSPIClk = fallingEdge(spiClkReg)
 
-  val idleClockMode = interconnectPort.mode // SPI clock mode, 0 (indicated by 0) or 3 (indicated by 1)
+  // SPI clock mode, 0 (indicated by 0) or 3 (indicated by 1
+  // always zero if not targeting the flash memory
+  val idleClockMode = interconnectPort.mode
 
   val rdData = dataOutReg.reduce(_ ## _)
 
@@ -88,13 +90,13 @@ class SPIController(
 
       when(risingEdgeOfSPIClk) {
         when(pointerReg === 0.U) {
-          when(instruction === SPIInstructions.readJEDECInstruction){  // ReadJeDECInstruction
+          when(instruction === FlashInstructions.readJEDECInstruction){  // ReadJeDECInstruction
             stateReg := State.preReceiveData
             pointerReg := 23.U
-          }.elsewhen(instruction === SPIInstructions.writeEnableInstruction || 
-                    instruction === SPIInstructions.chipEraseInstruction){ // WriteEnableInstruction or ChipEraseInstruction
+          }.elsewhen(instruction === FlashInstructions.writeEnableInstruction || 
+                    instruction === FlashInstructions.chipEraseInstruction){ // WriteEnableInstruction or ChipEraseInstruction
             stateReg := State.syncFallEdgeFinish
-          }.elsewhen(instruction === SPIInstructions.readStatusRegister1Instruction) {
+          }.elsewhen(instruction === FlashInstructions.readStatusRegister1Instruction) {
             stateReg := State.preReceiveData
             pointerReg := 7.U
           }.otherwise{ 
@@ -126,13 +128,13 @@ class SPIController(
 
       when(risingEdgeOfSPIClk) {
         when(pointerReg === 0.U) {
-          when(instruction === SPIInstructions.pageProgramInstruction){
+          when(instruction === FlashInstructions.pageProgramInstruction){
             stateReg := State.preWriteData
             pointerReg := 31.U
-          }.elsewhen(instruction === SPIInstructions.readDataInstruction){
+          }.elsewhen(instruction === FlashInstructions.readDataInstruction){
             stateReg := State.preReceiveData
             pointerReg := 31.U
-          }.elsewhen(instruction === SPIInstructions.readStatusRegister1Instruction) {
+          }.elsewhen(instruction === FlashInstructions.readStatusRegister1Instruction) {
             stateReg := State.preReceiveData
             pointerReg := 7.U
           }

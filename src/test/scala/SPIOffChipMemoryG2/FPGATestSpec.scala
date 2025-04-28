@@ -6,10 +6,10 @@ class FPGATestSpec extends AnyFlatSpec with ChiselScalatestTester {
   val toPrint = false
 
   "FPGATest" should "work" in {
-    test(new FPGATest(5, 100, 4, toPrint)) { dut =>
+    test(new FPGATest(3, 100, 4, toPrint, false)) { dut =>
     // Quick test mainly to use with waveform
     // testOnly FPGATestSpec -- -DwriteVcd=1
-        val clockCycles = 10000
+        val clockCycles = 2000
         dut.clock.setTimeout(clockCycles + 1)
         var cnt = 0
         dut.spiPort.dataIn.poke(0.U)
@@ -19,6 +19,7 @@ class FPGATestSpec extends AnyFlatSpec with ChiselScalatestTester {
         dut.fpga.justWrite.poke(false.B)
         dut.fpga.again.poke(false.B)
         dut.fpga.clear.poke(false.B)
+        dut.fpga.targetFlash.poke(true.B)
         dut.fpga.sel.poke(0.U)
 
         val rand: scala.util.Random = {
