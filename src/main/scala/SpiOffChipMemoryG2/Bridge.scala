@@ -5,13 +5,7 @@ class Bridge() extends Module {
   
   val spiPort = IO(new spiIO)
   val pipeCon = IO(new PipeCon(24))
-  val debug   = IO(new Bundle {
-    val jedec = Input(Bool())
-    val clear = Input(Bool())
-  })
-  val config = IO(new Bundle {
-    val clockDivision = Input(UInt(32.W))
-  })
+  val config = IO(new configIO)
 
   object State extends ChiselEnum {
     val idle, jedec, write0, write1, write2, read0, clear0, clear1, clear2 = Value        
@@ -41,12 +35,13 @@ class Bridge() extends Module {
   spiController.interconnectPort.address := addressReg
   spiController.interconnectPort.dataIn  := dataReg
   spiController.interconnectPort.clockDivision := config.clockDivision
+  spiController.interconnectPort.mode := config.mode 
   pipeCon.rdData := spiController.interconnectPort.dataOut
 
   spiController.interconnectPort.start := false.B
   spiController.interconnectPort.instruction := 0.U 
 
-  val busy = spiController.interconnectPort.dataOut(0) // Busy flag from the flash memory
+  val busy = spiController.interconnectPort.dataOut(31) // Busy flag from the flash memory (only valid following a read status register 1 instruction)
   val done = spiController.interconnectPort.done // Done flag from the spi controller
 
   val maskedData = mask(pipeCon.wrData, pipeCon.wrMask)
@@ -55,17 +50,21 @@ class Bridge() extends Module {
 
   switch(stateReg) {
     is(State.idle) {
-      when (debug.jedec) {
-        stateReg := State.jedec
-      }.elsewhen (pipeCon.rd) {
-        stateReg := State.read0
-        addressReg := pipeCon.address 
+      when (pipeCon.rd) {
+        when (config.jedec) {
+          stateReg := State.jedec
+        }.otherwise {
+          stateReg := State.read0
+          addressReg := pipeCon.address 
+        }
       }.elsewhen (pipeCon.wr) {
-        stateReg := State.write0
-        addressReg := pipeCon.address
-        dataReg := maskedData
-      }.elsewhen (debug.clear) {
-        stateReg := State.clear0
+        when (config.clear) {
+          stateReg := State.clear0
+        }.otherwise {
+          stateReg := State.write0
+          addressReg := pipeCon.address
+          dataReg := maskedData
+        }
       }
     }
 
@@ -74,17 +73,21 @@ class Bridge() extends Module {
       spiController.interconnectPort.start := true.B
 
       when (done) {
-        when (debug.jedec) {
-          stateReg := State.jedec
-        }.elsewhen (pipeCon.rd) {
-          stateReg := State.read0
-          addressReg := pipeCon.address 
+        when (pipeCon.rd) {
+          when (config.jedec) {
+            stateReg := State.jedec
+          }.otherwise {
+            stateReg := State.read0
+            addressReg := pipeCon.address 
+          }
         }.elsewhen (pipeCon.wr) {
-          stateReg := State.write0
-          addressReg := pipeCon.address
-          dataReg := maskedData
-        }.elsewhen (debug.clear) {
-          stateReg := State.clear0
+          when (config.clear) {
+            stateReg := State.clear0
+          }.otherwise {
+            stateReg := State.write0
+            addressReg := pipeCon.address
+            dataReg := maskedData
+          }
         }.otherwise {
           stateReg := State.idle
         }
@@ -97,17 +100,21 @@ class Bridge() extends Module {
       spiController.interconnectPort.start := true.B
 
       when (done) {
-        when (debug.jedec) {
-          stateReg := State.jedec
-        }.elsewhen (pipeCon.rd) {
-          stateReg := State.read0
-          addressReg := pipeCon.address 
+        when (pipeCon.rd) {
+          when (config.jedec) {
+            stateReg := State.jedec
+          }.otherwise {
+            stateReg := State.read0
+            addressReg := pipeCon.address 
+          }
         }.elsewhen (pipeCon.wr) {
-          stateReg := State.write0
-          addressReg := pipeCon.address
-          dataReg := maskedData
-        }.elsewhen (debug.clear) {
-          stateReg := State.clear0
+          when (config.clear) {
+            stateReg := State.clear0
+          }.otherwise {
+            stateReg := State.write0
+            addressReg := pipeCon.address
+            dataReg := maskedData
+          }
         }.otherwise {
           stateReg := State.idle
         }
@@ -118,7 +125,6 @@ class Bridge() extends Module {
     is (State.write0) {
       spiController.interconnectPort.instruction := SPIInstructions.writeEnableInstruction
       spiController.interconnectPort.start := true.B
-
 
       when (done) {
         stateReg := State.write1
@@ -140,17 +146,21 @@ class Bridge() extends Module {
       spiController.interconnectPort.start := true.B
 
       when (done && !busy) { 
-        when (debug.jedec) {
-          stateReg := State.jedec
-        }.elsewhen (pipeCon.rd) {
-          stateReg := State.read0
-          addressReg := pipeCon.address 
+        when (pipeCon.rd) {
+          when (config.jedec) {
+            stateReg := State.jedec
+          }.otherwise {
+            stateReg := State.read0
+            addressReg := pipeCon.address 
+          }
         }.elsewhen (pipeCon.wr) {
-          stateReg := State.write0
-          addressReg := pipeCon.address
-          dataReg := maskedData
-        }.elsewhen (debug.clear) {
-          stateReg := State.clear0
+          when (config.clear) {
+            stateReg := State.clear0
+          }.otherwise {
+            stateReg := State.write0
+            addressReg := pipeCon.address
+            dataReg := maskedData
+          }
         }.otherwise {
           stateReg := State.idle
         }
@@ -184,17 +194,21 @@ class Bridge() extends Module {
 
 
       when (done && !busy) { 
-        when (debug.jedec) {
-          stateReg := State.jedec
-        }.elsewhen (pipeCon.rd) {
-          stateReg := State.read0
-          addressReg := pipeCon.address 
+        when (pipeCon.rd) {
+          when (config.jedec) {
+            stateReg := State.jedec
+          }.otherwise {
+            stateReg := State.read0
+            addressReg := pipeCon.address 
+          }
         }.elsewhen (pipeCon.wr) {
-          stateReg := State.write0
-          addressReg := pipeCon.address
-          dataReg := maskedData
-        }.elsewhen (debug.clear) {
-          stateReg := State.clear0
+          when (config.clear) {
+            stateReg := State.clear0
+          }.otherwise {
+            stateReg := State.write0
+            addressReg := pipeCon.address
+            dataReg := maskedData
+          }
         }.otherwise {
           stateReg := State.idle
         }

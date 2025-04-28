@@ -26,6 +26,13 @@ class qspiIO extends Bundle {
   val data3Out = Output(Bool())
 }
 
+class configIO extends Bundle {
+  val jedec = Input(Bool())
+  val clear = Input(Bool())
+  val clockDivision = Input(UInt(32.W))
+  val mode = Input(Bool()) // SPI clock mode, 0 (indicated by 0) or 3 (indicated by 1)
+}
+
 object SPIInstructions {
   val readJEDECInstruction   =  "b10011111".U // 0x9F (Read JeDEC ID), table 8.1.3
   val writeEnableInstruction =  "b00000110".U // 0x06 (Write Enable), table 8.13

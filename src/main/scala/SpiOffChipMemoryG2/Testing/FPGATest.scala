@@ -46,6 +46,7 @@ class FPGATest(
     val again = Input(Bool()) 
     val jedec = Input(Bool())
     val justRead = Input(Bool())
+    val justWrite = Input(Bool())
     val error = Output(Bool())
     val done  = Output(Bool())
 
@@ -59,7 +60,7 @@ class FPGATest(
   })
 
   object State extends ChiselEnum {
-    val idle, jedec, reading, writing, justRead0, justRead1, justRead2, error, clearing, done = Value        
+    val idle, jedec, reading, writing, justRead0, justRead1, justRead2, justWrite0, justWrite1, justWrite2, error, clearing, done = Value        
   }
 
   val rand: scala.util.Random = {
@@ -77,14 +78,16 @@ class FPGATest(
   fpga.states := stateReg.asUInt
 
   val bridge = Module(new Bridge())
-  bridge.debug.jedec := false.B
-  bridge.debug.clear := false.B
+
 
   bridge.pipeCon.rd := false.B
   bridge.pipeCon.wr := false.B
   bridge.pipeCon.wrMask := "b1111".U
 
+  bridge.config.jedec := false.B
+  bridge.config.clear := false.B
   bridge.config.clockDivision := clockDivision.U
+  bridge.config.mode := false.B // SPI clock mode, 0 (indicated by 0) or 3 (indicated by 1)
   spiPort <> bridge.spiPort
   
   val readData = bridge.pipeCon.rdData
@@ -101,6 +104,7 @@ class FPGATest(
     // make a random number
     val ran = BigInt(32, rand).toLong
     data(i) := ran.U(32.W)
+    //data(i) := "hFFFFFFFF".U // all ones
     if (printTestCases) {
       println(f"data($i) = 0x${ran}%08X")
     }
@@ -109,12 +113,12 @@ class FPGATest(
   val addresses = VecInit(Seq.fill(testCases)(0.U(24.W))) 
   for (i <- 0 until testCases) {
     val ran = BigInt(24, rand).toLong
-    //addresses(i) := (ran).U(24.W)
-    addresses(i) := (i << 8).U(24.W) // left shift to make it 24 bits
+    addresses(i) := (ran).U(24.W)
+    //addresses(i) := (i << 8).U(24.W) // left shift to make it 24 bits
     if (printTestCases) {
       // print the address in hex format
-      //println(f"addresses($i) = 0x${ran}%06X")
-      println(f"addresses($i) = 0x${(i << 8).toLong}%06X")
+      println(f"addresses($i) = 0x${ran}%06X")
+      //println(f"addresses($i) = 0x${(i << 8).toLong}%06X")
     }
   }
   
@@ -133,8 +137,8 @@ class FPGATest(
     is(3.U) { displayDriver.io.input := (data(pointerReg))(31, 16) }            // 011
     is(4.U) { displayDriver.io.input := (addresses(pointerReg))(15, 0) }        // 100
     is(5.U) { displayDriver.io.input := (addresses(pointerReg))(23, 16) }       // 101
-    is(6.U) { displayDriver.io.input := pointerReg(15, 0) }                   // 110
-    is(7.U) { displayDriver.io.input := pointerReg(23, 16) }                  // 111
+    is(6.U) { displayDriver.io.input := readData(15, 0) }                   // 110
+    is(7.U) { displayDriver.io.input := readData(23, 16) }                  // 111
   }
 
   fpga.done := false.B
@@ -149,6 +153,9 @@ class FPGATest(
       }.elsewhen (fpga.justRead) {
         stateReg := State.justRead0
         bridge.pipeCon.rd := true.B
+      }.elsewhen (fpga.justWrite) {
+        stateReg := State.justWrite0
+        bridge.pipeCon.wr := true.B
       }.elsewhen (fpga.start) {
         stateReg := State.writing
         bridge.pipeCon.wr := true.B
@@ -159,7 +166,8 @@ class FPGATest(
       when (bridge.pipeCon.ack) {
         stateReg := State.done
       }.otherwise {
-        bridge.debug.clear := true.B
+        bridge.config.clear := true.B
+        bridge.pipeCon.wr := true.B
       }
     }
 
@@ -171,7 +179,8 @@ class FPGATest(
           stateReg := State.done
         }
       }.otherwise {
-        bridge.debug.jedec := true.B
+        bridge.config.jedec := true.B
+        bridge.pipeCon.rd := true.B
       }
     }
 
@@ -186,6 +195,10 @@ class FPGATest(
       when (bridge.pipeCon.ack) {
         when (readData =/= data(pointerReg)) {
           stateReg := State.error
+          //fpga.error := true.B
+          //pointerReg := pointerReg + 1.U
+          //stateReg := State.writing
+          //bridge.pipeCon.wr := true.B
         }.otherwise {
           when (pointerReg === (testCases - 1).U) {
             stateReg := State.done
@@ -212,7 +225,11 @@ class FPGATest(
         stateReg := State.done
       }.elsewhen (fpga.again) {
         stateReg := State.justRead2
-        pointerReg := pointerReg + 1.U
+        when (pointerReg === (testCases - 1).U) {
+          pointerReg := 0.U
+        }.otherwise {
+          pointerReg := pointerReg + 1.U
+        }
       }
       when (readData =/= data(pointerReg)) {
         fpga.error := true.B
@@ -223,6 +240,32 @@ class FPGATest(
       when (fpga.start) {
         stateReg := State.justRead0
         bridge.pipeCon.rd := true.B
+      }
+    }
+
+    is (State.justWrite0) {
+      when (bridge.pipeCon.ack) {
+        stateReg := State.justWrite1
+      }
+    }
+
+    is (State.justWrite1) {
+      when (!fpga.justWrite) {
+        stateReg := State.done
+      }.elsewhen (fpga.again) {
+        stateReg := State.justWrite2
+        when (pointerReg === (testCases - 1).U) {
+          pointerReg := 0.U
+        }.otherwise {
+          pointerReg := pointerReg + 1.U
+        }
+      }
+    }
+
+    is (State.justWrite2) {
+      when (fpga.start) {
+        stateReg := State.justWrite0
+        bridge.pipeCon.wr := true.B
       }
     }
 

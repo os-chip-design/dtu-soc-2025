@@ -16,6 +16,7 @@ class SPIController(
     val dataOut = Output(UInt(32.W))
     val done = Output(Bool())
     val clockDivision = Input(UInt(32.W))
+    val mode = Input(Bool()) // SPI clock mode, 0 or 3
   })
 
   object State extends ChiselEnum {
@@ -39,7 +40,7 @@ class SPIController(
   val risingEdgeOfSPIClk = risingEdge(spiClkReg)
   val fallingEdgeOfSPIClk = fallingEdge(spiClkReg)
 
-  val idleClockMode = false.B // SPI clock in idle mode, mode 0 is false, mode 3 is true. // TODO: make a port in the interconnect to select the mode
+  val idleClockMode = interconnectPort.mode // SPI clock mode, 0 (indicated by 0) or 3 (indicated by 1)
 
   val rdData = dataOutReg.reduce(_ ## _)
 
@@ -202,11 +203,15 @@ class SPIController(
     is (State.syncFallEdgeFinish
     ) {
       spiPort.chipSelect := false.B
-      when (fallingEdgeOfSPIClk) {
+      when (risingEdgeOfSPIClk){
         stateReg := State.finished
-        currentOutputReg := 0.U
         spiPort.spiClk := idleClockMode
         spiPort.chipSelect := true.B
+      }
+
+      when (fallingEdgeOfSPIClk) {
+        currentOutputReg := 0.U
+        spiPort.dataOut := 0.U
       }
     }
 

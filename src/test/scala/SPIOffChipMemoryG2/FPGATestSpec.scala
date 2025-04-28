@@ -6,19 +6,27 @@ class FPGATestSpec extends AnyFlatSpec with ChiselScalatestTester {
   val toPrint = false
 
   "FPGATest" should "work" in {
-    test(new FPGATest(10, 100, 4, toPrint)) { dut =>
+    test(new FPGATest(5, 100, 4, toPrint)) { dut =>
     // Quick test mainly to use with waveform
     // testOnly FPGATestSpec -- -DwriteVcd=1
-        val clockCycles = 1000
+        val clockCycles = 10000
         dut.clock.setTimeout(clockCycles + 1)
         var cnt = 0
-        dut.spiPort.dataIn.poke(1.U)
+        dut.spiPort.dataIn.poke(0.U)
         dut.fpga.jedec.poke(false.B)
         dut.fpga.start.poke(true.B)
         dut.fpga.justRead.poke(false.B)
+        dut.fpga.justWrite.poke(false.B)
         dut.fpga.again.poke(false.B)
         dut.fpga.clear.poke(false.B)
         dut.fpga.sel.poke(0.U)
+
+        val rand: scala.util.Random = {
+          val r = new scala.util.Random()
+          r.setSeed(0) // set the seed to 0 for reproducibility
+          r
+        }
+  
         
 
         var previousChipSelect = false
@@ -34,11 +42,21 @@ class FPGATestSpec extends AnyFlatSpec with ChiselScalatestTester {
           val currentChipSelect = dut.spiPort.chipSelect.peek().litValue == 0 // Assuming chipSelect is active low
           val currentSpiClk = dut.spiPort.spiClk.peek().litToBoolean
 
+
           // Sample dataOut only on the rising edge of spiClk
           if (currentSpiClk && !previousSpiClk && currentChipSelect) {
             val dataOutValue = dut.spiPort.dataOut.peek().litValue
             collectedBits = collectedBits :+ dataOutValue.toInt
           }
+
+          // On the falling edge of spiClk, write dataIn to the SPI port
+          if (!currentSpiClk && previousSpiClk && currentChipSelect) {
+            val ran = BigInt(1, rand).toLong
+            val currentDataIn = ran.U(1.W)
+            dut.spiPort.dataIn.poke(currentDataIn)
+          }
+
+          //
 
           // Print collected bits when chipSelect goes high again
           if (!currentChipSelect && previousChipSelect) {
