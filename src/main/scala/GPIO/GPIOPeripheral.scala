@@ -39,16 +39,16 @@ class GPIOPeripheral(addrWidth: Int, nofGPIO: Int) extends Module {
     // Instantiation of the GPIO registers
     val gpio_direction     = RegInit(0x0.U(nofGPIO.W))
     val gpio_output        = RegInit(0xF.U(nofGPIO.W))
-    val gpio_input         = RegInit(0.U(nofGPIO.W))
-    val gpio_pullup        = RegInit(0.U(nofGPIO.W))
-    val gpio_pulldown      = RegInit(0.U(nofGPIO.W))
-    val gpio_opendrain     = RegInit(0.U(nofGPIO.W))
-    val gpio_drivestrength = RegInit(0.U(nofGPIO.W))
+    val gpio_input         = RegInit(0x0.U(nofGPIO.W))
+    val gpio_pullup        = RegInit(0xD.U(nofGPIO.W))
+    val gpio_pulldown      = RegInit(0xE.U(nofGPIO.W))
+    val gpio_opendrain     = RegInit(0xA.U(nofGPIO.W))
+    val gpio_drivestrength = RegInit(0xD.U(nofGPIO.W))
 
-    val pwm_enable         = RegInit(0.U(nofGPIO.W))
-    val pwm_duty_cycle     = RegInit(0.U((8*nofGPIO).W))
-    val pwm_prescaler      = RegInit(0.U((8*nofGPIO).W))
-    val pwm_div            = RegInit(0.U((8*nofGPIO).W))
+    val pwm_enable         = RegInit(0xB.U(nofGPIO.W))
+    val pwm_duty_cycle     = RegInit(0xE.U((8*nofGPIO).W))
+    val pwm_prescaler      = RegInit(0xE.U((8*nofGPIO).W))
+    val pwm_div            = RegInit(0xF.U((8*nofGPIO).W))
 
     // Instantiation of GPIO modules
     val gpio_module = Seq.fill(nofGPIO)(Module(new GPIOModule))

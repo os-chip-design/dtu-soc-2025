@@ -23,21 +23,22 @@ class GPIOPeripheralTest extends AnyFlatSpec with ChiselScalatestTester {
                 //     dut.clock.step()
                 // }
 
-                // Read some registers
-                dut.io.mem_ifc.address.poke(0x0000.U(32.W))
-                dut.io.mem_ifc.rdData.expect(0.U)
-                dut.clock.step()
-                dut.io.mem_ifc.rdData.expect(0.U)
-
-
                 // Read
+                dut.clock.step()
                 dut.io.mem_ifc.address.poke(0x0008.U(32.W)) // Set address
                 dut.io.mem_ifc.rd.poke(true.B)              // Set read signal
                 dut.io.mem_ifc.rdData.expect(0.U)           // Check that return is still the previous value
                 dut.clock.step()                            // Step a clock cycle
                 dut.io.mem_ifc.rdData.expect(0xF.U)         // Check that return is now the new value
                 dut.io.mem_ifc.rd.poke(false.B)             // Set read signal
+                dut.clock.step()
 
+                // Another read
+                dut.io.mem_ifc.address.poke(0x0028.U(32.W))
+                dut.io.mem_ifc.rd.poke(true.B)
+                dut.clock.step()
+                dut.io.mem_ifc.rdData.expect(0xA.U)
+                dut.io.mem_ifc.rd.poke(false.B)             // Set read signal
                 dut.clock.step()
 
                 // Write
@@ -56,6 +57,19 @@ class GPIOPeripheralTest extends AnyFlatSpec with ChiselScalatestTester {
 
                 //dut.gpio_module(0).io.gpio_output.expect(0.U) // Check GPIO output
 
+                dut.clock.step()
+
+                // Write to invalid address
+                dut.io.mem_ifc.address.poke(0x0012.U(32.W)) // Set address
+                dut.io.mem_ifc.wrData.poke(0x55.U)           // Set write data
+                dut.io.mem_ifc.wr.poke(true.B)              // Set write signal
+                dut.clock.step()
+                dut.io.mem_ifc.wr.poke(false.B)             // Set write signal
+                dut.clock.step()
+                dut.io.mem_ifc.rd.poke(true.B)              // Set read signal
+                dut.clock.step()
+                dut.io.mem_ifc.rdData.expect(0x00.U)         // Check that return is still the previous value
+                dut.io.mem_ifc.rd.poke(false.B)             // Set read signal
                 dut.clock.step()
 
             }
