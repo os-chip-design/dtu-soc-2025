@@ -3,12 +3,20 @@ import chiseltest._
 import org.scalatest.flatspec.AnyFlatSpec
 
 class ConfigIoBFM(port: configIO, clock: Clock) {
-  def setupConfig() = {
+  def setupConfigFlash() = {
     port.jedec.poke(false.B)
     port.clear.poke(false.B)
     port.clockDivision.poke(2.U)
     port.mode.poke(false.B)
     port.targetFlash.poke(true.B)
+  }
+
+  def setupConfigRAM() = {
+    port.jedec.poke(false.B)
+    port.clear.poke(false.B)
+    port.clockDivision.poke(2.U)
+    port.mode.poke(false.B)
+    port.targetFlash.poke(false.B)
   }
 }
 
@@ -33,12 +41,13 @@ class PipeConIoBFM(port: PipeCon, clock: Clock) {
   }
 
   def expectData(data: BigInt) = {
-    val obtained = port.rdData.peek()
+    val obtained = port.rdData.peek().litValue
     assert(
-      data == obtained.litValue,
+      data == obtained,
       s"[expectDataOut] Expected $data, got $obtained"
     )
   }
+
 }
 
 class SpiIoBFM(port: spiIO, clock: Clock) {
@@ -144,10 +153,22 @@ class SpiIoBFM(port: spiIO, clock: Clock) {
 
   def expectData(data: BigInt) = {
     val obtainedData = receiveData()
+    // we're expecting to receive bits in reverse order!!!
+    val reversedData = reverseData(obtainedData)
     assert(
-      data == obtainedData,
-      s"[Data] Expected $data, got $obtainedData"
+      data == reversedData,
+      s"[Data] Expected $data, got $reversedData"
     )
+  }
+
+  def reverseData(data: BigInt): BigInt = {
+    var result = BigInt(0)
+    for (i <- 0 until 32) {
+      if ((data.testBit(i))) {
+        result = result.setBit(32 - 1 - i)
+      }
+    }
+    result
   }
 
   def pokeData(data: Seq[chisel3.Bool]) = {
@@ -165,11 +186,25 @@ class SpiIoBFM(port: spiIO, clock: Clock) {
       clock.step()
     }
   }
+
+  def stepClock(times: Int = 1) = {
+    for (i <- 0 until times) {
+      while (!isSpiRisingEdge())
+        // Wait until rising edge of spi
+        {
+          updatePrevSpiClk()
+          clock.step()
+        }
+
+      updatePrevSpiClk()
+      clock.step()
+    }
+  }
 }
 
 class BridgeSpec extends AnyFlatSpec with ChiselScalatestTester {
   behavior of "Bridge"
-  it should "Handle a read instruction" in {
+  it should "Handle a read instruction for the Flash" in {
     test(
       new Bridge()
     ) { dut =>
@@ -178,7 +213,7 @@ class BridgeSpec extends AnyFlatSpec with ChiselScalatestTester {
       val spi = new SpiIoBFM(dut.spiPort, dut.clock)
 
       // 1. config
-      config.setupConfig()
+      config.setupConfigFlash()
 
       // 2. insert data on PipeCon
       val address = 0x112233
@@ -201,10 +236,11 @@ class BridgeSpec extends AnyFlatSpec with ChiselScalatestTester {
       // verify data returned through the interconnect
       interconnect.waitUntilAck()
       interconnect.expectData(response.litValue)
+      spi.expectChipEnable(true)
 
     }
   }
-  it should "Handle a write instruction" in {
+  it should "Handle a write instruction for the Flash" in {
     test(
       new Bridge()
     ) { dut =>
@@ -213,30 +249,104 @@ class BridgeSpec extends AnyFlatSpec with ChiselScalatestTester {
       val spi = new SpiIoBFM(dut.spiPort, dut.clock)
 
       // 1. config
-      config.setupConfig()
+      config.setupConfigFlash()
 
       // 2. insert data on PipeCon
       val address = 0x112234
       val data = "hdeadbeef".U(32.W)
       interconnect.triggerWrite(address, data)
 
-      // dunno what the value should be...
-      // dut.clock.step(4)
-
       // 3. verify what comes out in spiPort
-      // spi.expectChipEnable(false)
-
       spi.expectFunctionCode(FlashInstructions.writeEnableInstruction.litValue)
       spi.expectFunctionCode(FlashInstructions.pageProgramInstruction.litValue)
-    
+
       // FlashInstructions.readStatusRegister1Instruction
 
       spi.expectAddress(address)
+      spi.expectData(data.litValue)
 
+      // to check the status of the operation (if the mem is busy or not..)
+      spi.expectFunctionCode(
+        FlashInstructions.readStatusRegister1Instruction.litValue
+      )
 
-      // spi.expectData(data.litValue)
+      interconnect.waitUntilAck()
+      spi.expectChipEnable(true)
 
     }
 
   }
+//   it should "Handle a read instruction for the RAM" in {
+//     test(
+//       new Bridge()
+//     ) { dut =>
+//       val config = new ConfigIoBFM(dut.config, dut.clock)
+//       val interconnect = new PipeConIoBFM(dut.pipeCon, dut.clock)
+//       val spi = new SpiIoBFM(dut.spiPort, dut.clock)
+
+//       // 1. config
+//       config.setupConfigRAM()
+
+//       // 2. insert data on PipeCon
+//       val address = 0xf42135
+//       interconnect.triggerRead(address)
+//       dut.clock.step(2)
+
+//       // 3. verify what comes out in spiPort
+//       spi.expectChipEnable(false)
+
+//       spi.expectFunctionCode(RAMInstructions.readInstruction.litValue)
+
+//       spi.expectAddress(address)
+
+//       val response = "hdeadbeef".U(32.W)
+//       val responseBits = response.asBools
+
+//       // simulate response from the off chip memory
+//       spi.pokeData(responseBits)
+
+//       // verify data returned through the interconnect
+//       interconnect.waitUntilAck()
+//       interconnect.expectData(response.litValue)
+//       spi.expectChipEnable(true)
+
+//     }
+
+//   }
+//   it should "Handle a write instruction for the RAM" in {
+//     test(
+//       new Bridge()
+//     ) { dut =>
+//       val config = new ConfigIoBFM(dut.config, dut.clock)
+//       val interconnect = new PipeConIoBFM(dut.pipeCon, dut.clock)
+//       val spi = new SpiIoBFM(dut.spiPort, dut.clock)
+
+//       // 1. config
+//       config.setupConfigRAM()
+
+//       // 2. insert data on PipeCon
+//       val address = 0x112234
+//       val data = "hdeadbeef".U(32.W)
+//       interconnect.triggerWrite(address, data)
+
+//       // 3. verify what comes out in spiPort
+//       spi.expectFunctionCode(FlashInstructions.writeEnableInstruction.litValue)
+//       spi.expectFunctionCode(FlashInstructions.pageProgramInstruction.litValue)
+
+//       // FlashInstructions.readStatusRegister1Instruction
+
+//       spi.expectAddress(address)
+//       spi.expectData(data.litValue)
+
+//       // to check the status of the operation (if the mem is busy or not..)
+//       spi.expectFunctionCode(
+//         FlashInstructions.readStatusRegister1Instruction.litValue
+//       )
+
+//       interconnect.waitUntilAck()
+//       spi.expectChipEnable(true)
+
+//     }
+
+//   }
 }
