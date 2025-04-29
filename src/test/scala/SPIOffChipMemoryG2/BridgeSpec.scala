@@ -2,7 +2,17 @@ import chisel3._
 import chiseltest._
 import org.scalatest.flatspec.AnyFlatSpec
 
+/** BFM to deal with the configuration inputs.
+  *
+  * @param port
+  *   configuration port
+  * @param clock
+  *   chip clock
+  */
 class ConfigIoBFM(port: configIO, clock: Clock) {
+
+  /** Setup configuration to use the Flash.
+    */
   def setupConfigFlash() = {
     port.jedec.poke(false.B)
     port.clear.poke(false.B)
@@ -11,6 +21,8 @@ class ConfigIoBFM(port: configIO, clock: Clock) {
     port.targetFlash.poke(true.B)
   }
 
+  /** Setup configuration to use the RAM.
+    */
   def setupConfigRAM() = {
     port.jedec.poke(false.B)
     port.clear.poke(false.B)
@@ -20,12 +32,32 @@ class ConfigIoBFM(port: configIO, clock: Clock) {
   }
 }
 
+/** BFM to deal with the PipeCon input and output.
+  *
+  * @param port
+  *   PipeCon port
+  * @param clock
+  *   chip clock
+  */
 class PipeConIoBFM(port: PipeCon, clock: Clock) {
+
+  /** Request a read from the address provided.
+    *
+    * @param address
+    *   address from which data should be read
+    */
   def triggerRead(address: Int) = {
     port.address.poke(address.U)
     port.rd.poke(true.B)
   }
 
+  /** Request a write to the address provided.
+    *
+    * @param address
+    *   address to which data should be written
+    * @param data
+    *   data to be written
+    */
   def triggerWrite(address: Int, data: UInt) = {
     port.address.poke(address.U)
     port.wrData.poke(data)
@@ -34,12 +66,20 @@ class PipeConIoBFM(port: PipeCon, clock: Clock) {
     port.wrMask.poke("b1111".U)
   }
 
+  /** Steps the clock until the ack is high.
+    */
   def waitUntilAck() = {
     while (!port.ack.peek().litToBoolean) {
       clock.step(1)
     }
   }
 
+  /** Checks if the data received on the PipeCon interface is the same as the
+    * provided value.
+    *
+    * @param data
+    *   expected data
+    */
   def expectData(data: BigInt) = {
     val obtained = port.rdData.peek().litValue
     assert(
@@ -50,22 +90,46 @@ class PipeConIoBFM(port: PipeCon, clock: Clock) {
 
 }
 
+/** BFM to deal with the SPI interface inputs and outputs.
+  *
+  * @param port
+  *   SPI port
+  * @param clock
+  *   chip clock
+  */
 class SpiIoBFM(port: spiIO, clock: Clock) {
   var previousSpiClk = false
 
+  /** Gets the value of the SPI clock.
+    *
+    * @return
+    *   True if the SPI clock has risen in the last chip clock cycle.
+    */
   def isSpiRisingEdge(): Boolean = {
     port.spiClk.peek().litToBoolean && !previousSpiClk
   }
 
+  /** Updates a variable keeping track of the last SPI clock state.
+    */
   def updatePrevSpiClk() = {
     previousSpiClk = port.spiClk.peek().litToBoolean
   }
 
+  /** Verifies if the Chip Enable pin corresponds to the desired value.
+    *
+    * @param value
+    *   value to compare the pin to
+    */
   def expectChipEnable(value: Boolean) {
     val obtained = port.chipSelect.peekBoolean()
     assert(obtained == value, s"[ChipEnable] Expected $value, got $obtained")
   }
 
+  /** Obtains the function code from the SPI interface.
+    *
+    * @return
+    *   8 bits received
+    */
   def receiveFunctionCode(): Int = {
     val instruction = Array.ofDim[Boolean](8)
     for (i <- 0 until 8) {
@@ -88,6 +152,11 @@ class SpiIoBFM(port: spiIO, clock: Clock) {
     obtainedInstructionInt
   }
 
+  /** Verify that the function code received corresponds to the expected value.
+    *
+    * @param funcCode
+    *   expected value of the function code
+    */
   def expectFunctionCode(funcCode: BigInt) = {
     val obtainedFunctCode = receiveFunctionCode()
     assert(
@@ -96,6 +165,11 @@ class SpiIoBFM(port: spiIO, clock: Clock) {
     )
   }
 
+  /** Obtains the address from the SPI interface.
+    *
+    * @return
+    *   24 bits received
+    */
   def receiveAddress(): Int = {
     // next step in the SPI is providing the 24-bit address
     val obtainedAddress = Array.ofDim[Boolean](24)
@@ -109,7 +183,6 @@ class SpiIoBFM(port: spiIO, clock: Clock) {
 
       val bit = port.dataOut.peek().litToBoolean
       obtainedAddress.update(i, bit)
-      // println(f"Bit $i: $bit, Address so far: b${obtainedAddress.map(if (_) "1" else "0").mkString}")
 
       updatePrevSpiClk()
       clock.step()
@@ -121,6 +194,11 @@ class SpiIoBFM(port: spiIO, clock: Clock) {
     obtainedAddressInt
   }
 
+  /** Verify that the address received corresponds to the expected value.
+    *
+    * @param address
+    *   expected value of the address
+    */
   def expectAddress(address: Int) = {
     val obtainedAddress = receiveAddress()
     assert(
@@ -129,6 +207,11 @@ class SpiIoBFM(port: spiIO, clock: Clock) {
     )
   }
 
+  /** Obtains the read data from the SPI interface.
+    *
+    * @return
+    *   32 bits received
+    */
   def receiveData(): BigInt = {
     // next step in the SPI is providing the 24-bit address
     val obtainedData = Array.ofDim[Boolean](32)
@@ -151,6 +234,11 @@ class SpiIoBFM(port: spiIO, clock: Clock) {
     obtainedDataInt
   }
 
+  /** Verify that the read data received corresponds to the expected value.
+    *
+    * @param data
+    *   expected value of the read data
+    */
   def expectData(data: BigInt) = {
     val obtainedData = receiveData()
     // we're expecting to receive bits in reverse order!!!
@@ -161,6 +249,14 @@ class SpiIoBFM(port: spiIO, clock: Clock) {
     )
   }
 
+  /** Reverses a 32 bit value.
+    *
+    * @param data
+    *   data to be inverted
+    *
+    * @return
+    *   data reversed (considering a 32 bit value)
+    */
   def reverseData(data: BigInt): BigInt = {
     var result = BigInt(0)
     for (i <- 0 until 32) {
@@ -171,6 +267,12 @@ class SpiIoBFM(port: spiIO, clock: Clock) {
     result
   }
 
+  /** Input data to the SPI interface (simulating what the off chip memory would
+    * do).
+    *
+    * @param data
+    *   data to be sent
+    */
   def pokeData(data: Seq[chisel3.Bool]) = {
     for (i <- 0 to 31 by 1) {
       while (!isSpiRisingEdge())
@@ -187,19 +289,6 @@ class SpiIoBFM(port: spiIO, clock: Clock) {
     }
   }
 
-  def stepClock(times: Int = 1) = {
-    for (i <- 0 until times) {
-      while (!isSpiRisingEdge())
-        // Wait until rising edge of spi
-        {
-          updatePrevSpiClk()
-          clock.step()
-        }
-
-      updatePrevSpiClk()
-      clock.step()
-    }
-  }
 }
 
 class BridgeSpec extends AnyFlatSpec with ChiselScalatestTester {
@@ -208,23 +297,24 @@ class BridgeSpec extends AnyFlatSpec with ChiselScalatestTester {
     test(
       new BridgeWrapper()
     ) { dut =>
+      // create the BFMs to deal with input
       val config = new ConfigIoBFM(dut.config, dut.clock)
       val interconnect = new PipeConIoBFM(dut.pipeCon, dut.clock)
       val spi = new SpiIoBFM(dut.spiPort, dut.clock)
 
-      // 1. config
+      // configure the component to use the Flash
       config.setupConfigFlash()
 
-      // 2. insert data on PipeCon
+      // trigger a read through the PipeCon interface
       val address = 0x112233
       interconnect.triggerRead(address)
       dut.clock.step(2)
 
-      // 3. verify what comes out in spiPort
+      // verify that CE is low
       spi.expectChipEnable(false)
 
+      // verify what comes out in spiPort
       spi.expectFunctionCode(Instructions.readDataInstruction.litValue)
-
       spi.expectAddress(address)
 
       val response = "hdeadbeef".U(32.W)
@@ -236,6 +326,8 @@ class BridgeSpec extends AnyFlatSpec with ChiselScalatestTester {
       // verify data returned through the interconnect
       interconnect.waitUntilAck()
       interconnect.expectData(response.litValue)
+
+      // verify that CE is high to show that the operation is finished
       spi.expectChipEnable(true)
 
     }
@@ -244,24 +336,24 @@ class BridgeSpec extends AnyFlatSpec with ChiselScalatestTester {
     test(
       new BridgeWrapper()
     ) { dut =>
+      // create the BFMs to deal with input
       val config = new ConfigIoBFM(dut.config, dut.clock)
       val interconnect = new PipeConIoBFM(dut.pipeCon, dut.clock)
       val spi = new SpiIoBFM(dut.spiPort, dut.clock)
 
-      // 1. config
+      // configure the component to use the Flash
       config.setupConfigFlash()
 
-      // 2. insert data on PipeCon
+      // trigger a write through the PipeCon interface
       val address = 0x112234
       val data = "hdeadbeef".U(32.W)
       interconnect.triggerWrite(address, data)
 
-      // 3. verify what comes out in spiPort
+      // verify what comes out in spiPort
       spi.expectFunctionCode(Instructions.writeEnableInstruction.litValue)
       spi.expectFunctionCode(Instructions.pageProgramInstruction.litValue)
 
-      // Instructions.readStatusRegister1Instruction
-
+      // verify what comes out through the SPI interface
       spi.expectAddress(address)
       spi.expectData(data.litValue)
 
@@ -270,6 +362,8 @@ class BridgeSpec extends AnyFlatSpec with ChiselScalatestTester {
         Instructions.readStatusRegister1Instruction.litValue
       )
 
+      // verify that ack is activated and that CE goes high
+      // showing the the operation is complete
       interconnect.waitUntilAck()
       spi.expectChipEnable(true)
 
@@ -280,23 +374,22 @@ class BridgeSpec extends AnyFlatSpec with ChiselScalatestTester {
     test(
       new BridgeWrapper()
     ) { dut =>
+      // create the BFMs to deal with input
       val config = new ConfigIoBFM(dut.config, dut.clock)
       val interconnect = new PipeConIoBFM(dut.pipeCon, dut.clock)
       val spi = new SpiIoBFM(dut.spiPort, dut.clock)
 
-      // 1. config
+      // configure the component to use the RAM
       config.setupConfigRAM()
 
-      // 2. insert data on PipeCon
+      // trigger a read through the PipeCon interface
       val address = 0xf42135
       interconnect.triggerRead(address)
       dut.clock.step(2)
 
-      // 3. verify what comes out in spiPort
+      // verify what comes out in spiPort
       spi.expectChipEnable(false)
-
       spi.expectFunctionCode(Instructions.readDataInstruction.litValue)
-
       spi.expectAddress(address)
 
       val response = "hdeadbeef".U(32.W)
@@ -308,6 +401,8 @@ class BridgeSpec extends AnyFlatSpec with ChiselScalatestTester {
       // verify data returned through the interconnect
       interconnect.waitUntilAck()
       interconnect.expectData(response.litValue)
+
+      // verify that the communication is terminated
       spi.expectChipEnable(true)
 
     }
@@ -317,25 +412,28 @@ class BridgeSpec extends AnyFlatSpec with ChiselScalatestTester {
     test(
       new BridgeWrapper()
     ) { dut =>
+      // create the BFMs to deal with input
       val config = new ConfigIoBFM(dut.config, dut.clock)
       val interconnect = new PipeConIoBFM(dut.pipeCon, dut.clock)
       val spi = new SpiIoBFM(dut.spiPort, dut.clock)
 
-      // 1. config
+      // configure the component to use the RAM
       config.setupConfigRAM()
 
-      // 2. insert data on PipeCon
+      // trigger a write through the PipeCon interface
       val address = 0x112234
       val data = "hdeadbeef".U(32.W)
       interconnect.triggerWrite(address, data)
 
-      // 3. verify what comes out in spiPort
+      // verify what comes out in spiPort
       spi.expectFunctionCode(Instructions.pageProgramInstruction.litValue)
-
       spi.expectAddress(address)
       spi.expectData(data.litValue)
 
+      // verify that an ack comes through the PipeCon interface
       interconnect.waitUntilAck()
+
+      // verify that the operation is terminated by pulling CE high
       spi.expectChipEnable(true)
 
     }
