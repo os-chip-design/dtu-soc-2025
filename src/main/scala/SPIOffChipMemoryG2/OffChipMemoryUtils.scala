@@ -34,11 +34,11 @@ class qspiIO extends Bundle {
   val data3Out = Output(Bool())
 }
 
-class configIO extends Bundle {
+class configIO(clockWidth : Int) extends Bundle {
   val jedec = Input(Bool())
   val clear = Input(Bool())
   val targetFlash = Input(Bool())
-  val clockDivision = Input(UInt(10.W))
+  val clockDivision = Input(UInt(clockWidth.W))
   val mode = Input(Bool()) // SPI clock mode, 0 (indicated by 0) or 3 (indicated by 1)
 }
 

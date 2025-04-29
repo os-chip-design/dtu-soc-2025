@@ -1,9 +1,9 @@
 import chisel3._
 import chisel3.util._
 
-class OffChipMemoryConfig() extends Module {
-  val pipeCon = IO(new PipeCon(24))
-  val config = IO(Flipped(new configIO))
+class OffChipMemoryConfig(clockWidth: Int, addrWidth: Int) extends Module {
+  val pipeCon = IO(new PipeCon(addrWidth))
+  val config = IO(Flipped(new configIO(clockWidth)))
 
   val defaultJEDEC = "b0".U
   val defaultClear = "b0".U

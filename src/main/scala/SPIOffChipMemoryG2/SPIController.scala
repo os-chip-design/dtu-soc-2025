@@ -1,19 +1,16 @@
 import chisel3._
 import chisel3.util._
 
-
-
-
-class SPIController(
+class SPIController(clockWidth: Int,addrWidth: Int,dataWidth: Int)(
 ) extends Module {
   val spiPort = IO(new spiIO)
 
   val interconnectPort = IO(new Bundle {
     val start = Input(Bool())
     val instruction = Input(UInt(8.W))
-    val dataIn = Input(UInt(32.W))
-    val address = Input(UInt(24.W))
-    val dataOut = Output(UInt(32.W))
+    val dataIn = Input(UInt(dataWidth.W))
+    val address = Input(UInt(addrWidth.W))
+    val dataOut = Output(UInt(dataWidth.W))
     val done = Output(Bool())
     val clockDivision = Input(UInt(32.W))
     val mode = Input(Bool()) // SPI clock mode, 0 or 3

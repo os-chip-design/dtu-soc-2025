@@ -1,12 +1,11 @@
 import chisel3._
 import chisel3.util._
 
-class Bridge() extends Module {
-  
+class Bridge(clockWidth: Int, addrWidth: Int) extends Module {
   val spiPort = IO(new spiIO)
-  val pipeCon = IO(new PipeCon(24))
-  val config = IO(new configIO)
-
+  val pipeCon = IO(new PipeCon(addrWidth))
+  val config = IO(new configIO(clockWidth))
+  val spiController = Module(new SPIController(clockWidth,addrWidth,dataWidth = 32))
   object State extends ChiselEnum {
     val idle, jedec, write0, write1, write2, read0, clear0, clear1, clear2 = Value        
   }
@@ -30,7 +29,7 @@ class Bridge() extends Module {
     maskedData.reduce(_ ## _)
   }
 
-  val spiController = Module(new SPIController())
+  
   spiPort <> spiController.spiPort
   spiController.interconnectPort.address := addressReg
   spiController.interconnectPort.dataIn  := dataReg

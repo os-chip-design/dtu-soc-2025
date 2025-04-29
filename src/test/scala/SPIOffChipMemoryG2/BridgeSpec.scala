@@ -206,7 +206,7 @@ class BridgeSpec extends AnyFlatSpec with ChiselScalatestTester {
   behavior of "Bridge"
   it should "Handle a read instruction for the Flash" in {
     test(
-      new Bridge()
+      new BridgeWrapper()
     ) { dut =>
       val config = new ConfigIoBFM(dut.config, dut.clock)
       val interconnect = new PipeConIoBFM(dut.pipeCon, dut.clock)
@@ -242,7 +242,7 @@ class BridgeSpec extends AnyFlatSpec with ChiselScalatestTester {
   }
   it should "Handle a write instruction for the Flash" in {
     test(
-      new Bridge()
+      new BridgeWrapper()
     ) { dut =>
       val config = new ConfigIoBFM(dut.config, dut.clock)
       val interconnect = new PipeConIoBFM(dut.pipeCon, dut.clock)
@@ -278,7 +278,7 @@ class BridgeSpec extends AnyFlatSpec with ChiselScalatestTester {
   }
   it should "Handle a read instruction for the RAM" in {
     test(
-      new Bridge()
+      new BridgeWrapper()
     ) { dut =>
       val config = new ConfigIoBFM(dut.config, dut.clock)
       val interconnect = new PipeConIoBFM(dut.pipeCon, dut.clock)
@@ -315,7 +315,7 @@ class BridgeSpec extends AnyFlatSpec with ChiselScalatestTester {
   }
   it should "Handle a write instruction for the RAM" in {
     test(
-      new Bridge()
+      new BridgeWrapper()
     ) { dut =>
       val config = new ConfigIoBFM(dut.config, dut.clock)
       val interconnect = new PipeConIoBFM(dut.pipeCon, dut.clock)

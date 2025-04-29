@@ -65,7 +65,8 @@ class FPGATest(
 
     val clear = Input(Bool()) // clear the memory
   })
-
+  val clockWidth = 8
+  val dataWidth = 32
   object State extends ChiselEnum {
     val idle, jedec, reading, writing, justRead0, justRead1, justRead2, justWrite0, justWrite1, justWrite2, error, clearing, done = Value        
   }
@@ -84,7 +85,7 @@ class FPGATest(
 
   fpga.states := stateReg.asUInt
 
-  val bridge = Module(new Bridge())
+  val bridge = Module(new Bridge(clockWidth,dataWidth))
 
 
   bridge.pipeCon.rd := false.B
