@@ -90,13 +90,13 @@ class SPIController(
 
       when(risingEdgeOfSPIClk) {
         when(pointerReg === 0.U) {
-          when(instruction === FlashInstructions.readJEDECInstruction){  // ReadJeDECInstruction
+          when(instruction === Instructions.readJEDECInstruction){  // ReadJeDECInstruction
             stateReg := State.preReceiveData
             pointerReg := 23.U
-          }.elsewhen(instruction === FlashInstructions.writeEnableInstruction || 
-                    instruction === FlashInstructions.chipEraseInstruction){ // WriteEnableInstruction or ChipEraseInstruction
+          }.elsewhen(instruction === Instructions.writeEnableInstruction || 
+                    instruction === Instructions.chipEraseInstruction){ // WriteEnableInstruction or ChipEraseInstruction
             stateReg := State.syncFallEdgeFinish
-          }.elsewhen(instruction === FlashInstructions.readStatusRegister1Instruction) {
+          }.elsewhen(instruction === Instructions.readStatusRegister1Instruction) {
             stateReg := State.preReceiveData
             pointerReg := 7.U
           }.otherwise{ 
@@ -128,13 +128,13 @@ class SPIController(
 
       when(risingEdgeOfSPIClk) {
         when(pointerReg === 0.U) {
-          when(instruction === FlashInstructions.pageProgramInstruction){
+          when(instruction === Instructions.pageProgramInstruction){
             stateReg := State.preWriteData
             pointerReg := 31.U
-          }.elsewhen(instruction === FlashInstructions.readDataInstruction){
+          }.elsewhen(instruction === Instructions.readDataInstruction){
             stateReg := State.preReceiveData
             pointerReg := 31.U
-          }.elsewhen(instruction === FlashInstructions.readStatusRegister1Instruction) {
+          }.elsewhen(instruction === Instructions.readStatusRegister1Instruction) {
             stateReg := State.preReceiveData
             pointerReg := 7.U
           }

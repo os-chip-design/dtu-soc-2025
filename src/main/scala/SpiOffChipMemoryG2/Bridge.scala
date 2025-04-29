@@ -75,7 +75,7 @@ class Bridge() extends Module {
     }
 
     is (State.jedec) {
-      spiController.interconnectPort.instruction := FlashInstructions.readJEDECInstruction
+      spiController.interconnectPort.instruction := Instructions.readJEDECInstruction
       spiController.interconnectPort.start := true.B
 
       when (done) {
@@ -85,7 +85,7 @@ class Bridge() extends Module {
     }
 
     is (State.read0) {
-      spiController.interconnectPort.instruction := FlashInstructions.readDataInstruction
+      spiController.interconnectPort.instruction := Instructions.readDataInstruction
       spiController.interconnectPort.start := true.B
 
       when (done) {
@@ -95,7 +95,7 @@ class Bridge() extends Module {
     } 
 
     is (State.write0) {
-      spiController.interconnectPort.instruction := FlashInstructions.writeEnableInstruction
+      spiController.interconnectPort.instruction := Instructions.writeEnableInstruction
       spiController.interconnectPort.start := true.B
 
       when (done) {
@@ -104,7 +104,7 @@ class Bridge() extends Module {
     }
 
     is (State.write1) {
-      spiController.interconnectPort.instruction := FlashInstructions.pageProgramInstruction
+      spiController.interconnectPort.instruction := Instructions.pageProgramInstruction
       spiController.interconnectPort.start := true.B
 
 
@@ -119,7 +119,7 @@ class Bridge() extends Module {
     }
 
     is (State.write2) {
-      spiController.interconnectPort.instruction := FlashInstructions.readStatusRegister1Instruction
+      spiController.interconnectPort.instruction := Instructions.readStatusRegister1Instruction
       spiController.interconnectPort.start := true.B
 
       when (done && !busy) { 
@@ -129,7 +129,7 @@ class Bridge() extends Module {
     }
 
     is (State.clear0) {
-      spiController.interconnectPort.instruction := FlashInstructions.writeEnableInstruction
+      spiController.interconnectPort.instruction := Instructions.writeEnableInstruction
       spiController.interconnectPort.start := true.B
 
 
@@ -139,7 +139,7 @@ class Bridge() extends Module {
     }
 
     is (State.clear1) {
-      spiController.interconnectPort.instruction := FlashInstructions.chipEraseInstruction
+      spiController.interconnectPort.instruction := Instructions.chipEraseInstruction
       spiController.interconnectPort.start := true.B
 
 
@@ -149,7 +149,7 @@ class Bridge() extends Module {
     }
 
     is (State.clear2) {
-      spiController.interconnectPort.instruction := FlashInstructions.readStatusRegister1Instruction
+      spiController.interconnectPort.instruction := Instructions.readStatusRegister1Instruction
       spiController.interconnectPort.start := true.B
 
 

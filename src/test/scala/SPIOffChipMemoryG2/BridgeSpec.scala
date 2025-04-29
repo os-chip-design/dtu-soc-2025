@@ -223,7 +223,7 @@ class BridgeSpec extends AnyFlatSpec with ChiselScalatestTester {
       // 3. verify what comes out in spiPort
       spi.expectChipEnable(false)
 
-      spi.expectFunctionCode(FlashInstructions.readDataInstruction.litValue)
+      spi.expectFunctionCode(Instructions.readDataInstruction.litValue)
 
       spi.expectAddress(address)
 
@@ -257,17 +257,17 @@ class BridgeSpec extends AnyFlatSpec with ChiselScalatestTester {
       interconnect.triggerWrite(address, data)
 
       // 3. verify what comes out in spiPort
-      spi.expectFunctionCode(FlashInstructions.writeEnableInstruction.litValue)
-      spi.expectFunctionCode(FlashInstructions.pageProgramInstruction.litValue)
+      spi.expectFunctionCode(Instructions.writeEnableInstruction.litValue)
+      spi.expectFunctionCode(Instructions.pageProgramInstruction.litValue)
 
-      // FlashInstructions.readStatusRegister1Instruction
+      // Instructions.readStatusRegister1Instruction
 
       spi.expectAddress(address)
       spi.expectData(data.litValue)
 
       // to check the status of the operation (if the mem is busy or not..)
       spi.expectFunctionCode(
-        FlashInstructions.readStatusRegister1Instruction.litValue
+        Instructions.readStatusRegister1Instruction.litValue
       )
 
       interconnect.waitUntilAck()
@@ -330,17 +330,17 @@ class BridgeSpec extends AnyFlatSpec with ChiselScalatestTester {
 //       interconnect.triggerWrite(address, data)
 
 //       // 3. verify what comes out in spiPort
-//       spi.expectFunctionCode(FlashInstructions.writeEnableInstruction.litValue)
-//       spi.expectFunctionCode(FlashInstructions.pageProgramInstruction.litValue)
+//       spi.expectFunctionCode(Instructions.writeEnableInstruction.litValue)
+//       spi.expectFunctionCode(Instructions.pageProgramInstruction.litValue)
 
-//       // FlashInstructions.readStatusRegister1Instruction
+//       // Instructions.readStatusRegister1Instruction
 
 //       spi.expectAddress(address)
 //       spi.expectData(data.litValue)
 
 //       // to check the status of the operation (if the mem is busy or not..)
 //       spi.expectFunctionCode(
-//         FlashInstructions.readStatusRegister1Instruction.litValue
+//         Instructions.readStatusRegister1Instruction.litValue
 //       )
 
 //       interconnect.waitUntilAck()

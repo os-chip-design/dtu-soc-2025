@@ -42,7 +42,7 @@ class configIO extends Bundle {
   val mode = Input(Bool()) // SPI clock mode, 0 (indicated by 0) or 3 (indicated by 1)
 }
 
-object FlashInstructions {
+object Instructions {
   val readJEDECInstruction   =  "b10011111".U // 0x9F (Read JeDEC ID), table 8.1.3
   val writeEnableInstruction =  "b00000110".U // 0x06 (Write Enable), table 8.13
   val pageProgramInstruction =  "b00000010".U // 0x02 (Page Program), table 8.1.3
@@ -52,8 +52,3 @@ object FlashInstructions {
   val readStatusRegister1Instruction = "b00000101".U // 0x05 (Read Status Register 1), table 8.1.3
 }
 
-object RAMInstructions {
-  val readIDInstruction = "b10011111".U // 0x20 (Sector Erase), table 8.1.3
-  val writeInstruction =  "b00000010".U // 0x02 (Page Program), table 8.1.3
-  val readInstruction =   "b00000011".U // 0x03 (Read Data), table 8.1.3
-}
