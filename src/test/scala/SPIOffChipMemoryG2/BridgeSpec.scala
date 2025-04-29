@@ -276,77 +276,69 @@ class BridgeSpec extends AnyFlatSpec with ChiselScalatestTester {
     }
 
   }
-//   it should "Handle a read instruction for the RAM" in {
-//     test(
-//       new Bridge()
-//     ) { dut =>
-//       val config = new ConfigIoBFM(dut.config, dut.clock)
-//       val interconnect = new PipeConIoBFM(dut.pipeCon, dut.clock)
-//       val spi = new SpiIoBFM(dut.spiPort, dut.clock)
+  it should "Handle a read instruction for the RAM" in {
+    test(
+      new Bridge()
+    ) { dut =>
+      val config = new ConfigIoBFM(dut.config, dut.clock)
+      val interconnect = new PipeConIoBFM(dut.pipeCon, dut.clock)
+      val spi = new SpiIoBFM(dut.spiPort, dut.clock)
 
-//       // 1. config
-//       config.setupConfigRAM()
+      // 1. config
+      config.setupConfigRAM()
 
-//       // 2. insert data on PipeCon
-//       val address = 0xf42135
-//       interconnect.triggerRead(address)
-//       dut.clock.step(2)
+      // 2. insert data on PipeCon
+      val address = 0xf42135
+      interconnect.triggerRead(address)
+      dut.clock.step(2)
 
-//       // 3. verify what comes out in spiPort
-//       spi.expectChipEnable(false)
+      // 3. verify what comes out in spiPort
+      spi.expectChipEnable(false)
 
-//       spi.expectFunctionCode(RAMInstructions.readInstruction.litValue)
+      spi.expectFunctionCode(Instructions.readDataInstruction.litValue)
 
-//       spi.expectAddress(address)
+      spi.expectAddress(address)
 
-//       val response = "hdeadbeef".U(32.W)
-//       val responseBits = response.asBools
+      val response = "hdeadbeef".U(32.W)
+      val responseBits = response.asBools
 
-//       // simulate response from the off chip memory
-//       spi.pokeData(responseBits)
+      // simulate response from the off chip memory
+      spi.pokeData(responseBits)
 
-//       // verify data returned through the interconnect
-//       interconnect.waitUntilAck()
-//       interconnect.expectData(response.litValue)
-//       spi.expectChipEnable(true)
+      // verify data returned through the interconnect
+      interconnect.waitUntilAck()
+      interconnect.expectData(response.litValue)
+      spi.expectChipEnable(true)
 
-//     }
+    }
 
-//   }
-//   it should "Handle a write instruction for the RAM" in {
-//     test(
-//       new Bridge()
-//     ) { dut =>
-//       val config = new ConfigIoBFM(dut.config, dut.clock)
-//       val interconnect = new PipeConIoBFM(dut.pipeCon, dut.clock)
-//       val spi = new SpiIoBFM(dut.spiPort, dut.clock)
+  }
+  it should "Handle a write instruction for the RAM" in {
+    test(
+      new Bridge()
+    ) { dut =>
+      val config = new ConfigIoBFM(dut.config, dut.clock)
+      val interconnect = new PipeConIoBFM(dut.pipeCon, dut.clock)
+      val spi = new SpiIoBFM(dut.spiPort, dut.clock)
 
-//       // 1. config
-//       config.setupConfigRAM()
+      // 1. config
+      config.setupConfigRAM()
 
-//       // 2. insert data on PipeCon
-//       val address = 0x112234
-//       val data = "hdeadbeef".U(32.W)
-//       interconnect.triggerWrite(address, data)
+      // 2. insert data on PipeCon
+      val address = 0x112234
+      val data = "hdeadbeef".U(32.W)
+      interconnect.triggerWrite(address, data)
 
-//       // 3. verify what comes out in spiPort
-//       spi.expectFunctionCode(Instructions.writeEnableInstruction.litValue)
-//       spi.expectFunctionCode(Instructions.pageProgramInstruction.litValue)
+      // 3. verify what comes out in spiPort
+      spi.expectFunctionCode(Instructions.pageProgramInstruction.litValue)
 
-//       // Instructions.readStatusRegister1Instruction
+      spi.expectAddress(address)
+      spi.expectData(data.litValue)
 
-//       spi.expectAddress(address)
-//       spi.expectData(data.litValue)
+      interconnect.waitUntilAck()
+      spi.expectChipEnable(true)
 
-//       // to check the status of the operation (if the mem is busy or not..)
-//       spi.expectFunctionCode(
-//         Instructions.readStatusRegister1Instruction.litValue
-//       )
+    }
 
-//       interconnect.waitUntilAck()
-//       spi.expectChipEnable(true)
-
-//     }
-
-//   }
+  }
 }
