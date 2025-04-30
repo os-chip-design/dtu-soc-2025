@@ -53,6 +53,8 @@ class PipeConInterconnect(file: String, addrWidth: Int) extends Module {
       rdDataReg := io.uart.rdData
     } .otherwise {
       io.uart.address := cpu.io.dmem.wrAddress
+      io.uart.wrData := cpu.io.dmem.wrData
+      rdDataReg := io.uart.rdData
     }
   }
   
