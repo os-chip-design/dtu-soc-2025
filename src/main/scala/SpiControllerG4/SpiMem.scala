@@ -155,5 +155,5 @@ class SpiMem extends Module {
 }
 
 object SpiMem extends App {
-    (new chisel3.stage.ChiselStage).emitVerilog(new SpiMem())
+    (new chisel3.stage.ChiselStage).emitVerilog(new SpiMem(), Array("--target-dir", "generated"))
 }

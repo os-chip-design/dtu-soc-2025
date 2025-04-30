@@ -31,8 +31,8 @@ import chisel3.util._
  * - [[io.port]]  responder bus port
  * - [[io.pins]]  UART tx and rx pins
  *
- * @param freq clock frequency of [[clock]]
- * @param baud baud rate of UART
+ * @param freq          clock frequency of [[clock]]
+ * @param baud          baud rate of UART
  * @param txBufferDepth depth of transmit buffer
  * @param rxBufferDepth depth of receive buffer
  */
@@ -98,12 +98,13 @@ object MemoryMappedUart {
   case class UartPins() extends Bundle {
     val tx = Output(Bool())
     val rx = Input(Bool())
-    val cts = Input(Bool())  // Clear To Send - when high, we're allowed to transmit
+    val cts = Input(Bool()) // Clear To Send - when high, we're allowed to transmit
   }
 
   /** Create a [[MemoryMappedUart]].
-   * @param freq clock frequency
-   * @param baud baud rate of UART
+   *
+   * @param freq          clock frequency
+   * @param baud          baud rate of UART
    * @param txBufferDepth depth of transmit buffer
    * @param rxBufferDepth depth of receive buffer
    * @return memory mapped UART module
