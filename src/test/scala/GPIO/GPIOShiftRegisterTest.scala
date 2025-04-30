@@ -13,13 +13,13 @@ class GPIOShiftRegisterTest extends AnyFlatSpec with ChiselScalatestTester {
             ).withAnnotations(Seq( WriteVcdAnnotation )) {
             dut => {
 
-                println("")
-                println("Clocking out data")
+                //println("")
+                //println("Clocking out data")
                 
                 for (i <- 0 until 32) {
                     dut.clock.step()
                     dut.io.rd.poke(true.B)
-                    print(s"$i: ${dut.io.read_data.peek().litToBoolean} ")
+                    //print(s"$i: ${dut.io.read_data.peek().litToBoolean} ")
                     dut.io.read_data.expect(false.B)
                     
                     // Toggle write data to ensure nothing gets written
@@ -39,19 +39,19 @@ class GPIOShiftRegisterTest extends AnyFlatSpec with ChiselScalatestTester {
                 dut.io.rd.poke(false.B)
                 dut.io.write_data.poke(false.B)
 
-                println("")
-                println("Clocking in data")
+                // println("")
+                // println("Clocking in data")
                 for (i <- 0 until 32) {
                     dut.clock.step()
-                    print(s"$i: ")
+                    //print(s"$i: ")
                     dut.io.wr.poke(true.B)
 
                     if (((i+1) % 2) == 0) {
                         dut.io.write_data.poke(false.B)
-                        print("0 ")
+                        //print("0 ")
                     } else {
                         dut.io.write_data.poke(true.B)
-                        print("1 ")
+                        //print("1 ")
                     }
                     
                     for (i <- 0 until 32) {
@@ -63,10 +63,10 @@ class GPIOShiftRegisterTest extends AnyFlatSpec with ChiselScalatestTester {
                 dut.clock.step(2)
                 
                 // Check the conf output now
-                println("")
-                println("Checking output")
+                // println("")
+                // println("Checking output")
                 for (i <- 0 until 32) {
-                    print(s"$i: ${dut.io.conf_output(i).peek().litToBoolean} ")
+                    //print(s"$i: ${dut.io.conf_output(i).peek().litToBoolean} ")
                     if ((i % 2) == 0) {
                         dut.io.conf_output(i).expect(true.B)
                     } else {
@@ -76,8 +76,8 @@ class GPIOShiftRegisterTest extends AnyFlatSpec with ChiselScalatestTester {
 
                 // Now try to clock out some data again
                 // First try to clock out some data.
-                println("")
-                println("Clocking out data again")
+                // println("")
+                // println("Clocking out data again")
                 dut.io.rd.poke(true.B)
                 for (i <- 0 until 32) {
                     dut.clock.step()
@@ -95,7 +95,7 @@ class GPIOShiftRegisterTest extends AnyFlatSpec with ChiselScalatestTester {
                     }
 
                     for (i <- 0 until 32) {
-                        print(s"$i: ${dut.io.conf_output(i).peek().litToBoolean} ")
+                        //print(s"$i: ${dut.io.conf_output(i).peek().litToBoolean} ")
                         if ((i % 2) == 0) {
                             dut.io.conf_output(i).expect(true.B)
                         } else {

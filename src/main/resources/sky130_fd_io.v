@@ -1,0 +1,1 @@
+../../../soc-chip-2025/dependencies/pdks/sky130B/libs.ref/sky130_fd_io/verilog/sky130_fd_io.v
