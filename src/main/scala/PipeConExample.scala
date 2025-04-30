@@ -5,12 +5,12 @@ import chisel3._
 
 class PipeConExample(addrWidth: Int) extends Module {
   val io = IO(new Bundle {
-    val uartRdDataTest = Input(UInt(32.W))
+    val uartWrDataTest = Input(UInt(32.W))
     val uartRdData = Output(UInt(32.W))
     val uartRd = Input(Bool())
-    val uartWr = Output(Bool())
-    val uartWrMask = Output(UInt(4.W))
-    val uartWrData = Output(UInt(32.W))
+    val uartWr = Input(Bool())
+    val uartWrMask = Input(UInt(4.W))
+    val uartWrData = Input(UInt(32.W))
 
     val SPIRdDataTest = Input(UInt(32.W))
     val SPIRdData = Output(UInt(32.W))
@@ -36,14 +36,15 @@ class PipeConExample(addrWidth: Int) extends Module {
 
 
   // Drive test data to peripherals via interconnect
-  //interconnect.uart.testIo.testRdData := io.uartRdDataTest
+  interconnect.io.uart.wrData := io.uartWrDataTest
+  interconnect.io.uart.rd := io.uartRd
+  interconnect.io.uart.wr := io.uartWr
+  interconnect.io.uart.wrMask := io.uartWrMask
+
   //interconnect.SPI.testIo.testRdData := io.SPIRdDataTest
 
   // Export UART outputs from interconnect
   io.uartRdData := interconnect.io.uart.rdData
-  io.uartWr := interconnect.io.uart.wr
-  io.uartWrMask := interconnect.io.uart.wrMask
-  io.uartWrData := interconnect.io.uart.wrData
 
   // Export SPI outputs from interconnect
   io.SPIRdData := interconnect.io.SPI.rdData

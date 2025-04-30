@@ -5,39 +5,52 @@ import org.scalatest.flatspec.AnyFlatSpec
 class PipeConExampleTest extends AnyFlatSpec with ChiselScalatestTester {
   behavior of "PipeConExample"
 
-  it should "simulate a UART write and read" in {
-  test(new PipeConExample(8)).withAnnotations(Seq(WriteVcdAnnotation)) { c =>
-      val uartAddress = 0x01
+    it should "test assembly code" in {
+      test(new PipeConExample(8)).withAnnotations(Seq(WriteVcdAnnotation)) { c =>
+        c.io.uartWrDataTest.poke("hDEADBEEF".U) // Set UART data
+        c.io.uartWr.poke(true.B)
+        c.io.uartWrMask.poke("h1".U)
+        c.clock.step(5)
 
-      // Perform a read operation from the CPU
-      c.io.uartRdDataTest.poke("h0000BEEF".U)  // Simulate data being available to read
-      c.io.uartRd.poke(true.B)  // Activate UART read signal
-      c.clock.step()
-
-      // Monitor the UART read signal from the interconnect
-      var readDetected = false
-      while (!readDetected) {
-        c.clock.step(1)
-        if (c.io.uartRd.peek().litToBoolean) {  // Check if UART read signal is active
-          println("UART read detected")
-          readDetected = true
-        } else {
-          println("Nothing detected...")
-        }
-      }
-
-      var readDetected2 = false
-      while (!readDetected2) {
-        c.clock.step(1)
-        if (c.interconnect.io.rdEnableTest.peek().litToBoolean) {
-          println("rdEnable from CPU detected")
-          readDetected2 = true
-        } else {
-          println("Nothing detected...")
-        }
+        println(s"SPI Write Data: ${c.io.SPIWrData.peek()}")
+        c.io.SPIWrData.expect("hDEADBEEF".U) // SPI should receive the same data
       }
     }
-  }
+
+
+  //it should "simulate a UART write and read" in {
+  //test(new PipeConExample(8)).withAnnotations(Seq(WriteVcdAnnotation)) { c =>
+  //    val uartAddress = 0x01
+//
+  //    // Perform a read operation from the CPU
+  //    c.io.uartRdDataTest.poke("h0000BEEF".U)  // Simulate data being available to read
+  //    c.io.uartRd.poke(true.B)  // Activate UART read signal
+  //    c.clock.step()
+//
+  //    // Monitor the UART read signal from the interconnect
+  //    var readDetected = false
+  //    while (!readDetected) {
+  //      c.clock.step(1)
+  //      if (c.io.uartRd.peek().litToBoolean) {  // Check if UART read signal is active
+  //        println("UART read detected")
+  //        readDetected = true
+  //      } else {
+  //        println("Nothing detected...")
+  //      }
+  //    }
+//
+  //    //var readDetected2 = false
+  //    //while (!readDetected2) {
+  //    //  c.clock.step(1)
+  //    //  if (c.interconnect.io.rdEnableTest.peek().litToBoolean) {
+  //    //    println("rdEnable from CPU detected")
+  //    //    readDetected2 = true
+  //    //  } else {
+  //    //    println("Nothing detected...")
+  //    //  }
+  //    //}
+  //  }
+  //}
 
 
   //it should "handle read without write to the UART peripheral" in {
