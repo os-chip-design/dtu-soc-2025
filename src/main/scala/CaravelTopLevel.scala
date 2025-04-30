@@ -82,19 +82,32 @@ class CaravelIO(MPRJ_IO_PADS: Int = 38, USE_POWER_PINS: Boolean = false) extends
 }
 
 class CaravelTopLevel extends RawModule {
-  val io = IO(new CaravelIO(MPRJ_IO_PADS = 38, USE_POWER_PINS = true))
+  val io = IO(new Bundle{
+    val caravel = new CaravelIO(MPRJ_IO_PADS = 38, USE_POWER_PINS = true)
+    val mem = new NativeMemoryInterface(DATA_WIDTH = 32, ADDR_WIDTH = 9, WMASK_WIDTH = 4)
+  })
 
   // Enumerate all outputs as DontCare
-  io.wbs_ack_o := DontCare
-  io.wbs_dat_o := DontCare
-  io.la_data_out := DontCare
-  io.io_out := DontCare
-  io.io_oeb := DontCare
-  io.user_irq := DontCare
+  io.caravel.wbs_ack_o := DontCare
+  io.caravel.wbs_dat_o := DontCare
+  io.caravel.la_data_out := DontCare
+  io.caravel.io_out := DontCare
+  io.caravel.io_oeb := DontCare
+  io.caravel.user_irq := DontCare
 
   // Analog logic here.
 
   // Digital logic inside this block.
+  val mem2pipe = Module(new NativeMemory2Pipecon(DATA_WIDTH = 32, ADDR_WIDTH = 9, WMASK_WIDTH = 4))
+
+  mem2pipe.io.mem := io.mem
+  // Temp: tie outputs to 0
+  mem2pipe.io.pipe.address := 0.U
+  mem2pipe.io.pipe.rd := false.B
+  mem2pipe.io.pipe.wr := false.B
+  mem2pipe.io.pipe.rdData := 0.U
+  mem2pipe.io.pipe.wrData := 0.U
+  mem2pipe.io.pipe.wrMask := 0.U
 
   /**
    * Conventional LA selection of signals.
