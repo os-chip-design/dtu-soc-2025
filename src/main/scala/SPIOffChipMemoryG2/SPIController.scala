@@ -1,28 +1,25 @@
 import chisel3._
 import chisel3.util._
 
-
-
-
-class SPIController(
+class SPIController(clockWidth: Int,addrWidth: Int,dataWidth: Int)(
 ) extends Module {
   val spiPort = IO(new spiIO)
 
   val interconnectPort = IO(new Bundle {
     val start = Input(Bool())
     val instruction = Input(UInt(8.W))
-    val dataIn = Input(UInt(32.W))
-    val address = Input(UInt(24.W))
-    val dataOut = Output(UInt(32.W))
+    val dataIn = Input(UInt(dataWidth.W))
+    val address = Input(UInt(addrWidth.W))
+    val dataOut = Output(UInt(dataWidth.W))
     val done = Output(Bool())
-    val clockDivision = Input(UInt(32.W))
+    val clockDivision = Input(UInt(clockWidth.W))
     val mode = Input(Bool()) // SPI clock mode, 0 or 3
   })
 
   object State extends ChiselEnum {
     val idle, instructionTransmit, sendAddress,
-        receiveData, writeData, finished, waiting, syncFallEdgeFinish,
-        preAddress, preWriteData, preReceiveData = Value
+        receiveData, writeData, finished, syncFallEdgeFinish,
+        syncFallEdgeAddress, syncFallEdgeWriteData, syncFallEdgeEdgeWriteDa = Value
   }
 
   def risingEdge(x: Bool) = x && !RegNext(x)
@@ -40,7 +37,9 @@ class SPIController(
   val risingEdgeOfSPIClk = risingEdge(spiClkReg)
   val fallingEdgeOfSPIClk = fallingEdge(spiClkReg)
 
-  val idleClockMode = interconnectPort.mode // SPI clock mode, 0 (indicated by 0) or 3 (indicated by 1)
+  // SPI clock mode, 0 (indicated by 0) or 3 (indicated by 1
+  // always zero if not targeting the flash memory
+  val idleClockMode = interconnectPort.mode
 
   val rdData = dataOutReg.reduce(_ ## _)
 
@@ -88,17 +87,17 @@ class SPIController(
 
       when(risingEdgeOfSPIClk) {
         when(pointerReg === 0.U) {
-          when(instruction === SPIInstructions.readJEDECInstruction){  // ReadJeDECInstruction
-            stateReg := State.preReceiveData
+          when(instruction === Instructions.readJEDECInstruction){  // ReadJeDECInstruction
+            stateReg := State.syncFallEdgeEdgeWriteDa
             pointerReg := 23.U
-          }.elsewhen(instruction === SPIInstructions.writeEnableInstruction || 
-                    instruction === SPIInstructions.chipEraseInstruction){ // WriteEnableInstruction or ChipEraseInstruction
+          }.elsewhen(instruction === Instructions.writeEnableInstruction || 
+                    instruction === Instructions.chipEraseInstruction){ // WriteEnableInstruction or ChipEraseInstruction
             stateReg := State.syncFallEdgeFinish
-          }.elsewhen(instruction === SPIInstructions.readStatusRegister1Instruction) {
-            stateReg := State.preReceiveData
+          }.elsewhen(instruction === Instructions.readStatusRegister1Instruction) {
+            stateReg := State.syncFallEdgeEdgeWriteDa
             pointerReg := 7.U
           }.otherwise{ 
-            stateReg := State.preAddress
+            stateReg := State.syncFallEdgeAddress
             pointerReg := 23.U 
           }
         }.otherwise {
@@ -112,7 +111,7 @@ class SPIController(
       }
     }
 
-    is (State.preAddress) {
+    is (State.syncFallEdgeAddress) {
       spiPort.chipSelect := false.B
       when (fallingEdgeOfSPIClk) {
         stateReg := State.sendAddress
@@ -126,14 +125,14 @@ class SPIController(
 
       when(risingEdgeOfSPIClk) {
         when(pointerReg === 0.U) {
-          when(instruction === SPIInstructions.pageProgramInstruction){
-            stateReg := State.preWriteData
+          when(instruction === Instructions.pageProgramInstruction){
+            stateReg := State.syncFallEdgeWriteData
             pointerReg := 31.U
-          }.elsewhen(instruction === SPIInstructions.readDataInstruction){
-            stateReg := State.preReceiveData
+          }.elsewhen(instruction === Instructions.readDataInstruction){
+            stateReg := State.syncFallEdgeEdgeWriteDa
             pointerReg := 31.U
-          }.elsewhen(instruction === SPIInstructions.readStatusRegister1Instruction) {
-            stateReg := State.preReceiveData
+          }.elsewhen(instruction === Instructions.readStatusRegister1Instruction) {
+            stateReg := State.syncFallEdgeEdgeWriteDa
             pointerReg := 7.U
           }
         }.otherwise {
@@ -147,7 +146,7 @@ class SPIController(
       }
     }
 
-    is (State.preWriteData) {
+    is (State.syncFallEdgeWriteData) {
       spiPort.chipSelect := false.B
       when (fallingEdgeOfSPIClk) {
         stateReg := State.writeData
@@ -174,7 +173,7 @@ class SPIController(
       }
     }
 
-    is (State.preReceiveData) {
+    is (State.syncFallEdgeEdgeWriteDa) {
       spiPort.chipSelect := false.B
       when (fallingEdgeOfSPIClk) {
         pointerReg := pointerReg + 1.U
@@ -220,23 +219,10 @@ class SPIController(
       spiPort.spiClk := idleClockMode
 
       dataOutReg := VecInit(Seq.fill(32)(0.U(1.W))) // reset the dataOut register
-      stateReg := State.waiting
+      stateReg := State.idle
       pointerReg := 1.U
 
       interconnectPort.done := true.B
-    }
-
-    is (State.waiting) {
-      spiPort.chipSelect := true.B
-      spiPort.spiClk := idleClockMode
-
-      when(risingEdgeOfSPIClk) {
-        when(pointerReg === 0.U) {
-          stateReg := State.idle
-        }.otherwise {
-          pointerReg := pointerReg - 1.U
-        }
-      }
     }
   }
 }

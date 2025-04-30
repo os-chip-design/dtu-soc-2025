@@ -2,8 +2,7 @@ import chisel3._
 import chiseltest._
 import org.scalatest.flatspec.AnyFlatSpec
 
-
-class SpiIoBFM(port: spiIO, clock: Clock) {
+class SpiIoBFM_jedec(port: spiIO, clock: Clock) {
   var previousSpiClk = false
 
   def isSpiRisingEdge(): Boolean = {
@@ -49,11 +48,25 @@ class SpiIoBFM(port: spiIO, clock: Clock) {
     )
   }
 
+  def pokeData(data: Seq[chisel3.Bool]) = {
+    for (i <- 0 to 23 by 1) {
+      while (!isSpiRisingEdge())
+        // Wait until rising edge of spi
+        {
+          updatePrevSpiClk()
+          clock.step()
+        }
+
+      port.dataIn.poke(data(i))
+
+      updatePrevSpiClk()
+      clock.step()
+    }
+  }
+
 }
 
-class SPIJEDECHelloSpec
-    extends AnyFlatSpec
-    with ChiselScalatestTester {
+class SPIJEDECHelloSpec extends AnyFlatSpec with ChiselScalatestTester {
   behavior of "SPIOffChipMemoryController"
   it should "Read the JEDEC of the memory" in {
     test(
@@ -62,54 +75,31 @@ class SPIJEDECHelloSpec
         freq = 10
       )
     ) { dut =>
+      // dut.clock.step()
 
-      // dut.clock.step()  
-    
-      val spi = new SpiIoBFM(dut.spiPort, dut.clock)
+      val spi = new SpiIoBFM_jedec(dut.spiPort, dut.clock)
       dut.interconnectPort.rd.poke(true.B)
       // chip select should be false
       spi.expectChipEnable(false)
       dut.clock.step(1)
 
-      /*
-      var previousSpiClk = false
-      def isSpiRisingEdge(): Boolean = {
-        dut.spiPort.spiClk.peek().litToBoolean && !previousSpiClk
-      }
-      */
-
       val expectedInstruction: Int = Integer.parseInt("10011111", 2)
       spi.expectFunctionCode(expectedInstruction)
       dut.clock.step()
 
-
-      // val response = "b111101111010111001011001".U(24.W) // Ensure bit width
-      // val response: Seq[Boolean] = "111101111010111001011001".map(_ == '1')
       val response = "b111101111010111001011001".U(24.W)
       val responseBits = response.asBools
 
-      for ( i <- 0 to 23 by 1)
-      {
-        while (!spi.isSpiRisingEdge())
-        // Wait until rising edge of spi
-        {
-          
-          spi.updatePrevSpiClk()
-          dut.clock.step()
-          
-        }
-
-      dut.spiPort.dataIn.poke(responseBits(i))
-
-      spi.updatePrevSpiClk()
-      dut.clock.step()
-      }
+      spi.pokeData(responseBits)
 
       dut.clock.step()
       dut.clock.step(200)
       // dut.JEDECout.dataOut.expect(response)
       val obtained = dut.interconnectPort.rdData.peek()
-      assert(response.litValue == obtained.litValue, s"[expectDataOut] Expected $response, got $obtained")
+      assert(
+        response.litValue == obtained.litValue,
+        s"[expectDataOut] Expected $response, got $obtained"
+      )
 
     }
   }

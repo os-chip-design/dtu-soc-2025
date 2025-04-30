@@ -36,12 +36,16 @@ class FPGATest(
     val clockDivision: Int = 2, // SPI clock division factor
     val refreshRate: Int = 1000000, // for showing the data on the seven segment display
     val testCases: Int = 4,
-    val printTestCases: Boolean = false // print the test cases to the console
+    val printTestCases: Boolean = false, // print the test cases to the console
+    val endOnError: Boolean = false, // end the simulation on error
+    val randomData: Boolean = false, // generate random test cases
+    val randomAddresses: Boolean = false // generate random addresses
 ) extends Module {
   
   val spiPort = IO(new spiIO)
 
   val fpga = IO(new Bundle {
+
     val start = Input(Bool())
     val again = Input(Bool()) 
     val jedec = Input(Bool())
@@ -49,6 +53,9 @@ class FPGATest(
     val justWrite = Input(Bool())
     val error = Output(Bool())
     val done  = Output(Bool())
+
+    val ramSelect = Output(Bool())
+    val targetFlash = Input(Bool())
 
     val sel = Input(UInt(3.W))
     val seg = Output(UInt(7.W))
@@ -58,7 +65,8 @@ class FPGATest(
 
     val clear = Input(Bool()) // clear the memory
   })
-
+  val clockWidth = 8
+  val dataWidth = 32
   object State extends ChiselEnum {
     val idle, jedec, reading, writing, justRead0, justRead1, justRead2, justWrite0, justWrite1, justWrite2, error, clearing, done = Value        
   }
@@ -77,7 +85,7 @@ class FPGATest(
 
   fpga.states := stateReg.asUInt
 
-  val bridge = Module(new Bridge())
+  val bridge = Module(new Bridge(clockWidth,dataWidth))
 
 
   bridge.pipeCon.rd := false.B
@@ -88,7 +96,15 @@ class FPGATest(
   bridge.config.clear := false.B
   bridge.config.clockDivision := clockDivision.U
   bridge.config.mode := false.B // SPI clock mode, 0 (indicated by 0) or 3 (indicated by 1)
+  bridge.config.targetFlash := fpga.targetFlash // target the flash memory or the RAM
   spiPort <> bridge.spiPort
+  
+  when (!fpga.targetFlash) {
+    spiPort.chipSelect := true.B // chip select for the flash memory
+    fpga.ramSelect := bridge.spiPort.chipSelect // chip select for the RAM
+  }.otherwise {
+    fpga.ramSelect := true.B // chip select for the RAM
+  }
   
   val readData = bridge.pipeCon.rdData
 
@@ -98,27 +114,35 @@ class FPGATest(
   }
 
   val pointerReg = RegInit(0.U(32.W))
-
   val data = VecInit(Seq.fill(testCases)(0.U(32.W))) 
   for (i <- 0 until testCases) {
-    // make a random number
-    val ran = BigInt(32, rand).toLong
-    data(i) := ran.U(32.W)
-    //data(i) := "hFFFFFFFF".U // all ones
-    if (printTestCases) {
-      println(f"data($i) = 0x${ran}%08X")
+    if (randomData) {
+      val ran = BigInt(32, rand).toLong
+      data(i) := ran.U(32.W)
+      if (printTestCases) {
+        println(f"data($i) = 0x${ran}%08X")
+      }
+    } else {
+      data(i) := (i).U(32.W)
+      if (printTestCases) {
+        println(f"data($i) = 0x${(i).toLong}%08X")
+      }
     }
   }
 
   val addresses = VecInit(Seq.fill(testCases)(0.U(24.W))) 
   for (i <- 0 until testCases) {
-    val ran = BigInt(24, rand).toLong
-    addresses(i) := (ran).U(24.W)
-    //addresses(i) := (i << 8).U(24.W) // left shift to make it 24 bits
-    if (printTestCases) {
-      // print the address in hex format
-      println(f"addresses($i) = 0x${ran}%06X")
-      //println(f"addresses($i) = 0x${(i << 8).toLong}%06X")
+    if (randomAddresses) {
+      val ran = BigInt(24, rand).toLong
+      addresses(i) := (ran).U(24.W)
+      if (printTestCases) {
+        println(f"addresses($i) = 0x${ran}%06X")
+      }
+    } else {
+      addresses(i) := (i << 2).U(24.W) 
+      if (printTestCases) {
+        println(f"addresses($i) = 0x${(i << 2).toLong}%06X")
+      }
     }
   }
   
@@ -137,8 +161,8 @@ class FPGATest(
     is(3.U) { displayDriver.io.input := (data(pointerReg))(31, 16) }            // 011
     is(4.U) { displayDriver.io.input := (addresses(pointerReg))(15, 0) }        // 100
     is(5.U) { displayDriver.io.input := (addresses(pointerReg))(23, 16) }       // 101
-    is(6.U) { displayDriver.io.input := readData(15, 0) }                   // 110
-    is(7.U) { displayDriver.io.input := readData(23, 16) }                  // 111
+    is(6.U) { displayDriver.io.input := pointerReg(15, 0) }                   // 110
+    is(7.U) { displayDriver.io.input := pointerReg(31, 16) }                  // 111
   }
 
   fpga.done := false.B
@@ -148,8 +172,10 @@ class FPGATest(
     is(State.idle) {
       when (fpga.clear) {
         stateReg := State.clearing
+        bridge.pipeCon.wr := true.B
       }.elsewhen (fpga.jedec) {
         stateReg := State.jedec
+        bridge.pipeCon.rd := true.B
       }.elsewhen (fpga.justRead) {
         stateReg := State.justRead0
         bridge.pipeCon.rd := true.B
@@ -165,10 +191,8 @@ class FPGATest(
     is(State.clearing) {
       when (bridge.pipeCon.ack) {
         stateReg := State.done
-      }.otherwise {
-        bridge.config.clear := true.B
-        bridge.pipeCon.wr := true.B
       }
+      bridge.config.clear := true.B
     }
 
     is(State.jedec) {
@@ -178,38 +202,44 @@ class FPGATest(
         }.otherwise {
           stateReg := State.done
         }
-      }.otherwise {
-        bridge.config.jedec := true.B
-        bridge.pipeCon.rd := true.B
       }
+      bridge.config.jedec := true.B      
     }
 
     is(State.writing) {
       when (bridge.pipeCon.ack) {
         stateReg := State.reading
-        bridge.pipeCon.rd := true.B
+        bridge.pipeCon.rd := true.B // we need to read next cycle
       }
     }
 
     is(State.reading) {
       when (bridge.pipeCon.ack) {
         when (readData =/= data(pointerReg)) {
-          stateReg := State.error
-          //fpga.error := true.B
-          //pointerReg := pointerReg + 1.U
-          //stateReg := State.writing
-          //bridge.pipeCon.wr := true.B
+          if (endOnError) {
+            stateReg := State.error
+          } else {
+            fpga.error := true.B
+            pointerReg := pointerReg + 1.U
+            bridge.pipeCon.address := addresses(pointerReg + 1.U)
+            bridge.pipeCon.wrData  := data(pointerReg + 1.U)
+            bridge.pipeCon.wr := true.B // we need to write next cycle
+            stateReg := State.writing
+          }
         }.otherwise {
           when (pointerReg === (testCases - 1).U) {
             stateReg := State.done
           }.otherwise {
             pointerReg := pointerReg + 1.U
+            bridge.pipeCon.address := addresses(pointerReg + 1.U)
+            bridge.pipeCon.wrData  := data(pointerReg + 1.U)
+            bridge.pipeCon.wr := true.B // we need to write next cycle
             stateReg := State.writing
-            bridge.pipeCon.wr := true.B
           }
         }
       }
     }
+
 
     is(State.justRead0) {
       when (bridge.pipeCon.ack) {
@@ -239,7 +269,7 @@ class FPGATest(
     is(State.justRead2) {
       when (fpga.start) {
         stateReg := State.justRead0
-        bridge.pipeCon.rd := true.B
+        bridge.pipeCon.rd := true.B // we need to read next cycle
       }
     }
 
@@ -265,7 +295,7 @@ class FPGATest(
     is (State.justWrite2) {
       when (fpga.start) {
         stateReg := State.justWrite0
-        bridge.pipeCon.wr := true.B
+        bridge.pipeCon.wr := true.B // we need to write next cycle
       }
     }
 
@@ -292,6 +322,6 @@ object SPIOffChipBasys3 extends App {
   val spiFreq =         1000000 // 1MHz
   val clockDivision = basys3ClockFreq / spiFreq / 2 // SPI clock division factor divided by 2 as there is a positive edge and a negative edge
   val refreshRate =     100000  // 1ms refresh rate for the seven segment display
-  val testCases =      4 // number of test cases to be tested
-  (new chisel3.stage.ChiselStage).emitVerilog(new FPGATest(clockDivision, refreshRate, testCases, true), Array("--target-dir", "generated"))
+  val testCases =      300 // number of test cases to be tested
+  (new chisel3.stage.ChiselStage).emitVerilog(new FPGATest(clockDivision, refreshRate, testCases, true, true, true, false), Array("--target-dir", "generated"))
 }

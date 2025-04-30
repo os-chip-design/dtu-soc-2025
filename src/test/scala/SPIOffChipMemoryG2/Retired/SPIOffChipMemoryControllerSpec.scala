@@ -68,7 +68,6 @@ class QspiIoBFM(port: qspiIO, clock: Clock) {
 
       val bit = port.data0Out.peek().litToBoolean
       obtainedAddress.update(i, bit)
-      // println(f"Bit $i: $bit, Address so far: b${obtainedAddress.map(if (_) "1" else "0").mkString}")
 
       updatePrevSpiClk()
       clock.step()
@@ -148,31 +147,31 @@ class SPIOffChipMemoryControllerSpec
       val charData = "a"
 
       /*
-  for (i <- 0 until 2)
-  {
-    while (!isSpiRisingEdge())
-    // Wait until rising edge of spi
-    {
-      previousSpiClk = dut.qspiPort.spiClk.peek().litToBoolean
-      dut.clock.step(1)
-    }
+        for (i <- 0 until 2)
+        {
+          while (!isSpiRisingEdge())
+          // Wait until rising edge of spi
+          {
+            previousSpiClk = dut.qspiPort.spiClk.peek().litToBoolean
+            dut.clock.step(1)
+          }
 
-    var shift = 0;
+          var shift = 0;
 
-    if (i % 2 == 0)
-    {
-      shift = 4;
-    }
-    val charIndex = i/2;
-    dut.qspiPort.data3In.poke((charArray(charIndex).asDigit & (0x8 << shift)) != 0)
-    dut.qspiPort.data2In.poke((charArray(charIndex).asDigit & (0x4 << shift)) != 0)
-    dut.qspiPort.data1In.poke((charArray(charIndex).asDigit & (0x2 << shift)) != 0)
-    dut.qspiPort.data0In.poke((charArray(charIndex).asDigit & (0x1 << shift)) != 0)
+          if (i % 2 == 0)
+          {
+            shift = 4;
+          }
+          val charIndex = i/2;
+          dut.qspiPort.data3In.poke((charArray(charIndex).asDigit & (0x8 << shift)) != 0)
+          dut.qspiPort.data2In.poke((charArray(charIndex).asDigit & (0x4 << shift)) != 0)
+          dut.qspiPort.data1In.poke((charArray(charIndex).asDigit & (0x2 << shift)) != 0)
+          dut.qspiPort.data0In.poke((charArray(charIndex).asDigit & (0x1 << shift)) != 0)
 
 
-    previousSpiClk = dut.qspiPort.spiClk.peek().litToBoolean
-    dut.clock.step(1)
-  }
+          previousSpiClk = dut.qspiPort.spiClk.peek().litToBoolean
+          dut.clock.step(1)
+        }
        */
 
       dut.clock.step(200)
@@ -180,7 +179,6 @@ class SPIOffChipMemoryControllerSpec
       // this is not finished
 
       val hexString = f"0x${dut.interconnectPort.rdData.peek().litValue}%X"
-      // println(f"Data: ${hexString}")
 
     }
   }
