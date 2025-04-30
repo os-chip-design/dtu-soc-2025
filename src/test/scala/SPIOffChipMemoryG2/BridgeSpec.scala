@@ -311,9 +311,6 @@ class BridgeSpec extends AnyFlatSpec with ChiselScalatestTester {
       interconnect.triggerRead(address)
       dut.clock.step(2)
 
-      // verify that CE is low
-      //spi.expectChipEnable(false)
-
       // verify what comes out in spiPort
       spi.expectFunctionCode(Instructions.readDataInstruction.litValue)
       spi.expectAddress(address)
@@ -388,8 +385,6 @@ class BridgeSpec extends AnyFlatSpec with ChiselScalatestTester {
       interconnect.triggerRead(address)
       dut.clock.step(2)
 
-      // verify what comes out in spiPort
-      //spi.expectChipEnable(false)
       spi.expectFunctionCode(Instructions.readDataInstruction.litValue)
       spi.expectAddress(address)
 
