@@ -18,7 +18,7 @@ class SPIController(clockWidth: Int,addrWidth: Int,dataWidth: Int)(
 
   object State extends ChiselEnum {
     val idle, instructionTransmit, sendAddress,
-        receiveData, writeData, finished, waiting, syncFallEdgeFinish,
+        receiveData, writeData, finished, syncFallEdgeFinish,
         preAddress, preWriteData, preReceiveData = Value
   }
 
@@ -219,23 +219,10 @@ class SPIController(clockWidth: Int,addrWidth: Int,dataWidth: Int)(
       spiPort.spiClk := idleClockMode
 
       dataOutReg := VecInit(Seq.fill(32)(0.U(1.W))) // reset the dataOut register
-      stateReg := State.waiting
+      stateReg := State.idle
       pointerReg := 1.U
 
       interconnectPort.done := true.B
-    }
-
-    is (State.waiting) {
-      spiPort.chipSelect := true.B
-      spiPort.spiClk := idleClockMode
-
-      when(risingEdgeOfSPIClk) {
-        when(pointerReg === 0.U) {
-          stateReg := State.idle
-        }.otherwise {
-          pointerReg := pointerReg - 1.U
-        }
-      }
     }
   }
 }
