@@ -22,6 +22,8 @@ class GPIOModule extends Module {
     // pwm config
     val pwm_div = Input(UInt(8.W))       // divisor for prescaler
     val duty_cycle = Input(UInt(8.W))    // duty cycle, value between 0 and 255
+    val pwm_period = Input(UInt(8.W))    // period of the PWM signal
+    val pwm_polarity = Input(Bool())     // polarity of the PWM signal
     val pwm_en = Input(Bool())           // enable PWM functionality
   })
   
@@ -32,6 +34,8 @@ class GPIOModule extends Module {
   val pwmTop = Module(new PWMTop)
   pwmTop.io.pwm_div := io.pwm_div
   pwmTop.io.duty_cycle := io.duty_cycle
+  pwmTop.io.pwm_period := io.pwm_period
+  pwmTop.io.pwm_polarity := io.pwm_polarity
   pwmTop.io.pwm_en := io.pwm_en
   val pwmOutput = pwmTop.io.pwm_out
   
