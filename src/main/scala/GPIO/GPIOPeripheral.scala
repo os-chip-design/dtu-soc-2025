@@ -68,6 +68,8 @@ class GPIOPeripheral(addrWidth: Int, nofGPIO: Int) extends Module {
         gpio_module(i).io.pwm_en             := pwm_enable(i)
         gpio_module(i).io.pwm_div            := pwm_div(i)
         gpio_module(i).io.duty_cycle         := pwm_duty_cycle(i)
+        gpio_module(i).io.pwm_period        := pwm_period(i)
+        gpio_module(i).io.pwm_polarity      := pwm_polarity(i)
     }
 
     // Piping read address to statemachine/registers
