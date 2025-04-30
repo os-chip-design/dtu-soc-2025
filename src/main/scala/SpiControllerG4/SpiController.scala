@@ -8,9 +8,9 @@ class SpiController extends Module {
 
         val enable = Input(Bool())
 
-        val sendLength = Input(UInt(9.W))
-        val numWaitCycles = Input(UInt(9.W))
-        val receiveLength = Input(UInt(9.W))
+        val sendLength = Input(UInt(7.W))
+        val numWaitCycles = Input(UInt(7.W))
+        val receiveLength = Input(UInt(7.W))
 
         val spiMiso = Input(Bool())
         val spiMosi = Output(Bool())
@@ -20,7 +20,8 @@ class SpiController extends Module {
         val ready = Output(Bool())
         val done = Output(Bool())
 
-        val prescale = Input(UInt(5.W))
+        val prescale = Input(UInt(4.W))
+        val mode = Input(UInt(2.W))
     })
 
     object State extends ChiselEnum {
@@ -46,6 +47,7 @@ class SpiController extends Module {
     val CNT_MAX = (1.U << io.prescale)
     val cntClk = RegInit(0.U(33.W))
     val spiClkReg = RegInit(false.B)
+    val invClockReg = RegInit(true.B)
 
     when (clockEnable) {
         when (io.prescale =/= 0.U) {
@@ -53,17 +55,26 @@ class SpiController extends Module {
             when (cntClk === CNT_MAX) {
                 cntClk := 0.U
                 spiClkReg := !spiClkReg
+                invClockReg := !invClockReg
             }
         } .otherwise {
             spiClkReg := false.B
         }
     }
 
-    io.spiClk := spiClkReg
+    io.spiClk := Mux(io.mode(1), invClockReg, spiClkReg)
 
+    //io.spiClk := spiClkReg    
+
+    // for normal clock
     val spiClkRegPrev = RegNext(spiClkReg)
     val fallingEdge = !spiClkReg && spiClkRegPrev
     val risingEdge = spiClkReg && !spiClkRegPrev
+
+    // for inverted clock
+    val invClockRegPrev = RegNext(invClockReg)
+    val invFallingEdge = !invClockReg && invClockRegPrev
+    val invRisingEdge = invClockReg && !invClockRegPrev
 
     val totalCycles = Wire(UInt(10.W))
     totalCycles := io.sendLength + io.receiveLength + io.numWaitCycles - 0.U
@@ -85,19 +96,60 @@ class SpiController extends Module {
             stateReg := active
         }
         is (active) {
+            switch (io.mode) {
+                is (0.U) {
+                    when (fallingEdge) {
+                        txShiftReg := txShiftReg << 1
+                        bitCounter := bitCounter - 1.U
+                        when (bitCounter === 0.U) {
+                            stateReg := deassertCS
+                        } 
+                    }   
 
-            when (fallingEdge) {
-                txShiftReg := txShiftReg << 1
-                bitCounter := bitCounter - 1.U
-                when (bitCounter === 0.U) {
-                    stateReg := deassertCS
-                } 
+                    when (risingEdge) {
+                        rxShiftReg := (rxShiftReg << 1) | io.spiMiso
+                    }
+                }
+                is (1.U) {
+                    when (risingEdge) {
+                        txShiftReg := txShiftReg << 1
+                        bitCounter := bitCounter - 1.U
+                        when (bitCounter === 0.U) {
+                            stateReg := deassertCS
+                        } 
+                    }   
+
+                    when (fallingEdge) {
+                        rxShiftReg := (rxShiftReg << 1) | io.spiMiso
+                    }                  
+                }
+                is (2.U) {
+                    when (invRisingEdge) {
+                        txShiftReg := txShiftReg << 1
+                        bitCounter := bitCounter - 1.U
+                        when (bitCounter === 0.U) {
+                            stateReg := deassertCS
+                        } 
+                    }   
+
+                    when (invFallingEdge) {
+                        rxShiftReg := (rxShiftReg << 1) | io.spiMiso
+                    }                    
+                }
+                is (3.U) {
+                    when (invFallingEdge) {
+                        txShiftReg := txShiftReg << 1
+                        bitCounter := bitCounter - 1.U
+                        when (bitCounter === 0.U) {
+                            stateReg := deassertCS
+                        } 
+                    }   
+
+                    when (invRisingEdge) {
+                        rxShiftReg := (rxShiftReg << 1) | io.spiMiso
+                    }                    
+                }
             }
-
-            when (risingEdge) {
-                rxShiftReg := (rxShiftReg << 1) | io.spiMiso
-            }
-
         }
         is (deassertCS) {
             spiDataOut := rxShiftReg
@@ -119,4 +171,8 @@ class SpiController extends Module {
     } .otherwise {
         io.done := false.B
     }
+}
+
+object SpiController extends App {
+    (new chisel3.stage.ChiselStage).emitVerilog(new SpiController())
 }
