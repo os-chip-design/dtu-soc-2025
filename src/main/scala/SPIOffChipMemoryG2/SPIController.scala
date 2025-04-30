@@ -12,7 +12,7 @@ class SPIController(clockWidth: Int,addrWidth: Int,dataWidth: Int)(
     val address = Input(UInt(addrWidth.W))
     val dataOut = Output(UInt(dataWidth.W))
     val done = Output(Bool())
-    val clockDivision = Input(UInt(32.W))
+    val clockDivision = Input(UInt(clockWidth.W))
     val mode = Input(Bool()) // SPI clock mode, 0 or 3
   })
 

@@ -12,9 +12,7 @@ class Bridge(clockWidth: Int, addrWidth: Int) extends Module {
 
   val stateReg = RegInit(State.idle)
 
-  // Need these two registers as we can't be sure that the data won't change in the middle of the transaction
-  val addressReg = RegInit(0.U(24.W))
-  val dataReg = RegInit(0.U(32.W))
+
 
   // Hardware generation of the mask
   def mask(data: UInt, mask: UInt): UInt = {
@@ -29,7 +27,12 @@ class Bridge(clockWidth: Int, addrWidth: Int) extends Module {
     maskedData.reduce(_ ## _)
   }
 
-  
+  // Need these two registers as we can't be sure that the data won't change in the middle of the transaction
+  val addressReg = RegInit(0.U(24.W))
+  val dataReg = RegInit(0.U(32.W))
+  val readRequestReg = RegInit(false.B)
+  val writeRequestReg = RegInit(false.B)
+
   spiPort <> spiController.spiPort
   spiController.interconnectPort.address := addressReg
   spiController.interconnectPort.dataIn  := dataReg
@@ -45,20 +48,21 @@ class Bridge(clockWidth: Int, addrWidth: Int) extends Module {
   val busy = spiController.interconnectPort.dataOut(31) // Busy flag from the flash memory (only valid following a read status register 1 instruction)
   val done = spiController.interconnectPort.done // Done flag from the spi controller
 
+
+
   val maskedData = mask(pipeCon.wrData, pipeCon.wrMask)
 
   pipeCon.ack := false.B
 
-  switch(stateReg) {
+  switch(stateReg) {    
     is(State.idle) {
-      when (pipeCon.rd) {
+      when (readRequestReg) {
         when (config.jedec && targettingFlash) {
           stateReg := State.jedec
         }.otherwise {
           stateReg := State.read0
-          addressReg := pipeCon.address 
         }
-      }.elsewhen (pipeCon.wr) {
+      }.elsewhen (writeRequestReg) {
         when (config.clear && targettingFlash) {
           stateReg := State.clear0
         }.otherwise {
@@ -67,9 +71,12 @@ class Bridge(clockWidth: Int, addrWidth: Int) extends Module {
             }.otherwise {
               stateReg := State.write1
             }
-            addressReg := pipeCon.address
-            dataReg := maskedData
         }
+      }.otherwise {
+        addressReg := pipeCon.address
+        dataReg := maskedData  
+        readRequestReg := pipeCon.rd
+        writeRequestReg := pipeCon.wr    
       }
     }
 
@@ -80,6 +87,10 @@ class Bridge(clockWidth: Int, addrWidth: Int) extends Module {
       when (done) {
         stateReg := State.idle
         pipeCon.ack := true.B
+        addressReg := pipeCon.address
+        dataReg := maskedData  
+        readRequestReg := pipeCon.rd
+        writeRequestReg := pipeCon.wr    
       }
     }
 
@@ -90,6 +101,10 @@ class Bridge(clockWidth: Int, addrWidth: Int) extends Module {
       when (done) {
         stateReg := State.idle
         pipeCon.ack := true.B
+        addressReg := pipeCon.address
+        dataReg := maskedData  
+        readRequestReg := pipeCon.rd
+        writeRequestReg := pipeCon.wr    
       }
     } 
 
@@ -113,6 +128,10 @@ class Bridge(clockWidth: Int, addrWidth: Int) extends Module {
         }.otherwise {
           stateReg := State.idle
           pipeCon.ack := true.B
+          addressReg := pipeCon.address
+          dataReg := maskedData  
+          readRequestReg := pipeCon.rd
+          writeRequestReg := pipeCon.wr    
         }
       }
     }
@@ -124,6 +143,10 @@ class Bridge(clockWidth: Int, addrWidth: Int) extends Module {
       when (done && !busy) { 
         stateReg := State.idle
         pipeCon.ack := true.B
+        addressReg := pipeCon.address
+        dataReg := maskedData  
+        readRequestReg := pipeCon.rd
+        writeRequestReg := pipeCon.wr    
       }
     }
 
@@ -155,6 +178,10 @@ class Bridge(clockWidth: Int, addrWidth: Int) extends Module {
       when (done && !busy) { 
         stateReg := State.idle
         pipeCon.ack := true.B
+        addressReg := pipeCon.address
+        dataReg := maskedData  
+        readRequestReg := pipeCon.rd
+        writeRequestReg := pipeCon.wr   
       }
     }
   }

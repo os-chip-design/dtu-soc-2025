@@ -25,6 +25,7 @@ class BridgeWrapper() extends Module{
     assert(maskWidth == pipeCon.wrMask.getWidth)
 
     when(pipeCon.ack === 1.U){
+        // TODO check validity with protocol
         when(pipeCon.rd === 1.U){
             assert(pipeCon.address <= MAXAddr)
             assert(pipeCon.address >= MINAddr)

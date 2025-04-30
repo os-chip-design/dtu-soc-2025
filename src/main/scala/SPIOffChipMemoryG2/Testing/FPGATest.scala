@@ -114,7 +114,6 @@ class FPGATest(
   }
 
   val pointerReg = RegInit(0.U(32.W))
-
   val data = VecInit(Seq.fill(testCases)(0.U(32.W))) 
   for (i <- 0 until testCases) {
     if (randomData) {
@@ -163,7 +162,7 @@ class FPGATest(
     is(4.U) { displayDriver.io.input := (addresses(pointerReg))(15, 0) }        // 100
     is(5.U) { displayDriver.io.input := (addresses(pointerReg))(23, 16) }       // 101
     is(6.U) { displayDriver.io.input := pointerReg(15, 0) }                   // 110
-    is(7.U) { displayDriver.io.input := pointerReg(23, 16) }                  // 111
+    is(7.U) { displayDriver.io.input := pointerReg(31, 16) }                  // 111
   }
 
   fpga.done := false.B
@@ -173,14 +172,19 @@ class FPGATest(
     is(State.idle) {
       when (fpga.clear) {
         stateReg := State.clearing
+        bridge.pipeCon.wr := true.B
       }.elsewhen (fpga.jedec) {
         stateReg := State.jedec
+        bridge.pipeCon.rd := true.B
       }.elsewhen (fpga.justRead) {
         stateReg := State.justRead0
+        bridge.pipeCon.rd := true.B
       }.elsewhen (fpga.justWrite) {
         stateReg := State.justWrite0
+        bridge.pipeCon.wr := true.B
       }.elsewhen (fpga.start) {
         stateReg := State.writing
+        bridge.pipeCon.wr := true.B
       }
     }
 
@@ -189,7 +193,6 @@ class FPGATest(
         stateReg := State.done
       }
       bridge.config.clear := true.B
-      bridge.pipeCon.wr := true.B  
     }
 
     is(State.jedec) {
@@ -200,20 +203,17 @@ class FPGATest(
           stateReg := State.done
         }
       }
-      bridge.config.jedec := true.B
-      bridge.pipeCon.rd := true.B
-      
+      bridge.config.jedec := true.B      
     }
 
     is(State.writing) {
-      bridge.pipeCon.wr := true.B
       when (bridge.pipeCon.ack) {
         stateReg := State.reading
+        bridge.pipeCon.rd := true.B // we need to read next cycle
       }
     }
 
     is(State.reading) {
-      bridge.pipeCon.rd := true.B
       when (bridge.pipeCon.ack) {
         when (readData =/= data(pointerReg)) {
           if (endOnError) {
@@ -221,6 +221,9 @@ class FPGATest(
           } else {
             fpga.error := true.B
             pointerReg := pointerReg + 1.U
+            bridge.pipeCon.address := addresses(pointerReg + 1.U)
+            bridge.pipeCon.wrData  := data(pointerReg + 1.U)
+            bridge.pipeCon.wr := true.B // we need to write next cycle
             stateReg := State.writing
           }
         }.otherwise {
@@ -228,14 +231,17 @@ class FPGATest(
             stateReg := State.done
           }.otherwise {
             pointerReg := pointerReg + 1.U
+            bridge.pipeCon.address := addresses(pointerReg + 1.U)
+            bridge.pipeCon.wrData  := data(pointerReg + 1.U)
+            bridge.pipeCon.wr := true.B // we need to write next cycle
             stateReg := State.writing
           }
         }
       }
     }
 
+
     is(State.justRead0) {
-      bridge.pipeCon.rd := true.B
       when (bridge.pipeCon.ack) {
         stateReg := State.justRead1
       }
@@ -263,11 +269,11 @@ class FPGATest(
     is(State.justRead2) {
       when (fpga.start) {
         stateReg := State.justRead0
+        bridge.pipeCon.rd := true.B // we need to read next cycle
       }
     }
 
     is (State.justWrite0) {
-      bridge.pipeCon.wr := true.B
       when (bridge.pipeCon.ack) {
         stateReg := State.justWrite1
       }
@@ -289,6 +295,7 @@ class FPGATest(
     is (State.justWrite2) {
       when (fpga.start) {
         stateReg := State.justWrite0
+        bridge.pipeCon.wr := true.B // we need to write next cycle
       }
     }
 
