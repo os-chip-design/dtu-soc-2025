@@ -12,7 +12,6 @@ class OffChipMemoryConfig(clockWidth: Int, addrWidth: Int) extends Module {
   val defaultMode = "b0".U // SPI clock mode, 0 (indicated by 0) or 3 (indicated by 1)
   val rest = 0.U(18.W) // Rest of the bits are not used
   val defaultConfig = Cat(defaultMode, rest, defaultClockDivision, defaultTargetFlash, defaultClear, defaultJEDEC) // 32 bits
-  println(s"Default config: ${defaultConfig}")
   val configRegister = RegInit(defaultConfig) // 32 bits register to store the configuration
 
   config.jedec := configRegister(0) // Indicates if the JEDEC ID should be read upon a read request (instead of reading the data)

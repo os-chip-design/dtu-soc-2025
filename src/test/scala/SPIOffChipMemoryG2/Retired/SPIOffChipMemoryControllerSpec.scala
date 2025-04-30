@@ -68,7 +68,6 @@ class QspiIoBFM(port: qspiIO, clock: Clock) {
 
       val bit = port.data0Out.peek().litToBoolean
       obtainedAddress.update(i, bit)
-      // println(f"Bit $i: $bit, Address so far: b${obtainedAddress.map(if (_) "1" else "0").mkString}")
 
       updatePrevSpiClk()
       clock.step()
@@ -180,7 +179,6 @@ class SPIOffChipMemoryControllerSpec
       // this is not finished
 
       val hexString = f"0x${dut.interconnectPort.rdData.peek().litValue}%X"
-      // println(f"Data: ${hexString}")
 
     }
   }

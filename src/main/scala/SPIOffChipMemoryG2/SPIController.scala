@@ -19,7 +19,7 @@ class SPIController(clockWidth: Int,addrWidth: Int,dataWidth: Int)(
   object State extends ChiselEnum {
     val idle, instructionTransmit, sendAddress,
         receiveData, writeData, finished, syncFallEdgeFinish,
-        preAddress, preWriteData, preReceiveData = Value
+        syncFallEdgeAddress, syncFallEdgeWriteData, syncFallEdgeEdgeWriteDa = Value
   }
 
   def risingEdge(x: Bool) = x && !RegNext(x)
@@ -88,16 +88,16 @@ class SPIController(clockWidth: Int,addrWidth: Int,dataWidth: Int)(
       when(risingEdgeOfSPIClk) {
         when(pointerReg === 0.U) {
           when(instruction === Instructions.readJEDECInstruction){  // ReadJeDECInstruction
-            stateReg := State.preReceiveData
+            stateReg := State.syncFallEdgeEdgeWriteDa
             pointerReg := 23.U
           }.elsewhen(instruction === Instructions.writeEnableInstruction || 
                     instruction === Instructions.chipEraseInstruction){ // WriteEnableInstruction or ChipEraseInstruction
             stateReg := State.syncFallEdgeFinish
           }.elsewhen(instruction === Instructions.readStatusRegister1Instruction) {
-            stateReg := State.preReceiveData
+            stateReg := State.syncFallEdgeEdgeWriteDa
             pointerReg := 7.U
           }.otherwise{ 
-            stateReg := State.preAddress
+            stateReg := State.syncFallEdgeAddress
             pointerReg := 23.U 
           }
         }.otherwise {
@@ -111,7 +111,7 @@ class SPIController(clockWidth: Int,addrWidth: Int,dataWidth: Int)(
       }
     }
 
-    is (State.preAddress) {
+    is (State.syncFallEdgeAddress) {
       spiPort.chipSelect := false.B
       when (fallingEdgeOfSPIClk) {
         stateReg := State.sendAddress
@@ -126,13 +126,13 @@ class SPIController(clockWidth: Int,addrWidth: Int,dataWidth: Int)(
       when(risingEdgeOfSPIClk) {
         when(pointerReg === 0.U) {
           when(instruction === Instructions.pageProgramInstruction){
-            stateReg := State.preWriteData
+            stateReg := State.syncFallEdgeWriteData
             pointerReg := 31.U
           }.elsewhen(instruction === Instructions.readDataInstruction){
-            stateReg := State.preReceiveData
+            stateReg := State.syncFallEdgeEdgeWriteDa
             pointerReg := 31.U
           }.elsewhen(instruction === Instructions.readStatusRegister1Instruction) {
-            stateReg := State.preReceiveData
+            stateReg := State.syncFallEdgeEdgeWriteDa
             pointerReg := 7.U
           }
         }.otherwise {
@@ -146,7 +146,7 @@ class SPIController(clockWidth: Int,addrWidth: Int,dataWidth: Int)(
       }
     }
 
-    is (State.preWriteData) {
+    is (State.syncFallEdgeWriteData) {
       spiPort.chipSelect := false.B
       when (fallingEdgeOfSPIClk) {
         stateReg := State.writeData
@@ -173,7 +173,7 @@ class SPIController(clockWidth: Int,addrWidth: Int,dataWidth: Int)(
       }
     }
 
-    is (State.preReceiveData) {
+    is (State.syncFallEdgeEdgeWriteDa) {
       spiPort.chipSelect := false.B
       when (fallingEdgeOfSPIClk) {
         pointerReg := pointerReg + 1.U
