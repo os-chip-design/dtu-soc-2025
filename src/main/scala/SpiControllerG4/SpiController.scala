@@ -120,7 +120,3 @@ class SpiController extends Module {
         io.done := false.B
     }
 }
-
-object SpiMem extends App {
-    (new chisel3.stage.ChiselStage).emitVerilog(new SpiMem())
-}
