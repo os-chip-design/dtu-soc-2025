@@ -38,6 +38,5 @@
 
 | Bit Range | Field Name | Width | Description                                              |
 |-----------|------------|--------|----------------------------------------------------------|
-| 31:2      | Reserved   | 30     | Reserved (reads as 0)                                    |
-| 1         | `done`     | 1      | Set when SPI transaction is complete                     |
+| 31:1      | Reserved   | 30     | Reserved (reads as 0)                                    |
 | 0         | `ready`    | 1      | Set when SPI controller is idle and ready for new input  |
