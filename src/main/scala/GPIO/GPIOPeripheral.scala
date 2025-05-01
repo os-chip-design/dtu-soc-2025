@@ -54,26 +54,42 @@ class GPIOPeripheral(addrWidth: Int, nofGPIO: Int) extends Module {
     val pwm_period          = Module(new GPIOShiftRegister(8))
 
     // Instantiation of GPIO modules
-    val gpio_module = Seq.fill(nofGPIO)(Module(new GPIOModule))
-
-    // Mapping the GPIO modules to the corresponding registers
-    for (i <- 0 until nofGPIO) {
-        gpio_module(i).io.gpio_output       := gpio_output(i)
-        gpio_input(i)                       := gpio_module(i).io.gpio_input
+    //val gpio_module = Seq.fill(nofGPIO)(Module(new GPIOModule))
+    val gpio_module = Seq.tabulate(nofGPIO) { i =>
+        val m = Module(new GPIOModule)
+        m.io.gpio_output       := gpio_output(i)
+        gpio_input(i)          := m.io.gpio_input
+        m.io.gpio_direction    := gpio_direction.io.conf_output(i)
+        m.io.drivestrength     := gpio_drivestrength.io.conf_output(i)
+        m.io.pullup_en         := gpio_pullup.io.conf_output(i)
+        m.io.pulldown_en       := gpio_pulldown.io.conf_output(i)
+        m.io.opendrain_en      := gpio_opendrain.io.conf_output(i)
+        m.io.pwm_en            := pwm_enable.io.conf_output(i)
+        m.io.pwm_div           := pwm_div.io.conf_output(i)
+        m.io.duty_cycle        := pwm_duty_cycle.io.conf_output(i)
+        m.io.pwm_period        := pwm_period.io.conf_output(i)
+        m.io.pwm_polarity      := pwm_polarity.io.conf_output(i)
+        m // return module explicitly so it can be interfaced through gpio_module(x)
     }
 
-    for (i <- 0 until nofGPIO) {
-        gpio_module(i).io.gpio_direction    := gpio_direction.io.conf_output(i)
-        gpio_module(i).io.drivestrength     := gpio_drivestrength.io.conf_output(i)
-        gpio_module(i).io.pullup_en         := gpio_pullup.io.conf_output(i)
-        gpio_module(i).io.pulldown_en       := gpio_pulldown.io.conf_output(i)
-        gpio_module(i).io.opendrain_en      := gpio_opendrain.io.conf_output(i)
-        gpio_module(i).io.pwm_en            := pwm_enable.io.conf_output(i)
-        gpio_module(i).io.pwm_div           := pwm_div.io.conf_output(i)
-        gpio_module(i).io.duty_cycle        := pwm_duty_cycle.io.conf_output(i)
-        gpio_module(i).io.pwm_period        := pwm_period.io.conf_output(i)
-        gpio_module(i).io.pwm_polarity      := pwm_polarity.io.conf_output(i)
-    }
+    // // Mapping the GPIO modules to the corresponding registers
+    // for (i <- 0 until nofGPIO) {
+    //     gpio_module(i).io.gpio_output       := gpio_output(i)
+    //     gpio_input(i)                       := gpio_module(i).io.gpio_input
+    // }
+
+    // for (i <- 0 until nofGPIO) {
+    //     gpio_module(i).io.gpio_direction    := gpio_direction.io.conf_output(i)
+    //     gpio_module(i).io.drivestrength     := gpio_drivestrength.io.conf_output(i)
+    //     gpio_module(i).io.pullup_en         := gpio_pullup.io.conf_output(i)
+    //     gpio_module(i).io.pulldown_en       := gpio_pulldown.io.conf_output(i)
+    //     gpio_module(i).io.opendrain_en      := gpio_opendrain.io.conf_output(i)
+    //     gpio_module(i).io.pwm_en            := pwm_enable.io.conf_output(i)
+    //     gpio_module(i).io.pwm_div           := pwm_div.io.conf_output(i)
+    //     gpio_module(i).io.duty_cycle        := pwm_duty_cycle.io.conf_output(i)
+    //     gpio_module(i).io.pwm_period        := pwm_period.io.conf_output(i)
+    //     gpio_module(i).io.pwm_polarity      := pwm_polarity.io.conf_output(i)
+    // }
     gpio_direction.io.rd                := false.B
     gpio_direction.io.wr                := false.B
     gpio_direction.io.write_data        := 0.U
