@@ -1,4 +1,6 @@
 import chisel3._
+import chisel3.util._
+import chisel3.experimental._
 
 // Wrapper for the black box... Is needed for chisel to be able to test
 class GpioPadTop extends Module {

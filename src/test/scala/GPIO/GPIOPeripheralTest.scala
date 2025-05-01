@@ -8,13 +8,16 @@ class GPIOPeripheralTest extends AnyFlatSpec with ChiselScalatestTester {
 
     it should "read and write to registers" in {
         test(
-            new GPIOPeripheral(
-                    addrWidth = 32,
-                    nofGPIO = 8,
-                )
-            ).withAnnotations(Seq( WriteVcdAnnotation )) {
-            dut => {
-
+          new GPIOPeripheral(
+               addrWidth = 32,
+               nofGPIO = 8,
+               )
+          ).withAnnotations(Seq(
+               IcarusBackendAnnotation,
+               WriteVcdAnnotation
+               )
+          ) {
+          dut => {
                // Read gpio output state
                dut.clock.step()
                dut.io.mem_ifc.address.poke(0x0008.U(32.W))
@@ -140,7 +143,11 @@ class GPIOPeripheralTest extends AnyFlatSpec with ChiselScalatestTester {
                     addrWidth = 32,
                     nofGPIO = 8,
                     )
-               ).withAnnotations(Seq( WriteVcdAnnotation )) {
+               ).withAnnotations(Seq(
+                    IcarusBackendAnnotation,
+                    WriteVcdAnnotation
+                    )
+               ) {
                dut => {
                     // Read gpio pin state
                     for (i <- 0 until 8) {
@@ -184,7 +191,11 @@ class GPIOPeripheralTest extends AnyFlatSpec with ChiselScalatestTester {
                     addrWidth = 32,
                     nofGPIO = 8,
                     )
-               ).withAnnotations(Seq( WriteVcdAnnotation )) {
+               ).withAnnotations(Seq(
+                    IcarusBackendAnnotation,
+                    WriteVcdAnnotation
+                    )
+               ) {
                dut => {
 
                     // read input register
@@ -193,7 +204,7 @@ class GPIOPeripheralTest extends AnyFlatSpec with ChiselScalatestTester {
                     while (!dut.io.mem_ifc.ack.peek().litToBoolean) {
                          dut.clock.step()
                     }
-                    dut.io.mem_ifc.rdData.expect(0x0.U)
+                    dut.io.mem_ifc.rdData.expect(0x1010101.U)
 
                     // apply input to gpio
                     // TBD.
@@ -203,7 +214,7 @@ class GPIOPeripheralTest extends AnyFlatSpec with ChiselScalatestTester {
                     while (!dut.io.mem_ifc.ack.peek().litToBoolean) {
                          dut.clock.step()
                     }
-                    dut.io.mem_ifc.rdData.expect(0x0.U) // change value when tbd impl
+                    dut.io.mem_ifc.rdData.expect(0x1010101.U) // change value when tbd impl
 
                }
 
@@ -215,7 +226,11 @@ class GPIOPeripheralTest extends AnyFlatSpec with ChiselScalatestTester {
                     addrWidth = 32,
                     nofGPIO = 8,
                     )
-               ).withAnnotations(Seq( WriteVcdAnnotation )) {
+               ).withAnnotations(Seq(
+                    IcarusBackendAnnotation,
+                    WriteVcdAnnotation
+                    )
+               ) {
                dut => {
                     // configure pwm
                     dut.io.mem_ifc.address.poke(0x0110.U(32.W))
@@ -267,7 +282,11 @@ class GPIOPeripheralTest extends AnyFlatSpec with ChiselScalatestTester {
                     addrWidth = 32,
                     nofGPIO = 8,
                     )
-               ).withAnnotations(Seq( WriteVcdAnnotation )) {
+               ).withAnnotations(Seq(
+                    IcarusBackendAnnotation,
+                    WriteVcdAnnotation
+                    )
+               ) {
                dut => {
                     // configure pwm
                     dut.io.mem_ifc.address.poke(0x0110.U(32.W))

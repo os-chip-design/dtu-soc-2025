@@ -49,7 +49,6 @@ class sky130_fd_io__top_gpiov2 extends BlackBox with HasBlackBoxResource {
         inout VSSD;
         inout VSSIO_Q;
         inout VSSIO;
-        
     */
 
     val IN                  = Output(Bool())
