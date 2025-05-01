@@ -1,0 +1,16 @@
+
+hello.elf:     file format elf32-littleriscv
+
+
+Disassembly of section .text:
+
+00000000 <_start>:
+   0:	00400313          	li	t1,4
+   4:	04100293          	li	t0,65
+   8:	00532023          	sw	t0,0(t1)
+   c:	01100313          	li	t1,17
+  10:	04200293          	li	t0,66
+  14:	00532023          	sw	t0,0(t1)
+
+00000018 <loop>:
+  18:	0000006f          	j	18 <loop>
