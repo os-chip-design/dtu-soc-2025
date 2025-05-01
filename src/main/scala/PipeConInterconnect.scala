@@ -38,13 +38,19 @@ class PipeConInterconnect(file: String, addrWidth: Int, devices: Int) extends Mo
   selected.address := 0.U
   selected.wrData := 0.U
   selected.wrMask := 0.U
+  selected.rdData := 0.U
+  selected.ack := false.B
 
-  when(cpu.io.dmem.wrAddress >= "h00000000".U && cpu.io.dmem.wrAddress <= "h0000000F".U) {
-    selected <> io.device(0)
-  }.elsewhen(cpu.io.dmem.wrAddress >= "h00000010".U && cpu.io.dmem.wrAddress <= "h0000001F".U) {
-    selected <> io.device(1)
-  }.otherwise{
-    selected := DontCare
+  val addressRanges = Seq(
+    ("h00000000".U, "h0000000F".U),  // Device 0 (UART)
+    ("h00000010".U, "h0000001F".U)   // Device 1 (SPI)
+  )
+
+  for (i <- 0 until io.device.length) {
+    val (startAddr, endAddr) = addressRanges(i)
+    when(cpu.io.dmem.wrAddress >= startAddr && cpu.io.dmem.wrAddress <= endAddr) {
+      selected <> io.device(i)
+    }
   }
 
   when(cpu.io.dmem.wrEnable.reduce(_ || _)) {
