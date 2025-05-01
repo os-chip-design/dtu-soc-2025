@@ -22,7 +22,7 @@ class GpioPadTop extends Module {
     })
 
     // Instantiate the black box gpio module
-    val gpioPad             = Module(new GpioPad)
+    val gpioPad             = Module(new sky130_fd_io__top_gpiov2)
 
     // Pads we want to expose to other modules
     gpioPad.io.OUT                  := io.OUT
@@ -67,4 +67,10 @@ class GpioPadTop extends Module {
  // gpioPad.io.DM                   := 3.U
  // gpioPad.io.OE_N                 := false.B
     gpioPad.io.SLOW                 := false.B
+}
+
+object GpioPadTop extends App {
+  emitVerilog(new GpioPadTop(),
+    Array("--target-dir", "generated")
+  )
 }
