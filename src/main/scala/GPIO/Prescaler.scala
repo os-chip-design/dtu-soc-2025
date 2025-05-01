@@ -1,7 +1,7 @@
 import chisel3._
 import chisel3.util._
 
-// implement a prescaler module to be used in a PWM that divides the input clock by a given divisor
+// prescaler thingy for pwm, divides clock by pwm_div
 
 class Prescaler extends Module {
   val io = IO(new Bundle {
@@ -9,15 +9,17 @@ class Prescaler extends Module {
     val clk_prescaled = Output(Bool())
   })
 
-// initalize counter with an 8-bit register
-  val counter = RegInit(0.U(8.W)) // counter signal 
-  val toggle = RegInit(false.B) // toggle signal used to generate the scaled clock signal
+// counter register, 8 bits wide
+  val counter = RegInit(0.U(8.W)) // counts cycles
+  val toggle = RegInit(false.B) // flips to make the output clock
 
-// increment counter and toggle output when divisor is reached
-  counter := counter + 1.U
-  when(counter === (io.pwm_div)) {
-    counter := 0.U
-    toggle := ~toggle
+// count up, flip the toggle when we hit the divisor-1
+// check if counter is one less than the divisor
+  when(counter === (io.pwm_div - 1.U)) {
+    counter := 0.U // reset counter
+    toggle := ~toggle // flip the output bit
+  } .otherwise {
+    counter := counter + 1.U // keep counting if not resetting
   }
   
   io.clk_prescaled := toggle
