@@ -4,6 +4,7 @@ import chisel3.experimental._
 
 // Wrapper for the black box... Is needed for chisel to be able to test
 class GpioPadTop extends Module {
+//class GpioPadTop extends RawModule {
     val io = IO(new Bundle {
         val OUT               = Input(Bool())
         val OE_N              = Input(Bool())
@@ -17,10 +18,14 @@ class GpioPadTop extends Module {
         val OPEN_DRAIN_EN     = Input(Bool())
         val DRIVE_STRENGTH    = Input(UInt(2.W)) // need to assess what value io cell expects from "drive strength"
         */
-        val drivestrength = Input(UInt(2.W)) // drive strength
-        val pullup_en = Input(Bool())           // pullup enable
-        val pulldown_en = Input(Bool())         // pulldown enable
-        val opendrain_en = Input(Bool())        // open drain enable
+        val drivestrength   = Input(UInt(2.W)) // drive strength
+        val pullup_en       = Input(Bool())           // pullup enable
+        val pulldown_en     = Input(Bool())         // pulldown enable
+        val opendrain_en    = Input(Bool())        // open drain enable
+
+        // // outside world IO pad only for testing
+        //val test_pad        = Analog(1.W)
+        // val test_pad_in        = Analog(1.W)
     })
 
     // Instantiate the black box gpio module
@@ -30,8 +35,11 @@ class GpioPadTop extends Module {
     gpioPad.io.OUT                  := io.OUT
     gpioPad.io.OE_N                 := io.OE_N
     io.IN                           := gpioPad.io.IN
-    gpioPad.io.DM                   := io.drivestrength
+    //gpioPad.io.DM                   := io.drivestrength
 
+    //attach(io.test_pad, gpioPad.io.PAD)
+
+    //attach(gpioPad.io.PAD, io.test_pad)
 
 
     // Lets hardcore the rest configurations for now
@@ -66,9 +74,10 @@ class GpioPadTop extends Module {
     gpioPad.io.ANALOG_POL           := false.B
 
     // Set drive mode to "strong" and "slow"
- // gpioPad.io.DM                   := 3.U
+    gpioPad.io.DM                   := 3.U
  // gpioPad.io.OE_N                 := false.B
     gpioPad.io.SLOW                 := false.B
+
 }
 
 object GpioPadTop extends App {

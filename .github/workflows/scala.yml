@@ -46,7 +46,7 @@ jobs:
       - name: Install verilator
         run: |
           sudo apt-get update -y
-          sudo apt-get install iverilog -y
+          sudo apt-get install verilator iverilog -y
 
       - name: Setup sbt
         uses: sbt/setup-sbt@v1

@@ -37,18 +37,20 @@ class sky130_fd_io__top_gpiov2 extends BlackBox with HasBlackBoxResource {
     val PAD_A_ESD_1_H       = Analog(1.W)
     val AMUXBUS_A           = Analog(1.W)
     val AMUXBUS_B           = Analog(1.W)
+
+
     
-    /* Pins currently ommited
-        inout VDDIO;
-        inout VDDIO_Q;
-        inout VDDA;
-        inout VCCD;
-        inout VSWITCH;
-        inout VCCHIB;
-        inout VSSA;
-        inout VSSD;
-        inout VSSIO_Q;
-        inout VSSIO;
+    /* Supply pins ommited since we only do functional simulation
+      val VDDIO   = Analog(1.W)
+      val VDDIO_Q = Analog(1.W)
+      val VDDA    = Analog(1.W)
+      val VCCD    = Analog(1.W)
+      val VSWITCH = Analog(1.W)
+      val VCCHIB  = Analog(1.W)
+      val VSSA    = Analog(1.W)
+      val VSSD    = Analog(1.W)
+      val VSSIO_Q = Analog(1.W)
+      val VSSIO   = Analog(1.W)
     */
 
     val IN                  = Output(Bool())

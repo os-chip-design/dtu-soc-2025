@@ -1,6 +1,7 @@
 import chisel3._
 import chisel3.util._
 import chiseltest._
+import chisel3.util.experimental.BoringUtils
 import org.scalatest.flatspec.AnyFlatSpec
 
 class GPIOPeripheralTest extends AnyFlatSpec with ChiselScalatestTester {
@@ -153,6 +154,7 @@ class GPIOPeripheralTest extends AnyFlatSpec with ChiselScalatestTester {
                     for (i <- 0 until 8) {
                          //println(s"GPIO $i output: " + dut.gpio_module(2).io.gpio_input.peek().litValue)
                          //println(s"GPIO $i output: " + dut.gpio_direction.io.read_data.peek().litValue)
+                         //println(s"GPIO $i output: " + BoringUtils.bore(dut.gpio_module(i), Seq(io, gpio_input)).litValue)
                     }
 
                     // configure gpio to output
