@@ -15,13 +15,6 @@ class PipeConMem(data: Array[Int], nrBytes: Int = 4096) extends Module {
     SyncReadMem(nrBytes/4, UInt(8.W), SyncReadMem.WriteFirst),
     SyncReadMem(nrBytes/4, UInt(8.W), SyncReadMem.WriteFirst))
 
-  /* not used, would be too easy
-  val dataHex = data.map(_.toHexString).mkString("\n")
-  val file = new java.io.PrintWriter("data.hex")
-  file.write(dataHex)
-  file.close()
-  loadMemoryFromFile(mem, "data.hex")
-   */
   val idx = log2Up(nrBytes/4)
   io.rdData := mems(3).read(io.rdAddress(idx+2, 2)) ## mems(2).read(io.rdAddress(idx+2, 2)) ## mems(1).read(io.rdAddress(idx+2, 2)) ## mems(0).read(io.rdAddress(idx+2, 2))
   when(io.wrEnable(0)) {

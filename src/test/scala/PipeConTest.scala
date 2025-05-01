@@ -9,7 +9,7 @@ class PipeConInterconnectTest extends AnyFlatSpec with ChiselScalatestTester {
     // Path to your file, relative to the project root or use absolute path
     val testFile = "C:\\Users\\Andreas\\OneDrive\\kandidat\\Intro_Chip\\dtu-soc-2025\\src\\main\\scala\\c\\hello.bin" // ensure this file exists
 
-    test(new PipeConInterconnect(testFile, addrWidth = 32)).withAnnotations(Seq(WriteVcdAnnotation)) { c =>       // Enable VCD tracing
+    test(new PipeConInterconnect(testFile, addrWidth = 32, devices = 2)).withAnnotations(Seq(WriteVcdAnnotation)) { c =>       // Enable VCD tracing
 
       c.clock.setTimeout(0)
 
@@ -42,7 +42,7 @@ class PipeConInterconnectTest extends AnyFlatSpec with ChiselScalatestTester {
     // Path to your file, relative to the project root or use absolute path
     val testFile = "C:\\Users\\Andreas\\OneDrive\\kandidat\\Intro_Chip\\dtu-soc-2025\\src\\main\\scala\\c\\hello.bin" // ensure this file exists
 
-    test(new PipeConExample(testFile, addrWidth = 32)).withAnnotations(Seq(WriteVcdAnnotation)) { c =>       // Enable VCD tracing
+    test(new PipeConExample(testFile, addrWidth = 32, devices = 2)).withAnnotations(Seq(WriteVcdAnnotation)) { c =>       // Enable VCD tracing
 
       c.clock.setTimeout(0)
 
