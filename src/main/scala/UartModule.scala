@@ -9,7 +9,7 @@ class UartModule(
     val tx = Output(Bool()) //UART tx
     val rx = Input(Bool()) //UART rx
     val tx_data = Input(UInt(8.W)) //Data to transmit to tx from bus
-    val tx_valid = Input(Bool())  //low until cpu has data to transmit, then it pulls low
+    val tx_valid = Input(Bool())  //low until cpu has data to transmit, then it pulls high
     val tx_ready = Output(Bool()) //default: high, uart controlled, indicates to cpu when available to receive new data
     val rx_data = Output(UInt(8.W)) //Data to store from rx to bus
     val rx_valid = Output(Bool())  //pulses high when valid byte has been captured
@@ -46,7 +46,7 @@ class UartModule(
     is(sIdle){
       io.tx := 1.B //default high
       txBitCount := 0.U
-      when(io.tx_ready && io.tx_valid){ // begin transmission when tx_ready is high
+      when(io.tx_valid){ // begin transmission when tx_ready is high
         txReg := io.tx_data //loading data from bus to register
         txState := sStartBit //changing state machine
         txCount := 0.U //start counting baud from zero
@@ -56,7 +56,7 @@ class UartModule(
     is(sStartBit){
       //Single start bit, low
       io.tx := false.B
-      when(txCount === prescaler.U - 1.U){ // change states on next baud
+      when(txCount >= prescaler.U - 1.U){ // change states on next baud
         txState := sDataBits
         txCount := 0.U
       }.otherwise{
@@ -65,7 +65,7 @@ class UartModule(
     }
     is(sDataBits){
       io.tx := txReg(0)  // always display the bit (LSB first)
-      when(txCount === prescaler.U - 1.U){
+      when(txCount >= prescaler.U - 1.U){
         txCount := 0.U
         when(txBitCount === 7.U){
           txState := sStopBit  // Once all bits are stored, move on
@@ -79,7 +79,7 @@ class UartModule(
     }
     is(sStopBit){
       io.tx := true.B // high stop bit
-      when(txCount === prescaler.U - 1.U){
+      when(txCount >= prescaler.U - 1.U){
         txState := sIdle //done transmission, move on
         txCount := 0.U //reset counter
         txReady := true.B //no longer transmitting, ready again
@@ -105,7 +105,7 @@ class UartModule(
     }
 
     is(sStartBit){
-      when(rxCount === (prescaler.U / 2.U)) { //starting the bit in the middle to give greater leeway to receiving
+      when(rxCount >= (prescaler.U / 2.U)) { //starting the bit in the middle to give greater leeway to receiving
         when(io.rx === false.B) { //checking start bit is there
           rxState := sDataBits
           rxCount := 0.U
@@ -119,7 +119,7 @@ class UartModule(
     }
 
     is(sDataBits){
-      when(rxCount === (prescaler.U - 1.U)){ // changing bits every 1 baud, at a 0.5 baud offset
+      when(rxCount >= (prescaler.U - 1.U)){ // changing bits every 1 baud, at a 0.5 baud offset
         rxCount := 0.U
         rxDataShift := Cat(io.rx, rxDataShift(7, 1)) //Takes everything except the zero bit of rxDataShift and adds io.rx to the end (left)
 
@@ -134,7 +134,7 @@ class UartModule(
     }
 
     is(sStopBit){
-      when(rxCount === prescaler.U - 1.U){
+      when(rxCount >= prescaler.U - 1.U){
         when(io.rx === true.B){ //stop bit must be high
           rxReg := rxDataShift // move temp register into final storage location (get put into rxpin every cycle
           rxValid := true.B       // Signal valid data for one cycle for bus to read
