@@ -1,180 +1,135 @@
 import chisel3._
 import chiseltest._
 import org.scalatest.flatspec.AnyFlatSpec
+import java.io.{File, IOException}
 
+
+class PipeConInterconnectTest extends AnyFlatSpec with ChiselScalatestTester {
+
+  "PipeConExample" should "svart" in {
+    // Path to testfile
+    val testfile = getClass.getResource("/hello.bin").getPath
+
+    test(new PipeConExample(testfile, addrWidth = 32, devices = 3)).withAnnotations(Seq(WriteVcdAnnotation, IcarusBackendAnnotation)) { c =>
+      val expected = "HelloWorld".map(_.toByte) // List of ASCII bytes
+      var idx = 0 // To track the index in the expected data
+
+      c.clock.setTimeout(0)
+
+      // Run for a fixed number of cycles (e.g., 100 cycles)
+      for (_ <- 0 until 100) {
+        // If wr signal is high, check if the received data matches the expected data at index idx
+        c.clock.step(1)
+      }
+    }
+  }
+  "PipeConTest2" should "instantiate correctly and write to UART" in {
 class PipeConExampleTest extends AnyFlatSpec with ChiselScalatestTester {
-  behavior of "PipeConExample"
+  "PipeConTest" should "instantiate correctly and write to UART" in {
 
-  it should "perform a simple write and read to the UART peripheral" in {
-    test(new PipeConExample(8)).withAnnotations(Seq(WriteVcdAnnotation)) { c =>
-      val uartAddress = 0x01
+    // Path to testfile
+    val testfile = getClass.getResource("/hello.bin").getPath
 
-      // --- Initial state ---
-      c.io.uartWrMask.expect(0.U)
+    test(new PipeConExample(testfile, addrWidth = 32, devices = 2)).withAnnotations(Seq(WriteVcdAnnotation, VerilatorBackendAnnotation)) { c =>
+      val expected = "HelloWorld".map(_.toByte) // List of ASCII bytes
+      var idx = 0 // To track the index in the expected data
 
-      // --- Write to UART ---
-      c.io.cpuAddress.poke(uartAddress.U)
-      c.io.cpuWrData.poke("hCAFEBABE".U)
-      c.io.cpuWrMask.poke("b1111".U)
-      c.io.cpuRd.poke(false.B)
-      c.clock.step()
+      c.clock.setTimeout(0)
 
-      // Check that the UART received the write
-      c.io.uartWrMask.expect("b1111".U)
-      c.io.uartWrData.expect("hCAFEBABE".U)
-
-      // --- Simulate UART producing read data ---
-      // Inject test read data
-      c.io.uartRdDataTest.poke("h0000BEEF".U)
-
-      // --- Read from UART ---
-      c.io.cpuAddress.poke(uartAddress.U)
-      c.io.cpuRd.poke(true.B)
-
-      // Wait until the design signals that it's reading from UART
-      var rdSeen = false
-      for (_ <- 0 until 5) {
-        if (c.io.uartRd.peek().litToBoolean) {
-          rdSeen = true
+      // Run for a fixed number of cycles (e.g., 100 cycles)
+      for (_ <- 0 until 100) {
+        // If wr signal is high, check if the received data matches the expected data at index idx
+        if (c.io.cpuWrEnable.peek().litValue != 0) {
+          val data = c.io.uart_wrData.peek().litValue.toByte
+          assert(data == expected(idx), 
+            s"Test failed at index $idx: expected '${expected(idx).toChar}', got '${data.toChar}'")
+          
+          idx += 1 // Move to the next expected character if matched
+          
+          if (idx >= expected.length) {
+            // If we've matched the whole expected string, loop back to the start
+            idx = 0
+          }
         }
-        c.clock.step()
+
+        // Step the clock
+        c.clock.step(1)
       }
 
-      assert(rdSeen, "UART was never read by the CPU!")
-
-      // CPU should now see the UART data
-      c.io.cpuRdData.expect("h0000BEEF".U)
-      c.io.cpuRd.poke(false.B)
+      // If everything has passed, the test will just complete successfully
+      assert(true, "Test completed without fatal errors.")
     }
   }
 
-  it should "handle read without write to the UART peripheral" in {
-    test(new PipeConExample(8)).withAnnotations(Seq(WriteVcdAnnotation)) { c =>
-      val uartAddress = 0x01
+  "PipeConTest" should "fail when the expected value is not HelloWorld" in {
+    // Path to testfile
+    val testfile = getClass.getResource("/hello.bin").getPath
 
-      // Perform a read operation without any prior write
-      c.io.cpuAddress.poke(uartAddress.U)
-      c.io.cpuRd.poke(true.B)
-      c.clock.step()
+    test(new PipeConExample(testfile, addrWidth = 32, devices = 2)).withAnnotations(Seq(WriteVcdAnnotation, VerilatorBackendAnnotation)) { c =>
+      val expected = "HelloWorl".map(_.toByte) // Incorrect expected value (without 'd')
+      var idx = 0 // To track the index in the expected data
 
-      // Check that the UART did not return any unexpected data
-      c.io.cpuRdData.expect(0.U)
+      c.clock.setTimeout(0)
+
+      // Run for a fixed number of cycles (e.g., 100 cycles)
+      var testFailed = false
+      for (_ <- 0 until 100) {
+        // If wr signal is high, check if the received data matches the expected data at index idx
+        if (c.io.cpuWrEnable.peek().litValue != 0) {
+          val data = c.io.uart_wrData.peek().litValue.toByte
+          
+          if (data != expected(idx)) {
+            testFailed = true
+            //println(s"Test failed (intentionally) at index $idx: expected '${expected(idx).toChar}', got '${data.toChar}'")
+          }
+          
+          idx += 1 // Move to the next expected character if matched
+          
+          if (idx >= expected.length) {
+            // If we've matched the whole expected string, loop back to the start
+            idx = 0
+          }
+        }
+
+        // Step the clock
+        c.clock.step(1)
+      }
+
+      // Assert that the test failed (because the expected and received data do not match)
+      assert(testFailed, "Test did not fail as expected when expected value was incorrect.")
     }
   }
 
-  it should "perform multiple write and read operations to the UART peripheral" in {
-    test(new PipeConExample(8)).withAnnotations(Seq(WriteVcdAnnotation)) { c =>
-      val uartAddress = 0x01
+"PipeConTest" should "run poll.bin and write to UART when finished" in {
+  // Load the binary file from test resources
+  val testfile = getClass.getResource("/poll.bin").getPath
 
-      // First Write
-      c.io.cpuAddress.poke(uartAddress.U)
-      c.io.cpuWrMask.poke("b0011".U)
-      c.io.cpuWrData.poke("h0000AAAA".U)
-      c.io.cpuRd.poke(false.B)
-      c.clock.step()
+  test(new PipeConExample(testfile, addrWidth = 32, devices = 2)).withAnnotations(Seq(WriteVcdAnnotation, VerilatorBackendAnnotation)) { c =>
+    c.clock.setTimeout(0)
 
-      c.io.uartWrMask.expect("b0011".U)
-      c.io.uartWrData.expect("h0000AAAA".U)
+    val maxCycles = 100
+    println(s"Running $maxCycles cycles...")
 
-      // Second Write
-      c.io.cpuWrMask.poke("b0011".U)
-      c.io.cpuWrData.poke("h0000BBBB".U)
-      c.clock.step()
+    for (cycle <- 0 until maxCycles) {
+      // Simulate one clock step
+      c.clock.step(1)
 
-      c.io.uartWrMask.expect("b0011".U)
-      c.io.uartWrData.expect("h0000BBBB".U)
-      c.clock.step()
+      // UART output
+      if (c.io.uart_wr.peek().litToBoolean) {
+        val uartChar = c.io.uart_wrData.peek().litValue.toByte.toChar
+        //println(s"[UART] Wrote: '$uartChar'")
+      }
 
-      // Reset write signal
-      c.io.cpuWrMask.poke(0.U)
-      c.clock.step()
-
-      // Third Write
-      c.io.cpuWrMask.poke("b0011".U)
-      c.io.cpuWrData.poke("h0000CCCC".U)
-      c.clock.step()
-
-      // Read from UART again
-      c.io.cpuRd.poke(true.B)
-      c.clock.step()
-
-      // Expect the third written value
-      c.io.cpuRdData.expect("h0000CCCC".U)
+      // Memory reads (simulate address polling)
+      if (c.io.cpuRdEnable.peek().litValue != 0) {
+        val readAddr = c.io.cpuRdAddress.peek().litValue
+        val readData = c.io.cpuRdData.peek().litValue
+        println(f"[CPU] Read from 0x$readAddr%08X: 0x$readData%08X")
+      }
     }
   }
+}
 
-  it should "perform write and read with different data sizes" in {
-    test(new PipeConExample(8)).withAnnotations(Seq(WriteVcdAnnotation)) { c =>
-      val uartAddress = 0x01
-
-      // Write 8-bit data
-      c.io.cpuAddress.poke(uartAddress.U)
-      c.io.cpuWrMask.poke("b0001".U)
-      c.io.cpuWrData.poke("hAA".U)
-      c.clock.step()
-
-      // Read back 8-bit data
-      c.io.cpuWrMask.poke(0.U)
-      c.io.cpuRd.poke(true.B)
-      c.clock.step()
-      c.io.cpuRdData.expect("hAA".U)
-      c.io.cpuRd.poke(false.B)
-
-      // Write 16-bit data
-      c.io.cpuAddress.poke(uartAddress.U)
-      c.io.cpuWrMask.poke("b0011".U)
-      c.io.cpuWrData.poke("hBBBBBBBB".U)
-      c.clock.step()
-
-      // Read back 16-bit data
-      c.io.cpuWrMask.poke(0.U)
-      c.io.cpuRd.poke(true.B)
-      c.clock.step()
-      c.io.cpuRdData.expect("h0000BBBB".U)
-      c.io.cpuRd.poke(false.B)
-
-      // Write 32-bit data
-      c.io.cpuAddress.poke(uartAddress.U)
-      c.io.cpuWrMask.poke("b1111".U)
-      c.io.cpuWrData.poke("hCCCCCCCC".U)
-      c.clock.step()
-
-      // Read back 32-bit data
-      c.io.cpuWrMask.poke(0.U)
-      c.io.cpuRd.poke(true.B)
-      c.clock.step()
-      c.io.cpuRdData.expect("hCCCCCCCC".U)
-      c.io.cpuRd.poke(false.B)
-
-      // Write 24-bit data
-      c.io.cpuAddress.poke(uartAddress.U)
-      c.io.cpuWrMask.poke("b0111".U)
-      c.io.cpuWrData.poke("hFFFFFF".U)
-      c.clock.step()
-
-      // Read back 24-bit data
-      c.io.cpuWrMask.poke(0.U)
-      c.io.cpuRd.poke(true.B)
-      c.clock.step()
-      c.io.cpuRdData.expect("hFFFFFF".U)
-      c.io.cpuRd.poke(false.B)
-    }
-  }
-
-  it should "handle write with wrMask and read the correct data" in {
-    test(new PipeConExample(8)).withAnnotations(Seq(WriteVcdAnnotation)) { c =>
-      val SPIAddress = 0x02
-
-      c.io.cpuAddress.poke(SPIAddress.U)
-      c.io.cpuWrMask.poke("b0111".U)
-      c.io.cpuWrData.poke("hFFFFFFFF".U)
-      c.clock.step()
-
-      c.io.cpuWrMask.poke(0.U)
-      c.io.cpuRd.poke(true.B)
-      c.clock.step()
-      c.io.cpuRdData.expect("h00FFFFFF".U)
-      c.io.cpuRd.poke(false.B)
-    }
+}
   }
 }

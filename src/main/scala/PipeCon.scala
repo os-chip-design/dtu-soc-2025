@@ -15,3 +15,20 @@ import chisel3._
    val wrMask = Input(UInt(4.W))
    val ack = Output(Bool())
  }
+
+class MemIO extends Bundle {
+  val rdAddress = Output(UInt(32.W))
+  val rdData = Input(UInt(32.W))
+  val rdEnable = Output(Bool())
+  val wrAddress = Output(UInt(32.W))
+  val wrData = Output(UInt(32.W))
+  val wrEnable = Output(Vec (4, Bool()))
+  val stall = Input(Bool())
+}
+
+class InstrIO extends Bundle {
+  val address = Output(UInt(32.W))
+  val data = Input(UInt(32.W))
+  val stall = Input(Bool())
+}
+

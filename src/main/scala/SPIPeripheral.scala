@@ -17,7 +17,7 @@ class SPIPeripheral(addrWidth: Int) extends Module {
   io.ack := false.B
 
   // Expand each Bool to a full 8-bit mask
- val byteMasks = (0 until 4).map { i =>
+  val byteMasks = (0 until 4).map { i =>
   Mux(io.wrMask(i), "hFF".U(8.W), 0.U(8.W))}
   // Concatenate to get a full 32-bit mask (MSB to LSB)
   val fullMask = Cat(byteMasks.reverse)  // Vec is LSB-first, Cat expects MSB-first

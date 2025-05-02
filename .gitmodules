@@ -4,3 +4,5 @@
 [submodule "wildcat"]
 	path = wildcat
 	url = https://github.com/schoeberl/wildcat
+[submodule "wildcat/soc-comm"]
+	url = https://github.com/t-crest/soc-comm.git

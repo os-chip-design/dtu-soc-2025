@@ -1,60 +1,71 @@
 import chisel3._
+import chisel3.util._
 
-class PipeConExample(addrWidth: Int) extends Module {
-  val io = IO(new Bundle {
-    val cpuAddress = Input(UInt(addrWidth.W))
-    val cpuWrData = Input(UInt(32.W))
-    val cpuRd = Input(Bool())
-    val cpuWr = Input(Bool())
-    val cpuWrMask = Input(UInt(4.W))
+class PipeConExample(file: String, addrWidth: Int, devices: Int) extends Module {
+  val io = IO(new Bundle { // should be empty when not testing
+    val cpuRdAddress = Output(UInt(32.W))
     val cpuRdData = Output(UInt(32.W))
-
-    val uartRdDataTest = Input(UInt(32.W))  // Test data input for UART read simulation
-    val uartRdData = Output(UInt(32.W))
-    val uartRd = Output(Bool())
-    val uartWr = Output(Bool())
-    val uartWrMask = Output(UInt(4.W))
-    val uartWrData = Output(UInt(32.W))
-
-    val SPIRdDataTest = Input(UInt(32.W))  // Test data input for UART read simulation
-    val SPIRdData = Output(UInt(32.W))
-    val SPIRd = Output(Bool())
-    val SPIWr = Output(Bool())
-    val SPIWrMask = Output(UInt(4.W))
-    val SPIWrData = Output(UInt(32.W))
+    val cpuRdEnable = Output(Bool())
+    val cpuWrAddress = Output(UInt(32.W))
+    val cpuWrData = Output(UInt(32.W))
+    val cpuWrEnable = Output(UInt(4.W))
+    val cpuStall = Output(Bool())
+    val uart_address = Output(UInt(addrWidth.W)) 
+    val uart_rd = Output(Bool()) 
+    val uart_wr = Output(Bool()) 
+    val uart_rdData = Output(UInt(32.W)) 
+    val uart_wrData = Output(UInt(32.W)) 
+    val uart_wrMask = Output(UInt(4.W)) 
+    val uart_ack = Output(Bool()) 
+    val spi_address = Output(UInt(addrWidth.W)) 
+    val spi_rd = Output(Bool()) 
+    val spi_wr = Output(Bool()) 
+    val spi_rdData = Output(UInt(32.W)) 
+    val spi_wrData = Output(UInt(32.W)) 
+    val spi_wrMask = Output(UInt(4.W)) 
+    val spi_ack = Output(Bool()) 
   })
 
-  val interconnect = Module(new PipeConInterconnect(addrWidth))
-  val uart = Module(new UARTPeripheral(addrWidth))
-  val SPI = Module(new SPIPeripheral(addrWidth))
+  val addressRanges = Seq(
+    ("h00000000".U, "h0000000F".U),  // Device 0 (UART)
+    ("h00000010".U, "h0000001F".U),  // Device 1 (SPI)
+    ("h00000020".U, "h0000002F".U)   // Device 3 (GPIO)
+  )
+  val interconnect = Module(new PipeConInterconnect(file, addrWidth, devices, addressRanges))
+  val UARTPeripheral = Module(new UARTPeripheral(addrWidth))
+  val SPIPeripheral = Module(new SPIPeripheral(addrWidth))
+  val GPIOPeripheral = Module(new GPIOPeripheral(addrWidth, 8))
 
-  // Drive the CPU-side of the interconnect
-  interconnect.io.cpu.address := io.cpuAddress
-  interconnect.io.cpu.rd := io.cpuRd
-  interconnect.io.cpu.wr := io.cpuWr
-  interconnect.io.cpu.wrData := io.cpuWrData
-  interconnect.io.cpu.wrMask := io.cpuWrMask //VecInit(Seq.fill(4)(true.B)) // full-word write
+  UARTPeripheral.io <> interconnect.io.device(0)
+  SPIPeripheral.io <> interconnect.io.device(1)
+  GPIOPeripheral.io.mem_ifc <> interconnect.io.device(2)
 
-  io.cpuRdData := interconnect.io.cpu.rdData
+  // Init test signals (only required for testing)
+  io.uart_address := UARTPeripheral.io.address
+  io.uart_rd := UARTPeripheral.io.rd
+  io.uart_wr := UARTPeripheral.io.wr
+  io.uart_rdData := UARTPeripheral.io.rdData
+  io.uart_wrData := UARTPeripheral.io.wrData
+  io.uart_wrMask := UARTPeripheral.io.wrMask
+  io.uart_ack := UARTPeripheral.io.ack
 
-  // Connect interconnect to UART
-  uart.io <> interconnect.io.uart
-  SPI.io <> interconnect.io.SPI
+  io.spi_address := SPIPeripheral.io.address
+  io.spi_rd := SPIPeripheral.io.rd
+  io.spi_wr := SPIPeripheral.io.wr
+  io.spi_rdData := SPIPeripheral.io.rdData
+  io.spi_wrData := SPIPeripheral.io.wrData
+  io.spi_wrMask := SPIPeripheral.io.wrMask
+  io.spi_ack := SPIPeripheral.io.ack
 
-  // Connect uartRdDataTest to testRdData for simulation
-  uart.testIo.testRdData := io.uartRdDataTest  // Drive the test data to the UART peripheral
-  SPI.testIo.testRdData := io.SPIRdDataTest
+  io.cpuRdAddress := interconnect.io.cpuRdAddress
+  io.cpuRdData := interconnect.io.cpuRdData
+  io.cpuRdEnable := interconnect.io.cpuRdEnable
+  io.cpuWrAddress := interconnect.io.cpuWrAddress
+  io.cpuWrData := interconnect.io.cpuWrData
+  io.cpuWrEnable := interconnect.io.cpuWrEnable
+  io.cpuStall := interconnect.io.cpuStall
 
-  // Expose UART signals
-  io.uartRdData := uart.io.rdData  // UART read data from the peripheral
-  io.uartRd := uart.io.rd
-  io.uartWr := uart.io.wr
-  io.uartWrMask := uart.io.wrMask
-  io.uartWrData := uart.io.wrData
+  UARTPeripheral.testIo.testWrData := ("hDEADBEEF".U)
+  SPIPeripheral.testIo.testRdData := 0.U
 
-  io.SPIRdData := SPI.io.rdData  // SPI read data from the peripheral
-  io.SPIRd := SPI.io.rd
-  io.SPIWr := SPI.io.wr
-  io.SPIWrMask := SPI.io.wrMask
-  io.SPIWrData := SPI.io.wrData
 }
