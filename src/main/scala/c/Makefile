@@ -1,5 +1,5 @@
 # Existing assembly flow
-all: hello.bin hello_c.bin poll.bin poll_c.bin
+all: hello.bin hello_c.bin poll.bin poll_c.bin resources
 
 # Assembly: hello
 hello.o: hello.s
@@ -44,6 +44,11 @@ poll_c.elf: poll_c.o
 poll_c.bin: poll_c.elf
 	riscv64-unknown-elf-objcopy -O binary poll_c.elf poll_c.bin
 	riscv64-unknown-elf-objdump -d -S poll_c.elf > poll_c.disasm
+
+# Copies .bin files to test resources
+resources: hello.bin hello_c.bin poll.bin poll_c.bin
+	mkdir -p ../../../test/resources/
+	cp *.bin ../../../test/resources/
 
 clean:
 	rm -f *.o *.elf *.bin *.disasm

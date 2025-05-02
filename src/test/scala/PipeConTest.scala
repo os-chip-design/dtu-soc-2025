@@ -44,10 +44,11 @@ class PipeConInterconnectTest extends AnyFlatSpec with ChiselScalatestTester {
 
   "PipeConTest2" should "fail when the expected value is not HelloWorld" in {
     // Path to your file, relative to the project root or use absolute path
-    val dir = "/home/rasmus/Downloads/02118_IntroductionToChipDesign/dtu-soc-2025/src/main/scala/c/"
-    val filename = "hello.bin"
-
-    val testfile = dir + filename
+    //val dir = "/home/rasmus/Downloads/02118_IntroductionToChipDesign/dtu-soc-2025/src/main/scala/c/"
+    //val filename = "hello.bin"
+//
+    //val testfile = dir + filename
+    val testfile = getClass.getResource("/hello.bin").getPath
 
     test(new PipeConInterconnect(testfile, addrWidth = 32, devices = 2)).withAnnotations(Seq(WriteVcdAnnotation, VerilatorBackendAnnotation)) { c =>
       val expected = "HelloWorl".map(_.toByte) // Incorrect expected value (without 'd')
@@ -64,7 +65,7 @@ class PipeConInterconnectTest extends AnyFlatSpec with ChiselScalatestTester {
           
           if (data != expected(idx)) {
             testFailed = true
-            println(s"Test failed (intentionally) at index $idx: expected '${expected(idx).toChar}', got '${data.toChar}'")
+            //println(s"Test failed (intentionally) at index $idx: expected '${expected(idx).toChar}', got '${data.toChar}'")
           }
           
           idx += 1 // Move to the next expected character if matched
