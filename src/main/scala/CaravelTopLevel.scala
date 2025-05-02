@@ -136,30 +136,19 @@ class CaravelTopLevel extends RawModule {
   io.io_out := 0.U
   io.io_oeb := 0.U
 
-  val addressRanges = Seq(
-    ("h00000000".U, "h0000000F".U),  // Device 0 (UART)
-    ("h00000010".U, "h0000001F".U),  // Device 1 (SPI)
-    ("h00000020".U, "h0000002F".U)   // Device 3 (GPIO)
-  )
-  val addrWidth = 32
-  val devices = 3 //antal rækker i addressRanges
-  //val file = "binær_assembly_fil.bin"
-
   withClockAndReset(clk, rst) {
-    // Internal communication (bus)
-    // val interconnect = Module(new PipeConInterconnect(32))
-    //val interconnect = Module(new PipeConInterconnect(file, addrWidth, devices, addressRanges))
+    val topLevel = Module(new TopLevel())
+    
+    topLevel.io.imem <> DontCare
 
-    // Modules
-    // val uartWrapper = Module(new UartWrapper(1000, 300, 2, 2))
-    // val cpu = Module(new ThreeCats())
-    //val UARTPeripheral = Module(new UARTPeripheral(addrWidth))
-    //val SPIPeripheral = Module(new SPIPeripheral(addrWidth))
-    //val GPIOPeripheral = Module(new GPIOPeripheral(addrWidth, 8)) //8?
-    //UARTPeripheral.io <> interconnect.io.device(0)
-    //SPIPeripheral.io <> interconnect.io.device(1)
-    //GPIOPeripheral.io.mem_ifc <> interconnect.io.device(2)
+    topLevel.io.uartRx := uartRx
+    uartTx := topLevel.io.uartTx
 
+    topLevel.io.gpio_in := io.io_in(37, 30)
+    // io.io_out(37, 30) := topLevel.io.gpio_out
+    io.io_out := Cat(0.U(30.W), topLevel.io.gpio_out)
+    //io.io_oeb(37, 30) := topLevel.io.gpio_oeb
+    io.io_oeb := Cat(0.U(30.W), topLevel.io.gpio_oeb)
   }
 }
 

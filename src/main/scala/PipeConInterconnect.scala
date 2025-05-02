@@ -1,39 +1,12 @@
 import chisel3._
-import chisel3.util._
-import chiseltest._
-import org.scalatest.flatspec.AnyFlatSpec
 import wildcat.pipeline._
-import wildcat.Util
 
-class PipeConInterconnect(file: String, addrWidth: Int, devices: Int, addressRanges: Seq[(UInt,UInt)]) extends Module {
+class PipeConInterconnect(addrWidth: Int, addressRanges: Seq[(UInt, UInt)]) extends Module {
   val io = IO(new Bundle {
-    val device = Vec(devices, Flipped(new PipeCon(addrWidth)))  // Create a vector of 2 devices (UART and SPI)
-    val cpuRdAddress = Output(UInt(32.W))
-    val cpuRdData = Output(UInt(32.W))
-    val cpuRdEnable = Output(Bool())
-    val cpuWrAddress = Output(UInt(32.W))
-    val cpuWrData = Output(UInt(32.W))
-    val cpuWrEnable = Output(UInt(4.W))
-    val cpuStall = Output(Bool())
+    val device = Vec(addressRanges.length, Flipped(new PipeCon(addrWidth))) // Create a vector of devices
+    // Input from the CPU
+    val dmem = Flipped(new MemIO())
   })
-
-  val (memory, start) = Util.getCode(file)
-  val cpu = Module(new ThreeCats())
-  val dmem = Module(new PipeConMem(memory))
-  cpu.io.dmem <> dmem.io
-  val imem = Module(new PipeConMemory(memory))
-  imem.io.address := cpu.io.imem.address
-  cpu.io.imem.data := imem.io.data
-  cpu.io.imem.stall := imem.io.stall
-  cpu.io.dmem.stall := false.B
-
-  io.cpuRdAddress := cpu.io.dmem.rdAddress
-  io.cpuRdData := cpu.io.dmem.rdData
-  io.cpuRdEnable := cpu.io.dmem.rdEnable
-  io.cpuWrAddress := cpu.io.dmem.wrAddress
-  io.cpuWrData := cpu.io.dmem.wrData
-  io.cpuWrEnable := cpu.io.dmem.wrEnable.asUInt//cpu.io.dmem.wrEnable.reduce(_ || _)
-  io.cpuStall := cpu.io.dmem.stall
 
   for (i <- 0 until io.device.length) {
     io.device(i).rd := false.B
@@ -59,28 +32,25 @@ class PipeConInterconnect(file: String, addrWidth: Int, devices: Int, addressRan
   // Select device to read/write from/to based on addressRanges
   for (i <- 0 until io.device.length) {
     val (startAddr, endAddr) = addressRanges(i)
-    when(cpu.io.dmem.wrAddress >= startAddr && cpu.io.dmem.wrAddress <= endAddr) {
+    when(io.dmem.wrAddress >= startAddr && io.dmem.wrAddress <= endAddr) {
       selected <> io.device(i)
     }
   }
 
   // Logic for reading/writing from/to devices
-  when(cpu.io.dmem.wrEnable.reduce(_ || _)) {
+  when(io.dmem.wrEnable.reduce(_ || _)) {
     selected.wr := true.B
     selected.rd := false.B
-    selected.address := cpu.io.dmem.wrAddress
-    selected.wrData := cpu.io.dmem.wrData
-    selected.wrMask := cpu.io.dmem.wrEnable.asUInt
-  } .elsewhen(cpu.io.dmem.rdEnable) {
+    selected.address := io.dmem.wrAddress
+    selected.wrData := io.dmem.wrData
+    selected.wrMask := io.dmem.wrEnable.asUInt
+  }.elsewhen(io.dmem.rdEnable) {
     selected.rd := true.B
     selected.wr := false.B
-    selected.address := cpu.io.dmem.rdAddress
+    selected.address := io.dmem.rdAddress
     rdDataReg := selected.rdData
   }
-  
 
-  cpu.io.dmem.stall := stall
-  cpu.io.dmem.rdData := rdDataReg
-
-
+  io.dmem.stall := stall
+  io.dmem.rdData := rdDataReg
 }
