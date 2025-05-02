@@ -6,7 +6,7 @@ Disassembly of section .text:
 
 00000000 <_start>:
    0:	00000313          	li	t1,0
-   4:	00a00393          	li	t2,10
+   4:	01f00393          	li	t2,31
 
 00000008 <poll_addresses>:
    8:	00032e03          	lw	t3,0(t1)

@@ -15,8 +15,6 @@ class PipeConInterconnect(file: String, addrWidth: Int, devices: Int) extends Mo
     val cpuWrData = Output(UInt(32.W))
     val cpuWrEnable = Output(UInt(4.W))
     val cpuStall = Output(Bool())
-    //val cpu = new PipeCon(addrWidth)
-    //val cpu2 = Flipped(new PipeCon(addrWidth))
   })
   val addressRanges = Seq(
     ("h00000000".U, "h0000000F".U),  // Device 0 (UART)

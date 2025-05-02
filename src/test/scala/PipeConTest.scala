@@ -95,7 +95,7 @@ class PipeConInterconnectTest extends AnyFlatSpec with ChiselScalatestTester {
       // UART output
       if (c.io.device(0).wr.peek().litToBoolean) {
         val uartChar = c.io.device(0).wrData.peek().litValue.toByte.toChar
-        println(s"[UART] Wrote: '$uartChar'")
+        //println(s"[UART] Wrote: '$uartChar'")
       }
 
       // Memory reads (simulate address polling)

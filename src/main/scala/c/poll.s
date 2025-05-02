@@ -2,7 +2,7 @@
 
 _start:
     li t1, 0x00            # Start address (0)
-    li t2, 0x0A            # End address (10)
+    li t2, 0x1F            # End address (10)
 
 poll_addresses:
     # Check if the address has something (just an example, assuming a peripheral at that address)
