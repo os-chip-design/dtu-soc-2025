@@ -17,7 +17,7 @@ class PipeConInterconnectTest extends AnyFlatSpec with ChiselScalatestTester {
       // Run for a fixed number of cycles (e.g., 100 cycles)
       for (_ <- 0 until 100) {
         // If wr signal is high, check if the received data matches the expected data at index idx
-        if (c.io.cpu2.wr.peek().litToBoolean) {
+        if (c.io.cpuWrEnable.peek().litValue != 0) {
           val data = c.io.device(0).wrData.peek().litValue.toByte
           assert(data == expected(idx), 
             s"Test failed at index $idx: expected '${expected(idx).toChar}', got '${data.toChar}'")
@@ -53,7 +53,7 @@ class PipeConInterconnectTest extends AnyFlatSpec with ChiselScalatestTester {
       var testFailed = false
       for (_ <- 0 until 100) {
         // If wr signal is high, check if the received data matches the expected data at index idx
-        if (c.io.cpu2.wr.peek().litToBoolean) {
+        if (c.io.cpuWrEnable.peek().litValue != 0) {
           val data = c.io.device(0).wrData.peek().litValue.toByte
           
           if (data != expected(idx)) {
@@ -78,21 +78,34 @@ class PipeConInterconnectTest extends AnyFlatSpec with ChiselScalatestTester {
     }
   }
 
-  "PipeConTest2" should "run poll.bin and write to UART when finished" in {
-    // Path to testfile
-    val testfile = getClass.getResource("/poll.bin").getPath
+"PipeConTest2" should "run poll.bin and write to UART when finished" in {
+  // Load the binary file from test resources
+  val testfile = getClass.getResource("/poll.bin").getPath
 
-    test(new PipeConInterconnect(testfile, addrWidth = 32, devices = 2)).withAnnotations(Seq(WriteVcdAnnotation, VerilatorBackendAnnotation)) { c =>
-      c.clock.setTimeout(0)
-      //c.io.device(0).wrData.poke("hDEADBEEF".U)
-      for (i <- 0 until 100) {
-        c.clock.step(1)     
-      }
+  test(new PipeConInterconnect(testfile, addrWidth = 32, devices = 2)).withAnnotations(Seq(WriteVcdAnnotation, VerilatorBackendAnnotation)) { c =>
+    c.clock.setTimeout(0)
+
+    val maxCycles = 100
+    println(s"Running $maxCycles cycles...")
+
+    for (cycle <- 0 until maxCycles) {
+      // Simulate one clock step
+      c.clock.step(1)
+
+      // UART output
       if (c.io.device(0).wr.peek().litToBoolean) {
-        println(s"UART wrote: ${c.io.device(0).wrData.peek().litValue.toChar}")
+        val uartChar = c.io.device(0).wrData.peek().litValue.toByte.toChar
+        println(s"[UART] Wrote: '$uartChar'")
       }
-      // For now, we just verify it instantiates and doesn't crash
-      println("something was successful.")
+
+      // Memory reads (simulate address polling)
+      if (c.io.cpuRdEnable.peek().litValue != 0) {
+        val readAddr = c.io.cpuRdAddress.peek().litValue
+        val readData = c.io.cpuRdData.peek().litValue
+        println(f"[CPU] Read from 0x$readAddr%08X: 0x$readData%08X")
+      }
     }
   }
+}
+
 }

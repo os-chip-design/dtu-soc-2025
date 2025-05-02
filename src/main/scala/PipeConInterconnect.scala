@@ -8,8 +8,15 @@ import wildcat.Util
 class PipeConInterconnect(file: String, addrWidth: Int, devices: Int) extends Module {
   val io = IO(new Bundle {
     val device = Vec(devices, Flipped(new PipeCon(addrWidth)))  // Create a vector of 2 devices (UART and SPI)
-    val cpu = new PipeCon(addrWidth)
-    val cpu2 = Flipped(new PipeCon(addrWidth))
+    val cpuRdAddress = Output(UInt(32.W))
+    val cpuRdData = Output(UInt(32.W))
+    val cpuRdEnable = Output(Bool())
+    val cpuWrAddress = Output(UInt(32.W))
+    val cpuWrData = Output(UInt(32.W))
+    val cpuWrEnable = Output(UInt(4.W))
+    val cpuStall = Output(Bool())
+    //val cpu = new PipeCon(addrWidth)
+    //val cpu2 = Flipped(new PipeCon(addrWidth))
   })
   val addressRanges = Seq(
     ("h00000000".U, "h0000000F".U),  // Device 0 (UART)
@@ -26,13 +33,13 @@ class PipeConInterconnect(file: String, addrWidth: Int, devices: Int) extends Mo
   cpu.io.imem.stall := imem.io.stall
   cpu.io.dmem.stall := false.B
 
-  io.cpu.rdData := cpu.io.dmem.rdData
-  io.cpu.ack := cpu.io.dmem.stall
-  io.cpu2.address := cpu.io.dmem.wrAddress
-  io.cpu2.rd := cpu.io.dmem.rdEnable
-  io.cpu2.wr := cpu.io.dmem.wrEnable.reduce(_ || _)
-  io.cpu2.wrData := cpu.io.dmem.wrData
-  io.cpu2.wrMask := cpu.io.dmem.wrEnable.asUInt
+  io.cpuRdAddress := cpu.io.dmem.rdAddress
+  io.cpuRdData := cpu.io.dmem.rdData
+  io.cpuRdEnable := cpu.io.dmem.rdEnable
+  io.cpuWrAddress := cpu.io.dmem.wrAddress
+  io.cpuWrData := cpu.io.dmem.wrData
+  io.cpuWrEnable := cpu.io.dmem.wrEnable.asUInt//cpu.io.dmem.wrEnable.reduce(_ || _)
+  io.cpuStall := cpu.io.dmem.stall
 
   for (i <- 0 until io.device.length) {
     io.device(i).rd := false.B
