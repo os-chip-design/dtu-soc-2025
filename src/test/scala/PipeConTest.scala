@@ -3,7 +3,17 @@ import chiseltest._
 import org.scalatest.flatspec.AnyFlatSpec
 import java.io.{File, IOException}
 
+
 class PipeConInterconnectTest extends AnyFlatSpec with ChiselScalatestTester {
+  val addressRanges = Seq(
+    ("h00000000".U, "h0000000F".U),  // Device 0 (UART)
+    ("h00000010".U, "h0000001F".U),   // Device 1 (SPI)
+    ("h00000020".U, "h0000002F".U)   // Device 3 (GPIO)
+
+  )
+
+
+
   "PipeConExample" should "svart" in {
     // Path to testfile
     val testfile = getClass.getResource("/hello.bin").getPath
@@ -22,10 +32,13 @@ class PipeConInterconnectTest extends AnyFlatSpec with ChiselScalatestTester {
     }
   }
   "PipeConTest2" should "instantiate correctly and write to UART" in {
+class PipeConExampleTest extends AnyFlatSpec with ChiselScalatestTester {
+  "PipeConTest" should "instantiate correctly and write to UART" in {
+
     // Path to testfile
     val testfile = getClass.getResource("/hello.bin").getPath
 
-    test(new PipeConInterconnect(testfile, addrWidth = 32, devices = 2)).withAnnotations(Seq(WriteVcdAnnotation, VerilatorBackendAnnotation)) { c =>
+    test(new PipeConExample(testfile, addrWidth = 32, devices = 2)).withAnnotations(Seq(WriteVcdAnnotation, VerilatorBackendAnnotation)) { c =>
       val expected = "HelloWorld".map(_.toByte) // List of ASCII bytes
       var idx = 0 // To track the index in the expected data
 
@@ -35,7 +48,7 @@ class PipeConInterconnectTest extends AnyFlatSpec with ChiselScalatestTester {
       for (_ <- 0 until 100) {
         // If wr signal is high, check if the received data matches the expected data at index idx
         if (c.io.cpuWrEnable.peek().litValue != 0) {
-          val data = c.io.device(0).wrData.peek().litValue.toByte
+          val data = c.io.uart_wrData.peek().litValue.toByte
           assert(data == expected(idx), 
             s"Test failed at index $idx: expected '${expected(idx).toChar}', got '${data.toChar}'")
           
@@ -56,11 +69,11 @@ class PipeConInterconnectTest extends AnyFlatSpec with ChiselScalatestTester {
     }
   }
 
-  "PipeConTest2" should "fail when the expected value is not HelloWorld" in {
+  "PipeConTest" should "fail when the expected value is not HelloWorld" in {
     // Path to testfile
     val testfile = getClass.getResource("/hello.bin").getPath
 
-    test(new PipeConInterconnect(testfile, addrWidth = 32, devices = 2)).withAnnotations(Seq(WriteVcdAnnotation, VerilatorBackendAnnotation)) { c =>
+    test(new PipeConExample(testfile, addrWidth = 32, devices = 2)).withAnnotations(Seq(WriteVcdAnnotation, VerilatorBackendAnnotation)) { c =>
       val expected = "HelloWorl".map(_.toByte) // Incorrect expected value (without 'd')
       var idx = 0 // To track the index in the expected data
 
@@ -71,7 +84,7 @@ class PipeConInterconnectTest extends AnyFlatSpec with ChiselScalatestTester {
       for (_ <- 0 until 100) {
         // If wr signal is high, check if the received data matches the expected data at index idx
         if (c.io.cpuWrEnable.peek().litValue != 0) {
-          val data = c.io.device(0).wrData.peek().litValue.toByte
+          val data = c.io.uart_wrData.peek().litValue.toByte
           
           if (data != expected(idx)) {
             testFailed = true
@@ -95,11 +108,11 @@ class PipeConInterconnectTest extends AnyFlatSpec with ChiselScalatestTester {
     }
   }
 
-"PipeConTest2" should "run poll.bin and write to UART when finished" in {
+"PipeConTest" should "run poll.bin and write to UART when finished" in {
   // Load the binary file from test resources
   val testfile = getClass.getResource("/poll.bin").getPath
 
-  test(new PipeConInterconnect(testfile, addrWidth = 32, devices = 2)).withAnnotations(Seq(WriteVcdAnnotation, VerilatorBackendAnnotation)) { c =>
+  test(new PipeConExample(testfile, addrWidth = 32, devices = 2)).withAnnotations(Seq(WriteVcdAnnotation, VerilatorBackendAnnotation)) { c =>
     c.clock.setTimeout(0)
 
     val maxCycles = 100
@@ -110,8 +123,8 @@ class PipeConInterconnectTest extends AnyFlatSpec with ChiselScalatestTester {
       c.clock.step(1)
 
       // UART output
-      if (c.io.device(0).wr.peek().litToBoolean) {
-        val uartChar = c.io.device(0).wrData.peek().litValue.toByte.toChar
+      if (c.io.uart_wr.peek().litToBoolean) {
+        val uartChar = c.io.uart_wrData.peek().litValue.toByte.toChar
         //println(s"[UART] Wrote: '$uartChar'")
       }
 
@@ -125,4 +138,6 @@ class PipeConInterconnectTest extends AnyFlatSpec with ChiselScalatestTester {
   }
 }
 
+}
+  }
 }
