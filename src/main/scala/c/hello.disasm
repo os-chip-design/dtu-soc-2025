@@ -5,7 +5,7 @@ hello.elf:     file format elf32-littleriscv
 Disassembly of section .text:
 
 00000000 <_start>:
-   0:	00f00313          	li	t1,15
+   0:	00900313          	li	t1,9
 
 00000004 <print_hello>:
    4:	04800293          	li	t0,72

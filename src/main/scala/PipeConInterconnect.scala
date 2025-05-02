@@ -5,7 +5,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import wildcat.pipeline._
 import wildcat.Util
 
-class PipeConInterconnect(file: String, addrWidth: Int, devices: Int) extends Module {
+class PipeConInterconnect(file: String, addrWidth: Int, devices: Int, addressRanges: Seq[(UInt,UInt)]) extends Module {
   val io = IO(new Bundle {
     val device = Vec(devices, Flipped(new PipeCon(addrWidth)))  // Create a vector of 2 devices (UART and SPI)
     val cpuRdAddress = Output(UInt(32.W))
@@ -16,10 +16,7 @@ class PipeConInterconnect(file: String, addrWidth: Int, devices: Int) extends Mo
     val cpuWrEnable = Output(UInt(4.W))
     val cpuStall = Output(Bool())
   })
-  val addressRanges = Seq(
-    ("h00000000".U, "h0000000F".U),  // Device 0 (UART)
-    ("h00000010".U, "h0000001F".U)   // Device 1 (SPI)
-  )
+
 
   val (memory, start) = Util.getCode(file)
   val cpu = Module(new ThreeCats())
@@ -60,6 +57,7 @@ class PipeConInterconnect(file: String, addrWidth: Int, devices: Int) extends Mo
   selected.rdData := 0.U
   selected.ack := false.B
 
+  // Select device to read/write from/to based on addressRanges
   for (i <- 0 until io.device.length) {
     val (startAddr, endAddr) = addressRanges(i)
     when(cpu.io.dmem.wrAddress >= startAddr && cpu.io.dmem.wrAddress <= endAddr) {
@@ -67,6 +65,7 @@ class PipeConInterconnect(file: String, addrWidth: Int, devices: Int) extends Mo
     }
   }
 
+  // Logic for reading/writing from/to devices
   when(cpu.io.dmem.wrEnable.reduce(_ || _)) {
     selected.wr := true.B
     selected.rd := false.B

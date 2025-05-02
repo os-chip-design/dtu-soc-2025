@@ -25,16 +25,16 @@ class UARTPeripheral(addrWidth: Int) extends Module {
   // If a write operation is requested, store the data in uartMemory
   when(io.wrMask.orR) {
     uartMemory := io.wrData & fullMask
-    printf("[UART_P] Uart write: Data written = 0x%x, Mask = 0x%x, Memory = 0x%x\n", io.wrData, fullMask, uartMemory)
+    //printf("[UART_P] Uart write: Data written = 0x%x, Mask = 0x%x, Memory = 0x%x\n", io.wrData, fullMask, uartMemory)
     io.ack := true.B  // Acknowledge that the write is complete
   }
 
-  printf("[UART_P] Full Mask: 0x%x\n", fullMask)
+  //printf("[UART_P] Full Mask: 0x%x\n", fullMask)
 
 
   // If a read operation is requested, provide the stored data or test data
   when(io.rd) {
-    printf("UART read: Addr = 0x%x, Data = 0x%x\n", io.address, uartMemory)
+    //printf("UART read: Addr = 0x%x, Data = 0x%x\n", io.address, uartMemory)
     // During testing, use the testRdData input for read data
     io.rdData := Mux(testIo.testWrData === 0.U, uartMemory, testIo.testWrData)  // If testRdData is set, use it
     io.ack := true.B  // Acknowledge that the read is complete
