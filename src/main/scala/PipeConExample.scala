@@ -14,7 +14,7 @@ class PipeConExample(file: String, addrWidth: Int, devices: Int) extends Module 
   UARTPeripheral.io <> interconnect.io.device(0)
   SPIPeripheral.io <> interconnect.io.device(1)
 
-  UARTPeripheral.testIo.testWrData := 0.U
+  UARTPeripheral.testIo.testWrData := ("hDEADBEEF".U)
   SPIPeripheral.testIo.testRdData := 0.U
 
 }

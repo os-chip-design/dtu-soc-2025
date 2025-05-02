@@ -8,7 +8,13 @@ import wildcat.Util
 class PipeConInterconnect(file: String, addrWidth: Int, devices: Int) extends Module {
   val io = IO(new Bundle {
     val device = Vec(devices, Flipped(new PipeCon(addrWidth)))  // Create a vector of 2 devices (UART and SPI)
+    val cpu = new PipeCon(addrWidth)
+    val cpu2 = Flipped(new PipeCon(addrWidth))
   })
+  val addressRanges = Seq(
+    ("h00000000".U, "h0000000F".U),  // Device 0 (UART)
+    ("h00000010".U, "h0000001F".U)   // Device 1 (SPI)
+  )
 
   val (memory, start) = Util.getCode(file)
   val cpu = Module(new ThreeCats())
@@ -19,6 +25,14 @@ class PipeConInterconnect(file: String, addrWidth: Int, devices: Int) extends Mo
   cpu.io.imem.data := imem.io.data
   cpu.io.imem.stall := imem.io.stall
   cpu.io.dmem.stall := false.B
+
+  io.cpu.rdData := cpu.io.dmem.rdData
+  io.cpu.ack := cpu.io.dmem.stall
+  io.cpu2.address := 0.U
+  io.cpu2.rd := cpu.io.dmem.rdEnable
+  io.cpu2.wr := 0.U
+  io.cpu2.wrData := cpu.io.dmem.wrData
+  io.cpu2.wrMask := 0.U
 
   for (i <- 0 until io.device.length) {
     io.device(i).rd := false.B
@@ -40,11 +54,6 @@ class PipeConInterconnect(file: String, addrWidth: Int, devices: Int) extends Mo
   selected.wrMask := 0.U
   selected.rdData := 0.U
   selected.ack := false.B
-
-  val addressRanges = Seq(
-    ("h00000000".U, "h0000000F".U),  // Device 0 (UART)
-    ("h00000010".U, "h0000001F".U)   // Device 1 (SPI)
-  )
 
   for (i <- 0 until io.device.length) {
     val (startAddr, endAddr) = addressRanges(i)

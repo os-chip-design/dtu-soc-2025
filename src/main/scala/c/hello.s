@@ -1,12 +1,37 @@
-.global _start
+    .global _start
 
 _start:
-    li t1, 0x04          # UART-mapped address
-    li t0, 0x00000041    # ASCII 'A'
-    sw t0, 0(t1)         # send 'A' to UART
-    li t1, 0x11          # SPI-mapped address
-    li t0, 0x00000042    # ASCII 'B'
-    sw t0, 0(t1)         # send 'B' to UART
+    li t1, 0x0F            # UART base address
 
-loop:
-    j loop
+print_hello:
+    li t0, 'H'
+    sw t0, 0(t1)
+
+    li t0, 'e'
+    sw t0, 0(t1)
+
+    li t0, 'l'
+    sw t0, 0(t1)
+
+    li t0, 'l'
+    sw t0, 0(t1)
+
+    li t0, 'o'
+    sw t0, 0(t1)
+
+    li t0, 'W'
+    sw t0, 0(t1)
+
+    li t0, 'o'
+    sw t0, 0(t1)
+
+    li t0, 'r'
+    sw t0, 0(t1)
+
+    li t0, 'l'
+    sw t0, 0(t1)
+
+    li t0, 'd'
+    sw t0, 0(t1)
+
+    j print_hello          # Repeat forever
