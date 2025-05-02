@@ -1,26 +1,25 @@
 import chisel3._
 import chisel3.util._
 
-// prescaler thingy for pwm, divides clock by pwm_div
-
+// generates tick signal every pwm_div-1 cycles
+// assumes pwm_div is always >= 1.
 class Prescaler extends Module {
   val io = IO(new Bundle {
-    val pwm_div = Input(UInt(8.W))
-    val clk_prescaled = Output(Bool())
+    val pwm_div = Input(UInt(8.W)) 
+    val enable_tick = Output(Bool()) 
   })
 
-// counter register, 8 bits wide
-  val counter = RegInit(0.U(8.W)) // counts cycles
-  val toggle = RegInit(false.B) // flips to make the output clock
+  val counter = RegInit(0.U(8.W))
+  val tick = WireDefault(false.B)
 
-// count up, flip the toggle when we hit the divisor-1
-// check if counter is one less than the divisor
+  //tick generator every pwm_div-1 cycles
   when(counter === (io.pwm_div - 1.U)) {
-    counter := 0.U // reset counter
-    toggle := ~toggle // flip the output bit
-  } .otherwise {
-    counter := counter + 1.U // keep counting if not resetting
+    counter := 0.U
+    tick := true.B
+  }.otherwise {
+    counter := counter + 1.U
+    tick := false.B
   }
-  
-  io.clk_prescaled := toggle
+
+  io.enable_tick := tick
 }

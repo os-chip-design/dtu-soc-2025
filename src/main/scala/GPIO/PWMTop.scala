@@ -19,7 +19,7 @@ class PWMTop extends Module {
     prescaler.io.pwm_div := io.pwm_div
 
     // pwm generator inputs
-    pwmGenerator.io.clk_prescaled := prescaler.io.clk_prescaled
+    pwmGenerator.io.enable_tick := prescaler.io.enable_tick 
     pwmGenerator.io.duty_cycle := io.duty_cycle
     pwmGenerator.io.pwm_en := io.pwm_en
     pwmGenerator.io.pwm_period := io.pwm_period
