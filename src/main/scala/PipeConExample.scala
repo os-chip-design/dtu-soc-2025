@@ -1,7 +1,7 @@
 import chisel3._
 import chisel3.util._
 
-class PipeConExample(file: String, addrWidth: Int, devices: Int) extends Module {
+class PipeConExample(file: String, addrWidth: Int) extends Module {
   val io = IO(new Bundle { // should be empty when not testing
     val cpuRdAddress = Output(UInt(32.W))
     val cpuRdData = Output(UInt(32.W))
@@ -31,6 +31,7 @@ class PipeConExample(file: String, addrWidth: Int, devices: Int) extends Module 
     ("h00000010".U, "h0000001F".U),  // Device 1 (SPI)
     ("h00000020".U, "h0000002F".U)   // Device 3 (GPIO)
   )
+  val devices = addressRanges.length
   val interconnect = Module(new PipeConInterconnect(file, addrWidth, devices, addressRanges))
   val UARTPeripheral = Module(new UARTPeripheral(addrWidth))
   val SPIPeripheral = Module(new SPIPeripheral(addrWidth))

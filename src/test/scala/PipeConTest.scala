@@ -4,13 +4,12 @@ import org.scalatest.flatspec.AnyFlatSpec
 import java.io.{File, IOException}
 
 
-class PipeConInterconnectTest extends AnyFlatSpec with ChiselScalatestTester {
-
+class PipeConExampleTest extends AnyFlatSpec with ChiselScalatestTester {
   "PipeConExample" should "svart" in {
     // Path to testfile
     val testfile = getClass.getResource("/hello.bin").getPath
 
-    test(new PipeConExample(testfile, addrWidth = 32, devices = 3)).withAnnotations(Seq(WriteVcdAnnotation, IcarusBackendAnnotation)) { c =>
+    test(new PipeConExample(testfile, addrWidth = 32)).withAnnotations(Seq(WriteVcdAnnotation, IcarusBackendAnnotation)) { c =>
       val expected = "HelloWorld".map(_.toByte) // List of ASCII bytes
       var idx = 0 // To track the index in the expected data
 
@@ -23,14 +22,13 @@ class PipeConInterconnectTest extends AnyFlatSpec with ChiselScalatestTester {
       }
     }
   }
-  "PipeConTest2" should "instantiate correctly and write to UART" in {
-class PipeConExampleTest extends AnyFlatSpec with ChiselScalatestTester {
+
   "PipeConTest" should "instantiate correctly and write to UART" in {
 
     // Path to testfile
     val testfile = getClass.getResource("/hello.bin").getPath
 
-    test(new PipeConExample(testfile, addrWidth = 32, devices = 2)).withAnnotations(Seq(WriteVcdAnnotation, VerilatorBackendAnnotation)) { c =>
+    test(new PipeConExample(testfile, addrWidth = 32)).withAnnotations(Seq(WriteVcdAnnotation, IcarusBackendAnnotation)) { c =>
       val expected = "HelloWorld".map(_.toByte) // List of ASCII bytes
       var idx = 0 // To track the index in the expected data
 
@@ -65,7 +63,7 @@ class PipeConExampleTest extends AnyFlatSpec with ChiselScalatestTester {
     // Path to testfile
     val testfile = getClass.getResource("/hello.bin").getPath
 
-    test(new PipeConExample(testfile, addrWidth = 32, devices = 2)).withAnnotations(Seq(WriteVcdAnnotation, VerilatorBackendAnnotation)) { c =>
+    test(new PipeConExample(testfile, addrWidth = 32)).withAnnotations(Seq(WriteVcdAnnotation, IcarusBackendAnnotation)) { c =>
       val expected = "HelloWorl".map(_.toByte) // Incorrect expected value (without 'd')
       var idx = 0 // To track the index in the expected data
 
@@ -100,36 +98,34 @@ class PipeConExampleTest extends AnyFlatSpec with ChiselScalatestTester {
     }
   }
 
-"PipeConTest" should "run poll.bin and write to UART when finished" in {
-  // Load the binary file from test resources
-  val testfile = getClass.getResource("/poll.bin").getPath
+  "PipeConTest" should "run poll.bin and write to UART when finished" in {
+    // Load the binary file from test resources
+    val testfile = getClass.getResource("/poll.bin").getPath
 
-  test(new PipeConExample(testfile, addrWidth = 32, devices = 2)).withAnnotations(Seq(WriteVcdAnnotation, VerilatorBackendAnnotation)) { c =>
-    c.clock.setTimeout(0)
+    test(new PipeConExample(testfile, addrWidth = 32)).withAnnotations(Seq(WriteVcdAnnotation, IcarusBackendAnnotation)) { c =>
+      c.clock.setTimeout(0)
 
-    val maxCycles = 100
-    println(s"Running $maxCycles cycles...")
+      val maxCycles = 100
+      println(s"Running $maxCycles cycles...")
 
-    for (cycle <- 0 until maxCycles) {
-      // Simulate one clock step
-      c.clock.step(1)
+      for (cycle <- 0 until maxCycles) {
+        // Simulate one clock step
+        c.clock.step(1)
 
-      // UART output
-      if (c.io.uart_wr.peek().litToBoolean) {
-        val uartChar = c.io.uart_wrData.peek().litValue.toByte.toChar
-        //println(s"[UART] Wrote: '$uartChar'")
-      }
+        // UART output
+        if (c.io.uart_wr.peek().litToBoolean) {
+          val uartChar = c.io.uart_wrData.peek().litValue.toByte.toChar
+          //println(s"[UART] Wrote: '$uartChar'")
+        }
 
-      // Memory reads (simulate address polling)
-      if (c.io.cpuRdEnable.peek().litValue != 0) {
-        val readAddr = c.io.cpuRdAddress.peek().litValue
-        val readData = c.io.cpuRdData.peek().litValue
-        println(f"[CPU] Read from 0x$readAddr%08X: 0x$readData%08X")
+        // Memory reads (simulate address polling)
+        if (c.io.cpuRdEnable.peek().litValue != 0) {
+          val readAddr = c.io.cpuRdAddress.peek().litValue
+          val readData = c.io.cpuRdData.peek().litValue
+          println(f"[CPU] Read from 0x$readAddr%08X: 0x$readData%08X")
+        }
       }
     }
   }
 }
 
-}
-  }
-}
