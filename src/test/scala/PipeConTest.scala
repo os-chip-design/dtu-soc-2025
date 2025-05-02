@@ -5,11 +5,8 @@ import java.io.{File, IOException}
 
 class PipeConInterconnectTest extends AnyFlatSpec with ChiselScalatestTester {
   "PipeConTest2" should "instantiate correctly and write to UART" in {
-    // Path to your file, relative to the project root or use absolute path
-    val dir = "/home/rasmus/Downloads/02118_IntroductionToChipDesign/dtu-soc-2025/src/main/scala/c/"
-    val filename = "hello.bin"
-
-    val testfile = dir + filename
+    // Path to testfile
+    val testfile = getClass.getResource("/hello.bin").getPath
 
     test(new PipeConInterconnect(testfile, addrWidth = 32, devices = 2)).withAnnotations(Seq(WriteVcdAnnotation, VerilatorBackendAnnotation)) { c =>
       val expected = "HelloWorld".map(_.toByte) // List of ASCII bytes
@@ -43,11 +40,7 @@ class PipeConInterconnectTest extends AnyFlatSpec with ChiselScalatestTester {
   }
 
   "PipeConTest2" should "fail when the expected value is not HelloWorld" in {
-    // Path to your file, relative to the project root or use absolute path
-    //val dir = "/home/rasmus/Downloads/02118_IntroductionToChipDesign/dtu-soc-2025/src/main/scala/c/"
-    //val filename = "hello.bin"
-//
-    //val testfile = dir + filename
+    // Path to testfile
     val testfile = getClass.getResource("/hello.bin").getPath
 
     test(new PipeConInterconnect(testfile, addrWidth = 32, devices = 2)).withAnnotations(Seq(WriteVcdAnnotation, VerilatorBackendAnnotation)) { c =>
@@ -86,11 +79,8 @@ class PipeConInterconnectTest extends AnyFlatSpec with ChiselScalatestTester {
   }
 
   "PipeConTest2" should "run poll.bin and write to UART when finished" in {
-    // Path to your file, relative to the project root or use absolute path
-    val dir = "/home/rasmus/Downloads/02118_IntroductionToChipDesign/dtu-soc-2025/src/main/scala/c/"
-    val filename = "poll.bin"
-
-    val testfile = dir + filename
+    // Path to testfile
+    val testfile = getClass.getResource("/poll.bin").getPath
 
     test(new PipeConInterconnect(testfile, addrWidth = 32, devices = 2)).withAnnotations(Seq(WriteVcdAnnotation, VerilatorBackendAnnotation)) { c =>
       c.clock.setTimeout(0)
