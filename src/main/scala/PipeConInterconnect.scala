@@ -18,7 +18,9 @@ class PipeConInterconnect(file: String, addrWidth: Int, devices: Int) extends Mo
   })
   val addressRanges = Seq(
     ("h00000000".U, "h0000000F".U),  // Device 0 (UART)
-    ("h00000010".U, "h0000001F".U)   // Device 1 (SPI)
+    ("h00000010".U, "h0000001F".U),   // Device 1 (SPI)
+    ("h00000020".U, "h0000002F".U)   // Device 3 (GPIO)
+
   )
 
   val (memory, start) = Util.getCode(file)

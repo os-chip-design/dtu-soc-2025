@@ -4,6 +4,23 @@ import org.scalatest.flatspec.AnyFlatSpec
 import java.io.{File, IOException}
 
 class PipeConInterconnectTest extends AnyFlatSpec with ChiselScalatestTester {
+  "PipeConExample" should "svart" in {
+    // Path to testfile
+    val testfile = getClass.getResource("/hello.bin").getPath
+
+    test(new PipeConExample(testfile, addrWidth = 32, devices = 3)).withAnnotations(Seq(WriteVcdAnnotation, IcarusBackendAnnotation)) { c =>
+      val expected = "HelloWorld".map(_.toByte) // List of ASCII bytes
+      var idx = 0 // To track the index in the expected data
+
+      c.clock.setTimeout(0)
+
+      // Run for a fixed number of cycles (e.g., 100 cycles)
+      for (_ <- 0 until 100) {
+        // If wr signal is high, check if the received data matches the expected data at index idx
+        c.clock.step(1)
+      }
+    }
+  }
   "PipeConTest2" should "instantiate correctly and write to UART" in {
     // Path to testfile
     val testfile = getClass.getResource("/hello.bin").getPath
