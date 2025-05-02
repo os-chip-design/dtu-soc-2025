@@ -1,45 +1,42 @@
-#  SPI Controller – Register Map
-
-This document uses a clean field table format for each SPI register.
+# 📦 SPI Controller – Register Map
 
 ---
 
-##  TX Register
+## ✅ `txReg0` and `txReg1`
 
-| Bit Range | Field Name | Width | Description                    |
-|-----------|-------------|--------|--------------------------------|
-| 31:0      | `tx_data`   | 32     | Data to transmit via SPI       |
-
----
-
-##  RX Register
-
-| Bit Range | Field Name | Width | Description                    |
-|-----------|-------------|--------|--------------------------------|
-| 31:0      | `rx_data`   | 32     | Data received from SPI         |
+| Register | Bit Range | Field Name        | Width | Description                         |
+|----------|-----------|-------------------|--------|-------------------------------------|
+| `txReg0` | 31:0      | `tx_data[31:0]`   | 32     | Lower 32 bits of SPI transmit data  |
+| `txReg1` | 31:0      | `tx_data[63:32]`  | 32     | Upper 32 bits of SPI transmit data  |
 
 ---
 
-## ⚙ Control Register
+## ✅ `rxReg0` and `rxReg1`
+
+| Register | Bit Range | Field Name        | Width | Description                         |
+|----------|-----------|-------------------|--------|-------------------------------------|
+| `rxReg0` | 31:0      | `rx_data[31:0]`   | 32     | Lower 32 bits of SPI received data  |
+| `rxReg1` | 31:0      | `rx_data[63:32]`  | 32     | Upper 32 bits of SPI received data  |
+
+---
+
+## ⚙ `controlReg`
 
 | Bit Range | Field Name           | Width | Description                                |
 |-----------|----------------------|--------|--------------------------------------------|
-| 31:26     | Reserved             | 6      | Reserved (must write 0)                    |
-| 25:23     | `spi_cs_select`      | 3      | Chip select index (0–7)    (maybe)         |
-| 22:18     | `spi_receive_length` | 5      | Number of bits to receive                  |
-| 17:13     | `spi_delay_cycles`   | 5      | Delay cycles between send and recevie      |
-| 12:8      | `spi_send_length`    | 5      | Number of bits to transmit                 |
-| 7         | `spi_enable`         | 1      | Enable SPI controller                      |
-| 6:2       | `spi_prescale`       | 5      | SPI clock divider                          |
+| 31        | `spi_enable`         | 1      | Write 1 to start SPI transaction           |
+| 30:27     | Reserved             | 4      | Reserved (must write 0)                    |
+| 26:20     | `spi_receive_length` | 7      | Number of bits to receive                  |
+| 19:13     | `spi_delay_cycles`   | 7      | Delay cycles between send and receive      |
+| 12:6      | `spi_send_length`    | 7      | Number of bits to transmit                 |
+| 5:2       | `spi_prescale`       | 4      | SPI clock divider                          |
 | 1:0       | `spi_mode`           | 2      | SPI mode (CPOL/CPHA)                       |
 
 ---
 
-##  Flag Register
+## 🏁 `flagReg`
 
-| Bit Range | Field Name          | Width | Description                                         |
-|-----------|---------------------|--------|-----------------------------------------------------|
-| 31:3      | Reserved            | 29     | Reserved                                            |
-| 2         | `start_transaction` | 1      | Start SPI transfer                                  |
-| 1         | `rx_data_ready`     | 1      | Set when RX data is ready (clear after reading)     |
-| 0         | `tx_data_ready`     | 1      | Set when ready for TX data (clear after writing)    |
+| Bit Range | Field Name | Width | Description                                              |
+|-----------|------------|--------|----------------------------------------------------------|
+| 31:1      | Reserved   | 30     | Reserved (reads as 0)                                    |
+| 0         | `ready`    | 1      | Set when SPI controller is idle and ready for new input  |

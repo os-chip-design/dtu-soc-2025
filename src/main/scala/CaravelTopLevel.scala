@@ -1,6 +1,7 @@
 import chisel3._
 import chisel3.util._
 import chisel3.experimental.Analog
+import wildcat.pipeline.ThreeCats
 
 /*
 module user_project_wrapper #(
@@ -96,6 +97,8 @@ class CaravelTopLevel extends RawModule {
   // Digital logic inside this block.
 
   /**
+   * Conventional LA selection of signals.
+   *
    * assign la_data_out = {{(128-BITS){1'b0}}, count};
    * // Assuming LA probes [63:32] are for controlling the count register  
    * assign la_write = ~la_oenb[63:64-BITS] & ~{BITS{valid}};
@@ -107,20 +110,39 @@ class CaravelTopLevel extends RawModule {
   private val clk = Wire(Clock())
   private val rst = Wire(Bool())
 
-  when(!io.la_oenb(64)) {
-    clk := io.la_data_in(64).asClock
-  }.otherwise {
-    clk := io.wb_clk_i
-  }
+  //when(io.la_oenb(64)) {
+  //  clk := io.la_data_in(64).asClock
+  // }.otherwise {
+  clk := io.wb_clk_i
+  // }
 
-  when(!io.la_oenb(65)) {
-    rst := io.la_data_in(65)
-  }.otherwise {
-    rst := io.wb_rst_i
-  }
+  // when(io.la_oenb(65)) {
+  //  rst := io.la_data_in(65)
+  // }.otherwise {
+  rst := io.wb_rst_i
+  // }
+
+  private val uartRx = Wire(Bool())
+  private val uartTx = Wire(Bool())
+
+  // ser_rx (e7)
+  uartRx := io.io_in(5)
+  // ser_tx (f7)
+  uartTx := io.io_out(6)
+
+  io.wbs_ack_o := 0.U
+  io.wbs_dat_o := 0.U
+
+  io.io_out := 0.U
+  io.io_oeb := 0.U
 
   withClockAndReset(clk, rst) {
-    io.la_data_out := !rst.asUInt
+    // Internal communication (bus)
+    // val interconnect = Module(new PipeConInterconnect(32))
+
+    // Modules
+    // val uartWrapper = Module(new UartWrapper(1000, 300, 2, 2))
+    // val cpu = Module(new ThreeCats())
   }
 }
 
