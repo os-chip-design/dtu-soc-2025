@@ -13,21 +13,38 @@ class PipeConInterconnectTest extends AnyFlatSpec with ChiselScalatestTester {
     val testfile = dir + filename
 
     test(new PipeConInterconnect(testfile, addrWidth = 32, devices = 2)).withAnnotations(Seq(WriteVcdAnnotation, VerilatorBackendAnnotation)) { c =>
-        c.clock.setTimeout(0)
-        for (i <- 0 until 100) {
-            if (c.io.cpu.ack.peek().litToBoolean) {
-            //    // Directly compare the value and convert to hex for the error message
-            //    val wrDataValue = c.io.uart.wrData.peek()
-            //    assert(wrDataValue === 0x48.U, s"Test failed: Expected 0x48 but got 0x${wrDataValue.toString(16)}")
-            }
-            c.clock.step(1)     
+      val expected = "HelloWorld".map(_.toByte) // List of ASCII bytes
+      var idx = 0 // To track the index in the expected data
+
+      c.clock.setTimeout(0)
+
+      // Run for a fixed number of cycles (e.g., 100 cycles)
+      for (_ <- 0 until 100) {
+        // If wr signal is high, check if the received data matches the expected data at index idx
+        if (c.io.cpu2.wr.peek().litToBoolean) {
+          val data = c.io.device(0).wrData.peek().litValue.toByte
+          assert(data == expected(idx), 
+            s"Test failed at index $idx: expected '${expected(idx).toChar}', got '${data.toChar}'")
+          
+          idx += 1 // Move to the next expected character if matched
+          
+          if (idx >= expected.length) {
+            // If we've matched the whole expected string, loop back to the start
+            idx = 0
+          }
         }
-        if (c.io.device(0).wr.peek() == true.B) {
-          println(s"UART wrote: ${c.io.device(0).wrData.peek().litValue.toChar}")
-        }
-      // For now, we just verify it instantiates and doesn't crash
-      println("PipeConInterconnect instantiated successfully.")
+
+        // Step the clock
+        c.clock.step(1)
+      }
+
+      // If everything has passed, the test will just complete successfully
+      assert(true, "Test completed without fatal errors.")
     }
+
+
+
+
   }
 
   "PipeConTest2" should "run poll.bin and write to UART when finished" in {

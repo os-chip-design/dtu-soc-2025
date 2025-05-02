@@ -30,7 +30,7 @@ class PipeConInterconnect(file: String, addrWidth: Int, devices: Int) extends Mo
   io.cpu.ack := cpu.io.dmem.stall
   io.cpu2.address := 0.U
   io.cpu2.rd := cpu.io.dmem.rdEnable
-  io.cpu2.wr := 0.U
+  io.cpu2.wr := cpu.io.dmem.wrEnable.reduce(_ || _)
   io.cpu2.wrData := cpu.io.dmem.wrData
   io.cpu2.wrMask := 0.U
 
