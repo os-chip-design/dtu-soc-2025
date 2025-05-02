@@ -4,8 +4,9 @@ import pya
 
 layout = pya.Layout()
 
-# Layers
 top = layout.create_cell("t")
+
+# Layers
 m1 = layout.layer(68, 20) # metal1
 m1label = layout.layer(68, 5) # metal1 label
 m2 = layout.layer(69, 20) # metal2

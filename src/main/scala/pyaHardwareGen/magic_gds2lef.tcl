@@ -1,3 +1,3 @@
-gds read t.gds
-load t
-lef write t.lef -pinonly
+gds read memcellcustom.gds
+load memcellcustom
+lef write memcellcustom.lef -pinonly

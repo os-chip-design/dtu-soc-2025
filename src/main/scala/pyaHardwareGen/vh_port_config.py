@@ -1,7 +1,6 @@
 import csv
 import sys
 
-modulename = "t"
 
 power_def_string = """`ifdef USE_POWER_PINS
     inout VPWR,
@@ -16,6 +15,7 @@ def main():
         return 1
 
     port_config = sys.argv[1]
+    modulename = port_config.split("_")[0]
 
     output = []
     output.append("module " + modulename + " (\n")
@@ -30,6 +30,8 @@ def main():
                 continue
             else:
                 output.append("   " + row[1].lower() + " logic " + row[0] + ",\n")
+        # delete last comma
+        output[-1] = output[-1].rstrip(",\n") + "\n"
     
     output.append(");\n")
     output.append("\n")
