@@ -143,22 +143,22 @@ class CaravelTopLevel extends RawModule {
   )
   val addrWidth = 32
   val devices = 3 //antal rækker i addressRanges
-  val file = "binær_assembly_fil.bin"
+  //val file = "binær_assembly_fil.bin"
 
   withClockAndReset(clk, rst) {
     // Internal communication (bus)
     // val interconnect = Module(new PipeConInterconnect(32))
-    val interconnect = Module(new PipeConInterconnect(file, addrWidth, devices, addressRanges))
+    //val interconnect = Module(new PipeConInterconnect(file, addrWidth, devices, addressRanges))
 
     // Modules
     // val uartWrapper = Module(new UartWrapper(1000, 300, 2, 2))
     // val cpu = Module(new ThreeCats())
-    val UARTPeripheral = Module(new UARTPeripheral(addrWidth))
-    val SPIPeripheral = Module(new SPIPeripheral(addrWidth))
-    val GPIOPeripheral = Module(new GPIOPeripheral(addrWidth, 8)) //8?
-    UARTPeripheral.io <> interconnect.io.device(0)
-    SPIPeripheral.io <> interconnect.io.device(1)
-    GPIOPeripheral.io.mem_ifc <> interconnect.io.device(2)
+    //val UARTPeripheral = Module(new UARTPeripheral(addrWidth))
+    //val SPIPeripheral = Module(new SPIPeripheral(addrWidth))
+    //val GPIOPeripheral = Module(new GPIOPeripheral(addrWidth, 8)) //8?
+    //UARTPeripheral.io <> interconnect.io.device(0)
+    //SPIPeripheral.io <> interconnect.io.device(1)
+    //GPIOPeripheral.io.mem_ifc <> interconnect.io.device(2)
 
   }
 }
