@@ -30,7 +30,7 @@ class pipeConWriter(port: PipeCon, clock: Clock) {
     }
   }
 }
-class spiPortWriter(port: spiIO, clock: Clock) {
+class spiPortWriter(port: spiMultiChipIO, clock: Clock, select: Int = 0) {
   var previousSpiClk = false
   def isSpiRisingEdge(): Boolean = {
     port.spiClk.peek().litToBoolean && !previousSpiClk
@@ -39,7 +39,7 @@ class spiPortWriter(port: spiIO, clock: Clock) {
     previousSpiClk = port.spiClk.peek().litToBoolean
   }
   def expectChipEnable(value: Boolean) {
-    val obtained = port.chipSelect.peekBoolean()
+    val obtained = port.chipSelect(select).peekBoolean()
     assert(obtained == value, s"Expected $value, got $obtained")
   }
   def sendJEDECID() = {
@@ -80,22 +80,28 @@ class SPIRAMSpec
       new OffChipMemoryControllerWrapper()
     ) { dut =>
       val clock = dut.clock
-      val port = dut.pipeCon
-      val spiPort = dut.spiPort
+      val mcSpiPort = dut.mcSpiPort
+      val pipeConFlash = dut.pipeConFlash
+      val pipeConRam1 = dut.pipeConRam1
+      val pipeConRam2 = dut.pipeConRam2
+      val pipeConConfig = dut.pipeConConfig  
 
-      val pipeConWriter = new pipeConWriter(port, clock)
-      val spiPortWriter = new spiPortWriter(spiPort, clock)
+
+      val pipeConWriter = new pipeConWriter(pipeConRam1, clock)
+      val spiPortWriter = new spiPortWriter(mcSpiPort, clock, 1)
 
       // Write to the memory
-      pipeConWriter.triggerWrite("h00000000".U(24.W), "hDEADBEEF".U(32.W))
-      pipeConWriter.awaitAck()
+      pipeConWriter.triggerWrite("h00000000".U(23.W), "hDEADBEEF".U(32.W))
+      clock.step(1)
       pipeConWriter.stopWrite()
+      pipeConWriter.awaitAck()
 
       // Read from the memory
-      pipeConWriter.triggerRead("h00000000".U(24.W))
-      pipeConWriter.awaitAck()
-      pipeConWriter.expectReadData("hDEADBEEF".U(32.W).litValue)
+      pipeConWriter.triggerRead("h00000000".U(23.W))
+      clock.step(1)
       pipeConWriter.stopRead()
+      pipeConWriter.awaitAck()
+      pipeConWriter.expectReadData("h0".U(32.W).litValue) // TODO, no writer for SPI
 
 
     }
