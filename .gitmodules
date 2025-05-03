@@ -6,3 +6,6 @@
 	url = https://github.com/schoeberl/wildcat
 [submodule "wildcat/soc-comm"]
 	url = https://github.com/t-crest/soc-comm.git
+[submodule "dtu-soc-2025"]
+  path = dtu-soc-2025
+  url = https://github.com/os-chip-design/dtu-soc-2025.git
