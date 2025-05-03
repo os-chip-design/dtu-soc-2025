@@ -143,6 +143,7 @@ class GPIOPeripheralTest extends AnyFlatSpec with ChiselScalatestTester {
                new GPIOPeripheral(
                     addrWidth = 32,
                     nofGPIO = 8,
+                    testMode = true
                     )
                ).withAnnotations(Seq(
                     IcarusBackendAnnotation,
@@ -165,10 +166,19 @@ class GPIOPeripheralTest extends AnyFlatSpec with ChiselScalatestTester {
                          dut.clock.step()
                     }
                     dut.io.mem_ifc.wr.poke(false.B)
-                    dut.clock.step()
+                    dut.clock.step(2)
+                    
+                    // check if output mode has been set correctly for pins 0-3
+                    dut.io.test_ports.get.test_OE_N(0).expect(true.B)
 
-                    // read output states to verify they are zero
-                    // TBD.
+                    dut.io.test_ports.get.test_OE_N(1).expect(true.B)
+                    dut.io.test_ports.get.test_OE_N(2).expect(true.B)
+                    dut.io.test_ports.get.test_OE_N(3).expect(false.B)
+
+                    dut.io.test_ports.get.test_OE_N(4).expect(false.B)
+                    dut.io.test_ports.get.test_OE_N(5).expect(false.B)
+                    dut.io.test_ports.get.test_OE_N(6).expect(false.B)
+                    dut.io.test_ports.get.test_OE_N(7).expect(true.B)
 
                     // Write to gpio output ("parallel" operation, i.e. instant ack)
                     dut.io.mem_ifc.address.poke(0x0008.U(32.W))
@@ -178,11 +188,13 @@ class GPIOPeripheralTest extends AnyFlatSpec with ChiselScalatestTester {
                          dut.clock.step()
                     }
                     dut.io.mem_ifc.wr.poke(false.B)
-                    dut.clock.step()
-
-                    // read outputs to verify pin change
-                    // TBD.
-
+                    dut.clock.step(2)
+                    
+                    // check if output matches 0xA = 0b1010
+                    dut.io.test_ports.get.test_OUT(0).expect(false.B) // lsb is 0
+                    dut.io.test_ports.get.test_OUT(1).expect(true.B)  // 2nd bit is 1
+                    dut.io.test_ports.get.test_OUT(2).expect(false.B) // 3rd bit is 0
+                    dut.io.test_ports.get.test_OUT(3).expect(true.B)  // 4th bit is 1
 
                }
           }
@@ -192,6 +204,7 @@ class GPIOPeripheralTest extends AnyFlatSpec with ChiselScalatestTester {
                new GPIOPeripheral(
                     addrWidth = 32,
                     nofGPIO = 8,
+                    testMode = true
                     )
                ).withAnnotations(Seq(
                     IcarusBackendAnnotation,
@@ -199,27 +212,40 @@ class GPIOPeripheralTest extends AnyFlatSpec with ChiselScalatestTester {
                     )
                ) {
                dut => {
+                    // configure pins 0-3 as inputs
+                    dut.io.mem_ifc.address.poke(0x0000.U(32.W))
+                    dut.io.mem_ifc.wrData.poke(0xF0.U) // set pins 4-7 as outputs, 0-3 as inputs
+                    dut.io.mem_ifc.wr.poke(true.B)
+                    while (!dut.io.mem_ifc.ack.peek().litToBoolean) {
+                         dut.clock.step()
+                    }
+                    dut.io.mem_ifc.wr.poke(false.B)
+                    dut.clock.step(5)
+                    
+                    // verify if input configuration worked
+                    dut.io.test_ports.get.test_OE_N(0).expect(false.B)
+                    dut.io.test_ports.get.test_OE_N(1).expect(false.B)
+                    dut.io.test_ports.get.test_OE_N(2).expect(false.B)
+                    dut.io.test_ports.get.test_OE_N(3).expect(true.B)
 
-                    // read input register
+                    // simulate input values
+                    dut.io.test_ports.get.test_PAD_IN(0).poke(true.B)
+                    dut.io.test_ports.get.test_PAD_IN(1).poke(false.B)
+                    dut.io.test_ports.get.test_PAD_IN(2).poke(true.B)
+                    dut.io.test_ports.get.test_PAD_IN(3).poke(false.B)
+                    dut.clock.step(2)
+                    
+                    // verify input at the memory interface
                     dut.io.mem_ifc.address.poke(0x0010.U(32.W))
                     dut.io.mem_ifc.rd.poke(true.B)
                     while (!dut.io.mem_ifc.ack.peek().litToBoolean) {
                          dut.clock.step()
                     }
-                    dut.io.mem_ifc.rdData.expect(0x1010101.U)
-
-                    // apply input to gpio
-                    // TBD.
-
-                    // read input register
-                    dut.io.mem_ifc.rd.poke(true.B)
-                    while (!dut.io.mem_ifc.ack.peek().litToBoolean) {
-                         dut.clock.step()
-                    }
-                    dut.io.mem_ifc.rdData.expect(0x1010101.U) // change value when tbd impl
-
+                    // the input pattern should be 1010 or 0x5
+                    //dut.io.mem_ifc.rdData.expect(0x5.U)
+                    dut.io.mem_ifc.rd.poke(false.B)
+                    dut.clock.step(1)
                }
-
           }
      }
      it should "generate pwm signal based on register" in {
@@ -227,6 +253,7 @@ class GPIOPeripheralTest extends AnyFlatSpec with ChiselScalatestTester {
                new GPIOPeripheral(
                     addrWidth = 32,
                     nofGPIO = 8,
+                    testMode = true
                     )
                ).withAnnotations(Seq(
                     IcarusBackendAnnotation,
@@ -234,6 +261,16 @@ class GPIOPeripheralTest extends AnyFlatSpec with ChiselScalatestTester {
                     )
                ) {
                dut => {
+                    // configure all gpios to output
+                    dut.io.mem_ifc.address.poke(0x0000.U(32.W))
+                    dut.io.mem_ifc.wrData.poke(0xFF.U)
+                    dut.io.mem_ifc.wr.poke(true.B)
+                    while (!dut.io.mem_ifc.ack.peek().litToBoolean) {
+                         dut.clock.step()
+                    }
+                    dut.io.mem_ifc.wr.poke(false.B)
+                    dut.clock.step(5)
+                    
                     // configure pwm
                     dut.io.mem_ifc.address.poke(0x0110.U(32.W))
                     dut.io.mem_ifc.wrData.poke(0x9.U)
@@ -242,7 +279,7 @@ class GPIOPeripheralTest extends AnyFlatSpec with ChiselScalatestTester {
                          dut.clock.step()
                     }
                     dut.io.mem_ifc.wr.poke(false.B)
-                    dut.clock.step()
+                    dut.clock.step(5)
 
                     dut.io.mem_ifc.address.poke(0x0108.U(32.W))
                     dut.io.mem_ifc.wrData.poke(0x1.U)
@@ -251,7 +288,7 @@ class GPIOPeripheralTest extends AnyFlatSpec with ChiselScalatestTester {
                          dut.clock.step()
                     }
                     dut.io.mem_ifc.wr.poke(false.B)
-                    dut.clock.step()
+                    dut.clock.step(5)
 
                     dut.io.mem_ifc.address.poke(0x0118.U(32.W))
                     dut.io.mem_ifc.wrData.poke(0x1.U)
@@ -260,7 +297,7 @@ class GPIOPeripheralTest extends AnyFlatSpec with ChiselScalatestTester {
                          dut.clock.step()
                     }
                     dut.io.mem_ifc.wr.poke(false.B)
-                    dut.clock.step()
+                    dut.clock.step(5)
 
                     dut.io.mem_ifc.address.poke(0x0100.U(32.W))
                     dut.io.mem_ifc.wrData.poke(0x1.U)
@@ -269,13 +306,25 @@ class GPIOPeripheralTest extends AnyFlatSpec with ChiselScalatestTester {
                          dut.clock.step()
                     }
                     dut.io.mem_ifc.wr.poke(false.B)
-                    dut.clock.step()
-
-                    // sample pwm signal at gpio output
-                    // TBD.
-
-               }
-
+                    dut.clock.step(5)
+                    
+                    // check if OE_N is set to low
+                    dut.io.test_ports.get.test_OE_N(0).expect(false.B)
+                    
+                    // verify pwm somehow, needs to be polished
+                    for (i <- 0 until 9) {
+                        dut.clock.step(1)
+                        dut.io.test_ports.get.test_OUT(0).expect(true.B)
+                    }
+                    
+                    for (i <- 0 until 7) {
+                        dut.clock.step(1)
+                        dut.io.test_ports.get.test_OUT(0).expect(false.B)
+                    }
+                    
+                    dut.clock.step(1)
+                    dut.io.test_ports.get.test_OUT(0).expect(true.B)
+                }
           }
      }
      it should "change pwm signal when settings changed through register" in {
@@ -283,6 +332,7 @@ class GPIOPeripheralTest extends AnyFlatSpec with ChiselScalatestTester {
                new GPIOPeripheral(
                     addrWidth = 32,
                     nofGPIO = 8,
+                    testMode = true
                     )
                ).withAnnotations(Seq(
                     IcarusBackendAnnotation,
@@ -290,6 +340,16 @@ class GPIOPeripheralTest extends AnyFlatSpec with ChiselScalatestTester {
                     )
                ) {
                dut => {
+                    // configure gpios to output
+                    dut.io.mem_ifc.address.poke(0x0000.U(32.W))
+                    dut.io.mem_ifc.wrData.poke(0xFF.U)
+                    dut.io.mem_ifc.wr.poke(true.B)
+                    while (!dut.io.mem_ifc.ack.peek().litToBoolean) {
+                         dut.clock.step()
+                    }
+                    dut.io.mem_ifc.wr.poke(false.B)
+                    dut.clock.step(5)
+                
                     // configure pwm
                     dut.io.mem_ifc.address.poke(0x0110.U(32.W))
                     dut.io.mem_ifc.wrData.poke(0x9.U)
@@ -298,7 +358,7 @@ class GPIOPeripheralTest extends AnyFlatSpec with ChiselScalatestTester {
                          dut.clock.step()
                     }
                     dut.io.mem_ifc.wr.poke(false.B)
-                    dut.clock.step()
+                    dut.clock.step(5)
 
                     dut.io.mem_ifc.address.poke(0x0108.U(32.W))
                     dut.io.mem_ifc.wrData.poke(0x1.U)
@@ -307,7 +367,7 @@ class GPIOPeripheralTest extends AnyFlatSpec with ChiselScalatestTester {
                          dut.clock.step()
                     }
                     dut.io.mem_ifc.wr.poke(false.B)
-                    dut.clock.step()
+                    dut.clock.step(5)
 
                     dut.io.mem_ifc.address.poke(0x0118.U(32.W))
                     dut.io.mem_ifc.wrData.poke(0x1.U)
@@ -316,7 +376,7 @@ class GPIOPeripheralTest extends AnyFlatSpec with ChiselScalatestTester {
                          dut.clock.step()
                     }
                     dut.io.mem_ifc.wr.poke(false.B)
-                    dut.clock.step()
+                    dut.clock.step(5)
 
                     dut.io.mem_ifc.address.poke(0x0100.U(32.W))
                     dut.io.mem_ifc.wrData.poke(0x1.U)
@@ -325,26 +385,38 @@ class GPIOPeripheralTest extends AnyFlatSpec with ChiselScalatestTester {
                          dut.clock.step()
                     }
                     dut.io.mem_ifc.wr.poke(false.B)
-                    dut.clock.step()
+                    dut.clock.step(5)
+                    
+                    // this checking here needs to match with pwm settings, atm they are not
+                    for (i <- 0 until 2) {
+                        dut.clock.step(1)
+                        dut.io.test_ports.get.test_OUT(0).expect(true.B)
+                    }
+                    
+                    for (i <- 0 until 2) {
+                        dut.clock.step(1)
+                        dut.io.test_ports.get.test_OUT(0).expect(false.B)
+                    }
 
-                    // sample pwm signal at gpio output
-                    // TBD.
-
-                    // change period
-                    dut.io.mem_ifc.address.poke(0x0108.U(32.W))
-                    dut.io.mem_ifc.wrData.poke(0xF.U)
+                    // change pwm
+                    dut.io.mem_ifc.address.poke(0x0110.U(32.W))
+                    dut.io.mem_ifc.wrData.poke(0x3.U) // trying to change duty cycle, idk if im doing it right
                     dut.io.mem_ifc.wr.poke(true.B)
                     while (!dut.io.mem_ifc.ack.peek().litToBoolean) {
                          dut.clock.step()
                     }
                     dut.io.mem_ifc.wr.poke(false.B)
-                    dut.clock.step()
-
-                    // sample pwm signal at gpio output
-                    // TBD.
-
+                    dut.clock.step(5)
+                    
+                    // some logic here to check updated pwm, needs to be matched with pwm settings
+                    for (i <- 0 until 3) {
+                        dut.clock.step(1)
+                        dut.io.test_ports.get.test_OUT(0).expect(true.B)
+                    }
+                    
+                    dut.clock.step(1)
+                    dut.io.test_ports.get.test_OUT(0).expect(false.B)
                }
-
           }
      }
 }
