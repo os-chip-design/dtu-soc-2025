@@ -13,6 +13,7 @@ class TopLevel extends Module {
     val gpio_out = Output(UInt(gpioPins.W))
     val gpio_oeb = Output(UInt(gpioPins.W))
 
+    val mem = new NativeMemoryInterface(DATA_WIDTH = 32, ADDR_WIDTH = 9, WMASK_WIDTH = 4)
     val imem = new InstrIO()
   })
 
@@ -33,12 +34,12 @@ class TopLevel extends Module {
   val UARTPeripheral = Module(new UARTPeripheral(addrWidth))
   val SPIPeripheral = Module(new SPIPeripheral(addrWidth))
   val GPIOPeripheral = Module(new GPIOPeripheral(addrWidth, gpioPins))
-  val MemoryInterface = Module(new MemoryInterface16KB(addrWidth))
+  val NativeMemory2Pipecon = Module(new NativeMemory2Pipecon(DATA_WIDTH = 32, ADDR_WIDTH = 9, WMASK_WIDTH = 4))
 
   UARTPeripheral.io <> interconnect.io.device(0)
   SPIPeripheral.io <> interconnect.io.device(1)
   GPIOPeripheral.io.mem_ifc <> interconnect.io.device(2)
-  MemoryInterface.io.pipe <> interconnect.io.device(3)
+  NativeMemory2Pipecon.io.pipe <> interconnect.io.device(3)
 
   // Connections
   SPIPeripheral.testIo.testRdData := DontCare
@@ -59,7 +60,7 @@ class TopLevel extends Module {
   }
 
   // TODO: Connect memory to output.
-  MemoryInterface.io.memrdata := DontCare
+  NativeMemory2Pipecon.io.native <> io.mem
 
   // TODO: Connect UART module to UARTPeripheral for data exchange
   uart.io.tx_valid := DontCare
