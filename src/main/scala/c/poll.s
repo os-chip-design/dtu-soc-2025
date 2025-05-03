@@ -1,55 +1,45 @@
     .global _start
 
 _start:
-    li t1, 0x00            # Start address (0)
-    li t2, 0x1F            # End address (10)
+    li t1, 0x00            # Start address
+    li t2, 0x1F            # End address (exclusive)
 
 poll_addresses:
-    # Check if the address has something (just an example, assuming a peripheral at that address)
-    lw t3, 0(t1)           # Load the value at the current address (t1)
-    bnez t3, detected      # If the value is non-zero, stop (something detected)
+    lw t3, 0(t1)           # Load word from current address
+    bnez t3, handle_found  # If found something, go handle it
 
-    # Increment address and check the next one
-    addi t1, t1, 4         # Increment the address by 4 (assuming 32-bit access)
-    blt t1, t2, poll_addresses  # If t1 < t2, continue polling
+next_address:
+    addi t1, t1, 4         # Increment address by 4 bytes
+    blt t1, t2, poll_addresses  # Loop if not at end
+    j print_hello               # Otherwise, done polling — print message
 
-    # If no peripherals detected, print 'Hello World'
-    li t1, 0x04            # UART base address (assuming UART at 0x04)
+handle_found:
+    # Example of handling found data (here we just nop)
+    nop                    # Placeholder for processing the detected data
+    j next_address         # Continue with the next address
 
 print_hello:
+    li t1, 0x04            # UART base address (assuming 0x04)
+
     li t0, 'H'
     sw t0, 0(t1)
-
     li t0, 'e'
     sw t0, 0(t1)
-
     li t0, 'l'
     sw t0, 0(t1)
-
     li t0, 'l'
     sw t0, 0(t1)
-
     li t0, 'o'
     sw t0, 0(t1)
-
     li t0, 'W'
     sw t0, 0(t1)
-
     li t0, 'o'
     sw t0, 0(t1)
-
     li t0, 'r'
     sw t0, 0(t1)
-
     li t0, 'l'
     sw t0, 0(t1)
-
     li t0, 'd'
     sw t0, 0(t1)
 
-    j print_hello          # Repeat forever
-
-detected:
-    # If a peripheral was detected, halt the program
-    li a7, 10              # Syscall for exit (this can vary based on system)
-    ecall                  # Make syscall to stop
+    j print_hello          # Loop forever
