@@ -36,7 +36,7 @@ class PipeConExample(file: String, addrWidth: Int) extends Module {
   val addressRanges = Seq(
     ("h00000000".U, "h0000000F".U),  // Device 0 (UART)
     ("h00000010".U, "h0000001F".U),  // Device 1 (SPI)
-    ("h00000020".U, "h0000002F".U)   // Device 3 (GPIO)
+    ("h00000020".U, "h0000002F".U)   // Device 2 (GPIO)
   )
   val devices = addressRanges.length
   val interconnect = Module(new PipeConInterconnect(file, addrWidth, devices, addressRanges))
