@@ -5,9 +5,9 @@ import java.io.{File, IOException}
 
 
 class PipeConExampleTest extends AnyFlatSpec with ChiselScalatestTester {
-  "PipeConExample" should "svart" in {
+  "PipeConExample" should "Write to actual GPIOperipheral" in {
     // Path to testfile
-    val testfile = getClass.getResource("/hello.bin").getPath
+    val testfile = getClass.getResource("/helloGPIO.bin").getPath
 
     test(new PipeConExample(testfile, addrWidth = 32)).withAnnotations(Seq(WriteVcdAnnotation, IcarusBackendAnnotation)) { c =>
       val expected = "HelloWorld".map(_.toByte) // List of ASCII bytes
@@ -18,8 +18,24 @@ class PipeConExampleTest extends AnyFlatSpec with ChiselScalatestTester {
       // Run for a fixed number of cycles (e.g., 100 cycles)
       for (_ <- 0 until 100) {
         // If wr signal is high, check if the received data matches the expected data at index idx
+        if (c.io.cpuWrEnable.peek().litValue != 0) {
+          val data = c.io.GPIO_wrData.peek().litValue.toByte
+          assert(data == expected(idx), 
+            s"Test failed at index $idx: expected '${expected(idx).toChar}', got '${data.toChar}'")
+          
+          idx += 1 // Move to the next expected character if matched
+          
+          if (idx >= expected.length) {
+            // If we've matched the whole expected string, loop back to the start
+            idx = 0
+          }
+        }
+
+        // Step the clock
         c.clock.step(1)
       }
+      assert(true, "Test completed without fatal errors.")
+
     }
   }  
   

@@ -1,5 +1,5 @@
 # Existing assembly flow
-all: hello.bin hello_c.bin poll.bin poll_c.bin resources
+all: hello.bin helloGPIO.bin hello_c.bin poll.bin poll_c.bin resources
 
 # Assembly: hello
 hello.o: hello.s
@@ -11,6 +11,18 @@ hello.elf: hello.o
 hello.bin: hello.elf
 	riscv64-unknown-elf-objcopy -O binary hello.elf hello.bin
 	riscv64-unknown-elf-objdump -d -S hello.elf > hello.disasm
+
+# Assembly: helloGPIO
+helloGPIO.o: helloGPIO.s
+	riscv64-unknown-elf-as -march=rv32i -mabi=ilp32 helloGPIO.s -o helloGPIO.o
+
+helloGPIO.elf: helloGPIO.o
+	riscv64-unknown-elf-ld -m elf32lriscv -Ttext=0x0 helloGPIO.o -o helloGPIO.elf
+
+helloGPIO.bin: helloGPIO.elf
+	riscv64-unknown-elf-objcopy -O binary helloGPIO.elf helloGPIO.bin
+	riscv64-unknown-elf-objdump -d -S helloGPIO.elf > helloGPIO.disasm
+
 
 # C: hello
 hello_c.o: hello.c

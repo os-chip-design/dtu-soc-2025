@@ -24,6 +24,13 @@ class PipeConExample(file: String, addrWidth: Int) extends Module {
     val spi_wrData = Output(UInt(32.W)) 
     val spi_wrMask = Output(UInt(4.W)) 
     val spi_ack = Output(Bool()) 
+    val GPIO_address = Output(UInt(addrWidth.W)) 
+    val GPIO_rd = Output(Bool()) 
+    val GPIO_wr = Output(Bool()) 
+    val GPIO_rdData = Output(UInt(32.W)) 
+    val GPIO_wrData = Output(UInt(32.W)) 
+    val GPIO_wrMask = Output(UInt(4.W)) 
+    val GPIO_ack = Output(Bool()) 
   })
 
   val addressRanges = Seq(
@@ -57,6 +64,14 @@ class PipeConExample(file: String, addrWidth: Int) extends Module {
   io.spi_wrData := SPIPeripheral.io.wrData
   io.spi_wrMask := SPIPeripheral.io.wrMask
   io.spi_ack := SPIPeripheral.io.ack
+
+  io.GPIO_address := GPIOPeripheral.io.mem_ifc.address
+  io.GPIO_rd := GPIOPeripheral.io.mem_ifc.rd
+  io.GPIO_wr := GPIOPeripheral.io.mem_ifc.wr
+  io.GPIO_rdData := GPIOPeripheral.io.mem_ifc.rdData
+  io.GPIO_wrData := GPIOPeripheral.io.mem_ifc.wrData
+  io.GPIO_wrMask := GPIOPeripheral.io.mem_ifc.wrMask
+  io.GPIO_ack := GPIOPeripheral.io.mem_ifc.ack
 
   io.cpuRdAddress := interconnect.io.cpuRdAddress
   io.cpuRdData := interconnect.io.cpuRdData
