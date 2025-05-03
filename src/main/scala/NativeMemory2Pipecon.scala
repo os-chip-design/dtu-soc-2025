@@ -7,25 +7,25 @@ class NativeMemory2Pipecon(
 ) extends Module {
   val io = IO(new Bundle {
     val pipe = new PipeCon(32)
-    val mem = new NativeMemoryInterface(DATA_WIDTH, ADDR_WIDTH, WMASK_WIDTH)
+    val native = new NativeMemoryInterface(DATA_WIDTH, ADDR_WIDTH, WMASK_WIDTH)
   })
 
   val ackreg = RegInit(false.B)
   val enable = io.pipe.rd || io.pipe.wr
 
   // Chip select, writemask
-  io.mem.cs := enable
-  io.mem.wmask := io.pipe.wrMask
-  io.mem.wen := io.pipe.wr
+  io.native.cs := enable
+  io.native.wmask := io.pipe.wrMask
+  io.native.wen := io.pipe.wr
 
   //ack
   ackreg := enable
   io.pipe.ack := ackreg
 
   // Data/Adress
-  io.mem.address := io.pipe.address(ADDR_WIDTH-1,0)
-  io.pipe.rdData := io.mem.rdata
-  io.mem.wdata := io.pipe.wrData
+  io.native.address := io.pipe.address(ADDR_WIDTH-1,0)
+  io.pipe.rdData := io.native.rdata
+  io.native.wdata := io.pipe.wrData
 }
 
 object NativeMemory2Pipecon extends App {

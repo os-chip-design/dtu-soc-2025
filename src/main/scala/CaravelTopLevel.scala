@@ -116,53 +116,44 @@ class CaravelTopLevel extends RawModule {
   //when(io.la_oenb(64)) {
   //  clk := io.la_data_in(64).asClock
   // }.otherwise {
-  clk := io.wb_clk_i
+  clk := io.caravel.wb_clk_i
   // }
 
   // when(io.la_oenb(65)) {
   //  rst := io.la_data_in(65)
   // }.otherwise {
-  rst := io.wb_rst_i
+  rst := io.caravel.wb_rst_i
   // }
 
   private val uartRx = Wire(Bool())
   private val uartTx = Wire(Bool())
 
   // ser_rx (e7)
-  uartRx := io.io_in(5)
+  uartRx := io.caravel.io_in(5)
   // ser_tx (f7)
-  uartTx := io.io_out(6)
+  uartTx := io.caravel.io_out(6)
 
-  io.wbs_ack_o := 0.U
-  io.wbs_dat_o := 0.U
+  io.caravel.wbs_ack_o := 0.U
+  io.caravel.wbs_dat_o := 0.U
 
-  io.io_out := 0.U
-  io.io_oeb := 0.U
+  io.caravel.io_out := 0.U
+  io.caravel.io_oeb := 0.U
 
   withClockAndReset(clk, rst) {
     val topLevel = Module(new TopLevel())
     
     topLevel.io.imem <> DontCare
+    topLevel.io.mem <> io.mem
 
     topLevel.io.uartRx := uartRx
     uartTx := topLevel.io.uartTx
 
-    topLevel.io.gpio_in := io.io_in(37, 30)
+    topLevel.io.gpio_in := io.caravel.io_in(37, 30)
     // io.io_out(37, 30) := topLevel.io.gpio_out
-    io.io_out := Cat(0.U(30.W), topLevel.io.gpio_out)
+    io.caravel.io_out := Cat(0.U(30.W), topLevel.io.gpio_out)
     //io.io_oeb(37, 30) := topLevel.io.gpio_oeb
-    io.io_oeb := Cat(0.U(30.W), topLevel.io.gpio_oeb)
+    io.caravel.io_oeb := Cat(0.U(30.W), topLevel.io.gpio_oeb)
     io.caravel.la_data_out := !rst.asUInt
-
-    val mem2pipe = Module(new NativeMemory2Pipecon(DATA_WIDTH = 32, ADDR_WIDTH = 9, WMASK_WIDTH = 4))
-
-    mem2pipe.io.mem <> io.mem
-    // Temp: tie outputs to 0
-    mem2pipe.io.pipe.address := 0.U
-    mem2pipe.io.pipe.rd := false.B
-    mem2pipe.io.pipe.wr := false.B
-    mem2pipe.io.pipe.wrData := 0.U
-    mem2pipe.io.pipe.wrMask := 0.U
   }
 }
 
