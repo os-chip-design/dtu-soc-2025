@@ -15,7 +15,8 @@ class NativeMemory2Pipecon(
 
   // Chip select, writemask
   io.mem.cs := enable
-  io.mem.wen := io.pipe.wrMask
+  io.mem.wmask := io.pipe.wrMask
+  io.mem.wen := io.pipe.wr
 
   //ack
   ackreg := enable

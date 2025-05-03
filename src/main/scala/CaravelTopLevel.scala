@@ -98,16 +98,6 @@ class CaravelTopLevel extends RawModule {
   // Analog logic here.
 
   // Digital logic inside this block.
-  val mem2pipe = Module(new NativeMemory2Pipecon(DATA_WIDTH = 32, ADDR_WIDTH = 9, WMASK_WIDTH = 4))
-
-  mem2pipe.io.mem := io.mem
-  // Temp: tie outputs to 0
-  mem2pipe.io.pipe.address := 0.U
-  mem2pipe.io.pipe.rd := false.B
-  mem2pipe.io.pipe.wr := false.B
-  mem2pipe.io.pipe.rdData := 0.U
-  mem2pipe.io.pipe.wrData := 0.U
-  mem2pipe.io.pipe.wrMask := 0.U
 
   /**
    * Conventional LA selection of signals.
@@ -162,6 +152,17 @@ class CaravelTopLevel extends RawModule {
     io.io_out := Cat(0.U(30.W), topLevel.io.gpio_out)
     //io.io_oeb(37, 30) := topLevel.io.gpio_oeb
     io.io_oeb := Cat(0.U(30.W), topLevel.io.gpio_oeb)
+    io.caravel.la_data_out := !rst.asUInt
+
+    val mem2pipe = Module(new NativeMemory2Pipecon(DATA_WIDTH = 32, ADDR_WIDTH = 9, WMASK_WIDTH = 4))
+
+    mem2pipe.io.mem <> io.mem
+    // Temp: tie outputs to 0
+    mem2pipe.io.pipe.address := 0.U
+    mem2pipe.io.pipe.rd := false.B
+    mem2pipe.io.pipe.wr := false.B
+    mem2pipe.io.pipe.wrData := 0.U
+    mem2pipe.io.pipe.wrMask := 0.U
   }
 }
 
