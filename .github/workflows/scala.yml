@@ -68,7 +68,8 @@ jobs:
 
           ls -R .
           
-          cp ../generated/CaravelTopLevel.v ./verilog/rtl/CaravelTopLevel.v
+          cat ../src/main/resources/sky130_fd_io__top_gpiov2_verilator_bbox.v > ./verilog/rtl/CaravelTopLevel.v
+          cat ../generated/CaravelTopLevel.v >> ./verilog/rtl/CaravelTopLevel.v
 
           if git diff --quiet; then
               echo "No changes to commit"
