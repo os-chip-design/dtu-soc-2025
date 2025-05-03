@@ -5,5 +5,6 @@ class NativeMemoryInterface(DATA_WIDTH: Int = 32, ADDR_WIDTH: Int = 9, WMASK_WID
     val wdata = Output(UInt(DATA_WIDTH.W))
     val rdata = Input(UInt(DATA_WIDTH.W))
     val cs = Output(Bool())
-    val wen = Output(UInt(WMASK_WIDTH.W))     
+    val wmask = Output(UInt(WMASK_WIDTH.W))     
+    val wen = Output(Bool())     
 }
