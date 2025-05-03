@@ -31,13 +31,7 @@ class PipeConInterconnect(file: String, addrWidth: Int, devices: Int, addressRan
   val stall = RegInit(false.B)
   val waitingForAck = RegInit(false.B)
   val ackCounter = RegInit(0.U(16.W)) // Enough to count up to 65k
-  val maxStallCycles = 2.U
-
-
-  // Output signals
-  cpu.io.dmem.stall := stall
-  cpu.io.dmem.rdData := rdDataReg
-  io.cpuStall := stall
+  val maxStallCycles = 20.U
 
   io.cpuRdAddress := cpu.io.dmem.rdAddress
   io.cpuRdData := cpu.io.dmem.rdData
@@ -79,9 +73,12 @@ class PipeConInterconnect(file: String, addrWidth: Int, devices: Int, addressRan
     selected.address := cpu.io.dmem.wrAddress
     selected.wrData := cpu.io.dmem.wrData
     selected.wrMask := cpu.io.dmem.wrEnable.asUInt
-
-    waitingForAck := true.B
-    ackCounter := 0.U
+    // Check if ack is immediately high or not
+    when(selected.ack) {
+      waitingForAck := false.B  // If ack is already high, no need to wait
+    } .otherwise {
+      waitingForAck := true.B  // Otherwise, wait for ack
+    }
   } .elsewhen(cpu.io.dmem.rdEnable) {
     // Read happens when not writing
     selected.rd := true.B
@@ -96,10 +93,19 @@ class PipeConInterconnect(file: String, addrWidth: Int, devices: Int, addressRan
     when(selected.ack || ackCounter >= maxStallCycles) {
       waitingForAck := false.B
       stall := false.B
+      ackCounter := 0.U
     } .otherwise {
       ackCounter := ackCounter + 1.U
     }
   } .otherwise {
     stall := false.B
   }
+
+  // Output signals
+  io.cpuStall := stall
+  cpu.io.imem.stall := stall
+  cpu.io.dmem.stall := stall
+  cpu.io.dmem.rdData := rdDataReg
+  
+
 }

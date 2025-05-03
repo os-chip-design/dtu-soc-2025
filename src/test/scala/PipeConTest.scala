@@ -41,7 +41,7 @@ class PipeConExampleTest extends AnyFlatSpec with ChiselScalatestTester {
   "PipeConTest" should "pass when the expected value is HelloWorld" in {
     runMismatchTest("HelloWorld", shouldFail = false)
   }
-  "PipeConTest" should "fail when the expected value is not HelloWorld" in {
+  "PipeConTest" should "fail when the expected value is HelloWorl" in {
     runMismatchTest("HelloWorl", shouldFail = true)
   }
   "PipeConTest" should "fail when the expected value is HelloWorldd" in {

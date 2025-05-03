@@ -1,7 +1,7 @@
     .global _start
 
 _start:
-    li t1, 0x2F            # UART base address
+    li t1, 0x28            # UART base address
 
 print_hello:
     li t0, 'H'
