@@ -17,7 +17,7 @@ class SpiControllerTest extends AnyFlatSpec with ChiselScalatestTester with Matc
         val sendLen = 8
         val recvLen = 8
         val waitCycles = 0
-        val txValue = 0xAA // 0xAA in upper 8 bits
+        val txValue = 0xAA
         val expectedMosi = 0xAA
         val expectedMiso = 0x55
 
@@ -37,6 +37,7 @@ class SpiControllerTest extends AnyFlatSpec with ChiselScalatestTester with Matc
         dut.io.numWaitCycles.poke(waitCycles.U)
         dut.io.prescale.poke(prescale.U)
         dut.io.mode.poke(mode.U)
+        dut.io.spiMiso.poke(false.B)
 
 
         // Start transaction
@@ -55,13 +56,8 @@ class SpiControllerTest extends AnyFlatSpec with ChiselScalatestTester with Matc
         var bitCount = 0
         var prevClk = initialClkState.litToBoolean
 
-        if (mode == 1 || mode == 3) {
-          // Provide MISO bit as soon as transaction starts
-          val misoBit = (expectedMiso >> ((recvLen-1) - (bitCount % recvLen))) & 1
-          dut.io.spiMiso.poke((misoBit != 0).B)
-          bitCount += 1
-        } else {
-          dut.io.spiMiso.poke(false.B)
+        while (!dut.io.spiCs.peek().litToBoolean) {
+          dut.clock.step(1)
         }
 
         // Run until transaction completes
@@ -75,18 +71,17 @@ class SpiControllerTest extends AnyFlatSpec with ChiselScalatestTester with Matc
               val mosiBit = dut.io.spiMosi.peek().litToBoolean
               capturedMosi = (capturedMosi << 1) | (if (mosiBit) 1 else 0)
 
-              // Provide stable MISO bit before sampling
-              val misoBit = (expectedMiso >> (7 - (bitCount % 8))) & 1
-              dut.io.spiMiso.poke((misoBit != 0).B)
             }
 
             if (misoSampleEdge.litToBoolean == currentClk) {
+              // Provide stable MISO bit before sampling
+              val misoBit = (expectedMiso >> ((recvLen - 1) - (bitCount % 8))) & 1
+              dut.io.spiMiso.poke((misoBit != 0).B)
+              bitCount += 1
 
               // Capture MISO bit
               val misoCaptured = dut.io.spiMiso.peek().litToBoolean
               capturedMiso = (capturedMiso << 1) | (if (misoCaptured) 1 else 0)
-
-              bitCount += 1
             }
           }
 
@@ -94,9 +89,15 @@ class SpiControllerTest extends AnyFlatSpec with ChiselScalatestTester with Matc
           dut.clock.step(1)
         }
 
-        // Mask results to 8 LSB bits (our test case size)
+        // Mask results to MSB bits (our test case size)
         val finalMosi = (capturedMosi >> (recvLen + waitCycles)) & ((1 << sendLen) - 1)
-        val finalMiso = capturedMiso >> (sendLen + waitCycles)
+        val finalMiso =
+          if (mode == 1 || mode == 3) {
+            (capturedMiso >> (sendLen + waitCycles - 1)) & ((1 << recvLen) - 1)
+          } else{
+            (capturedMiso >> (sendLen + waitCycles)) & ((1 << recvLen) - 1)
+          }
+
 
         println(f"Mode $mode:")
         println(f"  MOSI: 0x$finalMosi%02X (Expected: 0x$expectedMosi%02X)")
