@@ -47,20 +47,21 @@ class PipeConExample(file: Option[String] = None, addrWidth: Int) extends Module
   }
   val cpu = Module(new ThreeCats())
   val dmem = Module(new PipeConMem(memory))
-  cpu.io.dmem <> dmem.io
   val imem = Module(new PipeConMemory(memory))
-  imem.io.address := cpu.io.imem.address
-  cpu.io.imem.data := imem.io.data
-  cpu.io.imem.stall := imem.io.stall
-  cpu.io.dmem.stall := false.B
-
   val devices = addressRanges.length
   val interconnect = Module(new PipeConInterconnect(addrWidth, devices, addressRanges))
   val UARTPeripheral = Module(new UARTPeripheral(addrWidth))
   val SPIPeripheral = Module(new SPIPeripheral(addrWidth))
   val GPIOPeripheral = Module(new GPIOPeripheral(addrWidth, 8)) //8?
-
+  
   interconnect.io.dmem <> cpu.io.dmem
+  cpu.io.dmem <> dmem.io
+  imem.io.address := cpu.io.imem.address
+  val globalStall = interconnect.io.dmem.stall || imem.io.stall
+  cpu.io.imem.stall := globalStall
+  cpu.io.dmem.stall := interconnect.io.dmem.stall
+  cpu.io.imem.data := imem.io.data
+
 
 
   UARTPeripheral.io <> interconnect.io.device(0)

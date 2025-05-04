@@ -7,80 +7,82 @@ import wildcat.Util
 
 class PipeConInterconnect(addrWidth: Int, devices: Int, addressRanges: Seq[(UInt,UInt)]) extends Module {
   val io = IO(new Bundle {
-    val device = Vec(devices, Flipped(new PipeCon(addrWidth)))  // Create a vector of 2 devices (UART and SPI)
+    val device = Vec(devices, Flipped(new PipeCon(addrWidth)))  // Devices (e.g., UART, SPI)
     val dmem = Flipped(new MemIO)
   })
 
-  val rdDataReg = RegInit(0.U(32.W))
-  val stall = RegInit(false.B)
-  val waitingForAck = RegInit(false.B)
-  val ackCounter = RegInit(0.U(16.W)) // Enough to count up to 65k
+  val rdDataReg      = RegInit(0.U(32.W))
+  val ackCounter     = RegInit(0.U(16.W))
   val maxStallCycles = 20.U
 
-  // Default values for devices
-  for (i <- 0 until io.device.length) {
-    io.device(i).rd := false.B
-    io.device(i).wr := false.B
+  val selectedIdx     = RegInit(0.U(log2Ceil(devices).W))
+  val selectedRd      = RegInit(false.B)
+  val selectedWr      = RegInit(false.B)
+  val selectedAddress = RegInit(0.U(addrWidth.W))
+  val selectedWrData  = RegInit(0.U(32.W))
+  val selectedWrMask  = RegInit(0.U(4.W))
+
+  val sIdle :: sWaitAck :: Nil = Enum(2)
+  val state = RegInit(sIdle)
+
+  // Default device I/O
+  for (i <- 0 until devices) {
+    io.device(i).rd      := false.B
+    io.device(i).wr      := false.B
     io.device(i).address := 0.U
-    io.device(i).wrData := 0.U
-    io.device(i).wrMask := 0.U
+    io.device(i).wrData  := 0.U
+    io.device(i).wrMask  := 0.U
   }
 
-  // Device selection based on address ranges
-  val selected = Wire(new PipeCon(addrWidth))
-  selected.rd := false.B
-  selected.wr := false.B
-  selected.address := 0.U
-  selected.wrData := 0.U
-  selected.wrMask := 0.U
-  selected.rdData := 0.U
-  selected.ack := false.B
+  // Drive selected device
+  io.device(selectedIdx).rd      := selectedRd
+  io.device(selectedIdx).wr      := selectedWr
+  io.device(selectedIdx).address := selectedAddress
+  io.device(selectedIdx).wrData  := selectedWrData
+  io.device(selectedIdx).wrMask  := selectedWrMask
 
-  for (i <- 0 until io.device.length) {
-    val (startAddr, endAddr) = addressRanges(i)
-    when(io.dmem.wrAddress >= startAddr && io.dmem.wrAddress <= endAddr) {
-      selected <> io.device(i)
+  // Address decode (only when idle)
+  when (state === sIdle) {
+    for (i <- 0 until devices) {
+      val (startAddr, endAddr) = addressRanges(i)
+      when(io.dmem.wrEnable.reduce(_ || _) && io.dmem.wrAddress >= startAddr && io.dmem.wrAddress <= endAddr ||
+          io.dmem.rdEnable && io.dmem.rdAddress >= startAddr && io.dmem.rdAddress <= endAddr) {
+        selectedIdx := i.U
+      }
     }
   }
 
-  // Write handling: start write, then begin waiting for ack
-  when(io.dmem.wrEnable.reduce(_ || _)) {
-    selected.wr := true.B
-    selected.rd := false.B
-    selected.address := io.dmem.wrAddress
-    selected.wrData := io.dmem.wrData
-    selected.wrMask := io.dmem.wrEnable.asUInt
-    // Check if ack is immediately high or not
-    when(selected.ack) {
-      waitingForAck := false.B  // If ack is already high, no need to wait
-    } .otherwise {
-      waitingForAck := true.B  // Otherwise, wait for ack
+  // FSM
+  switch (state) {
+    is (sIdle) {
+      when (io.dmem.wrEnable.reduce(_ || _)) {
+        selectedWr      := true.B
+        selectedRd      := false.B
+        selectedAddress := io.dmem.wrAddress
+        selectedWrData  := io.dmem.wrData
+        selectedWrMask  := io.dmem.wrEnable.asUInt
+        ackCounter      := 0.U
+        state           := sWaitAck
+      } .elsewhen (io.dmem.rdEnable) {
+        selectedWr      := false.B
+        selectedRd      := true.B
+        selectedAddress := io.dmem.rdAddress
+        rdDataReg       := io.device(selectedIdx).rdData
+      }
     }
-  } .elsewhen(io.dmem.rdEnable) {
-    // Read happens when not writing
-    selected.rd := true.B
-    selected.wr := false.B
-    selected.address := io.dmem.rdAddress
-    rdDataReg := selected.rdData
+
+    is (sWaitAck) {
+      when (io.device(selectedIdx).ack || ackCounter >= maxStallCycles) {
+        selectedWr := false.B
+        ackCounter := 0.U
+        state := sIdle
+      } .otherwise {
+        ackCounter := ackCounter + 1.U
+      }
+    }
   }
 
-  // Stall logic for post-write ack wait (max 20 cycles)
-  when(waitingForAck || io.dmem.wrEnable.reduce(_ || _)) {
-    stall := true.B
-    when(selected.ack || ackCounter >= maxStallCycles) {
-      waitingForAck := false.B
-      stall := false.B
-      ackCounter := 0.U
-    } .otherwise {
-      ackCounter := ackCounter + 1.U
-    }
-  } .otherwise {
-    stall := false.B
-  }
-
-  // Output signals
-  io.dmem.stall := stall
+  // Outputs
   io.dmem.rdData := rdDataReg
-  
-
+  io.dmem.stall  := (state === sWaitAck)
 }

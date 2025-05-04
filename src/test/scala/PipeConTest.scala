@@ -19,6 +19,7 @@ class PipeConExampleTest extends AnyFlatSpec with ChiselScalatestTester {
       for (_ <- 0 until 100) {
         // If wr signal is high, check if the received data matches the expected data at index idx
         if (c.io.cpuWrEnable.peek().litValue != 0) {
+          c.clock.step(1) // wait one clock for the data 
           val data = c.io.GPIO_wrData.peek().litValue.toByte
           assert(data == expected(idx), 
             s"Test failed at index $idx: expected '${expected(idx).toChar}', got '${data.toChar}'")
@@ -93,6 +94,7 @@ class PipeConExampleTest extends AnyFlatSpec with ChiselScalatestTester {
 
       for (_ <- 0 until 100) {
         if (c.io.cpuWrEnable.peek().litValue != 0) {
+          c.clock.step(1)
           val data = c.io.uart_wrData.peek().litValue.toByte
 
           if (data != expected(idx)) {
