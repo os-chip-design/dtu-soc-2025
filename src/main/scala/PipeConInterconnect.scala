@@ -37,6 +37,8 @@ class PipeConInterconnect(addrWidth: Int, devices: Int, addressRanges: Seq[(UInt
   //io.cpuWrAddress := cpu.io.dmem.wrAddress
   //io.cpuWrData := cpu.io.dmem.wrData
   //io.cpuWrEnable := cpu.io.dmem.wrEnable.asUInt
+  io.stall := false.B
+  io.rdDataOut := 0.U
 
   // Default values for devices
   for (i <- 0 until io.device.length) {
