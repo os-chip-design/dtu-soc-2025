@@ -10,6 +10,7 @@ class PipeConExampleTest extends AnyFlatSpec with ChiselScalatestTester {
     val testfile = getClass.getResource("/helloGPIO.bin").getPath
 
     test(new PipeConExample(testfile, addrWidth = 32)).withAnnotations(Seq(WriteVcdAnnotation, IcarusBackendAnnotation)) { c =>
+    test(new PipeConExample(testfile, addrWidth = 32)).withAnnotations(Seq(WriteVcdAnnotation, IcarusBackendAnnotation)) { c =>
       val expected = "HelloWorld".map(_.toByte) // List of ASCII bytes
       var idx = 0 // To track the index in the expected data
 
@@ -22,9 +23,9 @@ class PipeConExampleTest extends AnyFlatSpec with ChiselScalatestTester {
           val data = c.io.GPIO_wrData.peek().litValue.toByte
           assert(data == expected(idx), 
             s"Test failed at index $idx: expected '${expected(idx).toChar}', got '${data.toChar}'")
-          
+
           idx += 1 // Move to the next expected character if matched
-          
+
           if (idx >= expected.length) {
             // If we've matched the whole expected string, loop back to the start
             idx = 0
@@ -52,17 +53,32 @@ class PipeConExampleTest extends AnyFlatSpec with ChiselScalatestTester {
   "PipeConTest" should "run poll.bin and write to UART when finished" in {
     // Load the binary file from test resources
     val testfile = getClass.getResource("/poll.bin").getPath
+  "PipeConTest" should "run poll.bin and write to UART when finished" in {
+    // Load the binary file from test resources
+    val testfile = getClass.getResource("/poll.bin").getPath
 
     test(new PipeConExample(testfile, addrWidth = 32)).withAnnotations(Seq(WriteVcdAnnotation, IcarusBackendAnnotation)) { c =>
       c.clock.setTimeout(0)
+    test(new PipeConExample(testfile, addrWidth = 32)).withAnnotations(Seq(WriteVcdAnnotation, IcarusBackendAnnotation)) { c =>
+      c.clock.setTimeout(0)
 
+      val maxCycles = 100
+      println(s"Running $maxCycles cycles...")
       val maxCycles = 100
       println(s"Running $maxCycles cycles...")
 
       for (cycle <- 0 until maxCycles) {
         // Simulate one clock step
         c.clock.step(1)
+      for (cycle <- 0 until maxCycles) {
+        // Simulate one clock step
+        c.clock.step(1)
 
+        // UART output
+        if (c.io.uart_wr.peek().litToBoolean) {
+          val uartChar = c.io.uart_wrData.peek().litValue.toByte.toChar
+          //println(s"[UART] Wrote: '$uartChar'")
+        }
         // UART output
         if (c.io.uart_wr.peek().litToBoolean) {
           val uartChar = c.io.uart_wrData.peek().litValue.toByte.toChar

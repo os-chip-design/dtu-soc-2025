@@ -82,15 +82,18 @@ class CaravelIO(MPRJ_IO_PADS: Int = 38, USE_POWER_PINS: Boolean = false) extends
 }
 
 class CaravelTopLevel extends RawModule {
-  val io = IO(new CaravelIO(MPRJ_IO_PADS = 38, USE_POWER_PINS = true))
+  val io = IO(new Bundle{
+    val caravel = new CaravelIO(MPRJ_IO_PADS = 38, USE_POWER_PINS = true)
+    val mem = new NativeMemoryInterface(DATA_WIDTH = 32, ADDR_WIDTH = 9, WMASK_WIDTH = 4)
+  })
 
   // Enumerate all outputs as DontCare
-  io.wbs_ack_o := DontCare
-  io.wbs_dat_o := DontCare
-  io.la_data_out := DontCare
-  io.io_out := DontCare
-  io.io_oeb := DontCare
-  io.user_irq := DontCare
+  io.caravel.wbs_ack_o := DontCare
+  io.caravel.wbs_dat_o := DontCare
+  io.caravel.la_data_out := DontCare
+  io.caravel.io_out := DontCare
+  io.caravel.io_oeb := DontCare
+  io.caravel.user_irq := DontCare
 
   // Analog logic here.
 
@@ -113,36 +116,44 @@ class CaravelTopLevel extends RawModule {
   //when(io.la_oenb(64)) {
   //  clk := io.la_data_in(64).asClock
   // }.otherwise {
-  clk := io.wb_clk_i
+  clk := io.caravel.wb_clk_i
   // }
 
   // when(io.la_oenb(65)) {
   //  rst := io.la_data_in(65)
   // }.otherwise {
-  rst := io.wb_rst_i
+  rst := io.caravel.wb_rst_i
   // }
 
   private val uartRx = Wire(Bool())
   private val uartTx = Wire(Bool())
 
   // ser_rx (e7)
-  uartRx := io.io_in(5)
+  uartRx := io.caravel.io_in(5)
   // ser_tx (f7)
-  uartTx := io.io_out(6)
+  uartTx := io.caravel.io_out(6)
 
-  io.wbs_ack_o := 0.U
-  io.wbs_dat_o := 0.U
+  io.caravel.wbs_ack_o := 0.U
+  io.caravel.wbs_dat_o := 0.U
 
-  io.io_out := 0.U
-  io.io_oeb := 0.U
+  io.caravel.io_out := 0.U
+  io.caravel.io_oeb := 0.U
 
   withClockAndReset(clk, rst) {
-    // Internal communication (bus)
-    // val interconnect = Module(new PipeConInterconnect(32))
+    val topLevel = Module(new TopLevel())
+    
+    topLevel.io.imem <> DontCare
+    topLevel.io.mem <> io.mem
 
-    // Modules
-    // val uartWrapper = Module(new UartWrapper(1000, 300, 2, 2))
-    // val cpu = Module(new ThreeCats())
+    topLevel.io.uartRx := uartRx
+    uartTx := topLevel.io.uartTx
+
+    topLevel.io.gpio_in := io.caravel.io_in(37, 30)
+    // io.io_out(37, 30) := topLevel.io.gpio_out
+    io.caravel.io_out := Cat(0.U(30.W), topLevel.io.gpio_out)
+    //io.io_oeb(37, 30) := topLevel.io.gpio_oeb
+    io.caravel.io_oeb := Cat(0.U(30.W), topLevel.io.gpio_oeb)
+    io.caravel.la_data_out := !rst.asUInt
   }
 }
 

@@ -1,11 +1,7 @@
 import chisel3._
-import chisel3.util._
-import chiseltest._
-import org.scalatest.flatspec.AnyFlatSpec
 import wildcat.pipeline._
-import wildcat.Util
 
-class PipeConInterconnect(file: String, addrWidth: Int, devices: Int, addressRanges: Seq[(UInt,UInt)]) extends Module {
+class PipeConInterconnect(addrWidth: Int, addressRanges: Seq[(UInt, UInt)]) extends Module {
   val io = IO(new Bundle {
     val device = Vec(devices, Flipped(new PipeCon(addrWidth)))  // Vector of peripheral devices
     val cpuRdAddress = Output(UInt(32.W))
@@ -61,7 +57,7 @@ class PipeConInterconnect(file: String, addrWidth: Int, devices: Int, addressRan
 
   for (i <- 0 until io.device.length) {
     val (startAddr, endAddr) = addressRanges(i)
-    when(cpu.io.dmem.wrAddress >= startAddr && cpu.io.dmem.wrAddress <= endAddr) {
+    when(io.dmem.wrAddress >= startAddr && io.dmem.wrAddress <= endAddr) {
       selected <> io.device(i)
     }
   }
@@ -83,7 +79,7 @@ class PipeConInterconnect(file: String, addrWidth: Int, devices: Int, addressRan
     // Read happens when not writing
     selected.rd := true.B
     selected.wr := false.B
-    selected.address := cpu.io.dmem.rdAddress
+    selected.address := io.dmem.rdAddress
     rdDataReg := selected.rdData
   }
 

@@ -6,11 +6,17 @@ import chisel3.util._
 // the PipeCon interface is used to allow the CPU to
 // configure and write/read from the GPIO and PWM peripherals
 
-class GPIOPeripheral(addrWidth: Int, nofGPIO: Int) extends Module {
+class GPIOPeripheral(addrWidth: Int, nofGPIO: Int, testMode: Boolean = false) extends Module {
 
     // Instantiate the Pipecon interface
     val io = IO(new Bundle {
         val mem_ifc = (new PipeCon(addrWidth)) // From CPU
+        // add test ports for the top-level module
+        val test_ports = if (testMode) Some(new Bundle {
+            val test_OE_N = Vec(nofGPIO, Output(Bool()))
+            val test_OUT = Vec(nofGPIO, Output(Bool()))
+            val test_PAD_IN = Vec(nofGPIO, Input(Bool()))
+        }) else None
     })
     // Register address offsets
     val GPIO_REG_OFFSET             = 0x0000                    // Start addr of GPIO registers
@@ -54,9 +60,8 @@ class GPIOPeripheral(addrWidth: Int, nofGPIO: Int) extends Module {
     val pwm_period          = Module(new GPIOShiftRegister(8))
 
     // Instantiation of GPIO modules
-    //val gpio_module = Seq.fill(nofGPIO)(Module(new GPIOModule))
     val gpio_module = Seq.tabulate(nofGPIO) { i =>
-        val m = Module(new GPIOModule)
+        val m = Module(new GPIOModule(testMode))
         m.io.gpio_output       := gpio_output(i)
         gpio_input(i)          := m.io.gpio_input
         m.io.gpio_direction    := gpio_direction.io.conf_output(i)
@@ -69,27 +74,17 @@ class GPIOPeripheral(addrWidth: Int, nofGPIO: Int) extends Module {
         m.io.duty_cycle        := pwm_duty_cycle.io.conf_output(i)
         m.io.pwm_period        := pwm_period.io.conf_output(i)
         m.io.pwm_polarity      := pwm_polarity.io.conf_output(i)
+        
+        // connect test ports to the top-level test_ports
+        if (testMode) {
+            m.io.test_PAD_IN.get := io.test_ports.get.test_PAD_IN(i)
+            io.test_ports.get.test_OUT(i) := m.io.test_OUT.get
+            io.test_ports.get.test_OE_N(i) := m.io.test_OE_N.get
+        }
+        
         m // return module explicitly so it can be interfaced through gpio_module(x)
     }
 
-    // // Mapping the GPIO modules to the corresponding registers
-    // for (i <- 0 until nofGPIO) {
-    //     gpio_module(i).io.gpio_output       := gpio_output(i)
-    //     gpio_input(i)                       := gpio_module(i).io.gpio_input
-    // }
-
-    // for (i <- 0 until nofGPIO) {
-    //     gpio_module(i).io.gpio_direction    := gpio_direction.io.conf_output(i)
-    //     gpio_module(i).io.drivestrength     := gpio_drivestrength.io.conf_output(i)
-    //     gpio_module(i).io.pullup_en         := gpio_pullup.io.conf_output(i)
-    //     gpio_module(i).io.pulldown_en       := gpio_pulldown.io.conf_output(i)
-    //     gpio_module(i).io.opendrain_en      := gpio_opendrain.io.conf_output(i)
-    //     gpio_module(i).io.pwm_en            := pwm_enable.io.conf_output(i)
-    //     gpio_module(i).io.pwm_div           := pwm_div.io.conf_output(i)
-    //     gpio_module(i).io.duty_cycle        := pwm_duty_cycle.io.conf_output(i)
-    //     gpio_module(i).io.pwm_period        := pwm_period.io.conf_output(i)
-    //     gpio_module(i).io.pwm_polarity      := pwm_polarity.io.conf_output(i)
-    // }
     gpio_direction.io.rd                := false.B
     gpio_direction.io.wr                := false.B
     gpio_direction.io.write_data        := 0.U

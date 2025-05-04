@@ -48,7 +48,7 @@ class configSpec
   behavior of "SPIWriteRead"
   it should "readOnTheConfig File" in {
     test(
-      new OffChipMemoryConfig(clockWidth = 8, addrWidth = 24)
+      new OffChipMemoryConfig()
     ) { dut =>
       val clock = dut.clock
       val pipeCon = dut.pipeCon

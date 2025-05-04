@@ -2,37 +2,24 @@ import chisel3._
 import breeze.numerics.pow
 class OffChipMemoryControllerWrapper()extends Module {
     val addrWidth = 24
-    val dataWidth = 32
-    val maskWidth = 4
-    val clockWidth = 8
 
-    val spiPort = IO(new spiIO)
-    val pipeCon = IO(new PipeCon(addrWidth))
-    val m = Module(new OffChipMemoryController(clockWidth, addrWidth))
+    val mcSpiPort = IO(new spiMultiChipIO(3))     // 3 chips in order: flash, RAM1, RAM2
+    val pipeConFlash = IO(new PipeCon(addrWidth)) // 24 bits address for the flash
+    val pipeConRam1 = IO(new PipeCon(addrWidth-1))  // 23 bits address for RAM1
+    val pipeConRam2 = IO(new PipeCon(addrWidth-1))  // 23 bits address for RAM2
+    val pipeConConfig = IO(new PipeCon(1))  // 1 bit address for the configuration register
 
-    val MAXAddr = pow(2, addrWidth).toInt.U
-    val MINAddr = 0.U //TODO: Figure out the correct restraints
-    pipeCon <> m.pipeCon
-    spiPort <> m.spiPort
+    val controller = Module(new OffChipMemoryController())
 
+    mcSpiPort <> controller.mcSpiPort
+    pipeConFlash <> controller.pipeConFlash
+    pipeConRam1 <> controller.pipeConRam1
+    pipeConRam2 <> controller.pipeConRam2
+    pipeConConfig <> controller.pipeConConfig
 
-    assert(!(pipeCon.rd == 1 && pipeCon.wr == 1))
-    assert(addrWidth == pipeCon.address.getWidth)
-    assert(dataWidth == pipeCon.wrData.getWidth)
-    assert(dataWidth == pipeCon.rdData.getWidth)
-    assert(maskWidth == pipeCon.wrMask.getWidth)
-    
-    when(pipeCon.ack === 1.U){
-        when(pipeCon.rd === 1.U){
-            assert(pipeCon.address <= MAXAddr)
-            assert(pipeCon.address >= MINAddr)
-            assert(pipeCon.wrData === 0.U)
-        }
-        when(pipeCon.wr === 1.U){
-            assert(pipeCon.address <= MAXAddr)
-            assert(pipeCon.address >= MINAddr)
-            assert(pipeCon.rdData === 0.U)
-        }
-    }
-
+    assert(!(pipeConFlash.rd == 1 && pipeConFlash.wr == 1))
+    assert(!(pipeConRam1.rd == 1 && pipeConRam1.wr == 1))
+    assert(!(pipeConRam2.rd == 1 && pipeConRam2.wr == 1))
+    assert(!(pipeConConfig.rd == 1 && pipeConConfig.wr == 1))
+    assert(!(mcSpiPort.chipSelect(0) == 0 && mcSpiPort.chipSelect(1) == 0 && mcSpiPort.chipSelect(2) == 0))
 }
