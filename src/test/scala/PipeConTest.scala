@@ -9,7 +9,7 @@ class PipeConExampleTest extends AnyFlatSpec with ChiselScalatestTester {
     // Path to testfile
     val testfile = getClass.getResource("/helloGPIO.bin").getPath
 
-    test(new PipeConExample(testfile, addrWidth = 32)).withAnnotations(Seq(WriteVcdAnnotation, IcarusBackendAnnotation)) { c =>
+    test(new PipeConExample(Some(testfile), addrWidth = 32)).withAnnotations(Seq(WriteVcdAnnotation, IcarusBackendAnnotation)) { c =>
       val expected = "HelloWorld".map(_.toByte) // List of ASCII bytes
       var idx = 0 // To track the index in the expected data
 
@@ -53,7 +53,7 @@ class PipeConExampleTest extends AnyFlatSpec with ChiselScalatestTester {
     // Load the binary file from test resources
     val testfile = getClass.getResource("/poll.bin").getPath
 
-    test(new PipeConExample(testfile, addrWidth = 32)).withAnnotations(Seq(WriteVcdAnnotation, IcarusBackendAnnotation)) { c =>
+    test(new PipeConExample(Some(testfile), addrWidth = 32)).withAnnotations(Seq(WriteVcdAnnotation, IcarusBackendAnnotation)) { c =>
       c.clock.setTimeout(0)
 
       val maxCycles = 100
@@ -84,7 +84,7 @@ class PipeConExampleTest extends AnyFlatSpec with ChiselScalatestTester {
   def runMismatchTest(expectedString: String, shouldFail: Boolean): Unit = {
     val testfile = getClass.getResource("/hello.bin").getPath
 
-    test(new PipeConExample(testfile, addrWidth = 32)).withAnnotations(Seq(WriteVcdAnnotation, IcarusBackendAnnotation)) { c =>
+    test(new PipeConExample(Some(testfile), addrWidth = 32)).withAnnotations(Seq(WriteVcdAnnotation, IcarusBackendAnnotation)) { c =>
       val expected = expectedString.map(_.toByte)
       var idx = 0
       var testFailed = false
