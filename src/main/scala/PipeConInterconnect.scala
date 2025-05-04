@@ -15,6 +15,7 @@ class PipeConInterconnect(data: Array[Int], addrWidth: Int, devices: Int, addres
     val cpuWrData = Output(UInt(32.W))
     val cpuWrEnable = Output(UInt(4.W))
     val cpuStall = Output(Bool())
+    val cpuImemAddress = Output(UInt(32.W))
   })
 
 
@@ -40,6 +41,7 @@ class PipeConInterconnect(data: Array[Int], addrWidth: Int, devices: Int, addres
   io.cpuWrData := cpu.io.dmem.wrData
   io.cpuWrEnable := cpu.io.dmem.wrEnable.asUInt//cpu.io.dmem.wrEnable.reduce(_ || _)
   io.cpuStall := cpu.io.dmem.stall
+  io.cpuImemAddress := cpu.io.imem.address
 
   // Default values for devices
   for (i <- 0 until io.device.length) {
