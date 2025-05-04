@@ -24,8 +24,10 @@ class TopLevel extends Module {
     ("h10000000".U, "h1FFFFFFF".U), // Device 4 (data memory)
   )
 
-  val interconnect = Module(new PipeConInterconnect(addrWidth, addressRanges))
-
+  val imem_testfile = getClass.getResource("/hello.bin").getPath
+  val devices = addressRanges.length
+  val interconnect = Module(new PipeConInterconnect(imem_testfile, addrWidth, devices, addressRanges))
+ 
   // Modules
   val cpu = Module(new ThreeCats())
   val uart = Module(new UartModule(9600, 1000))
@@ -72,5 +74,12 @@ class TopLevel extends Module {
   cpu.io.imem.stall := io.imem.stall
   
   // All CPU memory accesses go through the interconnect
-  cpu.io.dmem <> interconnect.io.dmem
+  cpu.io.dmem.rdAddress := interconnect.io.cpuRdAddress
+  cpu.io.dmem.rdData := interconnect.io.cpuRdData
+  cpu.io.dmem.rdEnable := interconnect.io.cpuRdEnable
+  cpu.io.dmem.wrAddress := interconnect.io.cpuWrAddress
+  cpu.io.dmem.wrData := interconnect.io.cpuWrData
+  cpu.io.dmem.wrEnable := interconnect.io.cpuWrEnable
+  cpu.io.dmem.stall := interconnect.io.cpuStall
+  //cpu.io.dmem <> interconnect.io.dmem
 }

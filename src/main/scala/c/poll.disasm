@@ -1,0 +1,46 @@
+
+poll.elf:     file format elf32-littleriscv
+
+
+Disassembly of section .text:
+
+00000000 <_start>:
+   0:	00000313          	li	t1,0
+   4:	01f00393          	li	t2,31
+
+00000008 <poll_addresses>:
+   8:	00032e03          	lw	t3,0(t1)
+   c:	000e1863          	bnez	t3,1c <handle_found>
+
+00000010 <next_address>:
+  10:	00430313          	addi	t1,t1,4
+  14:	fe734ae3          	blt	t1,t2,8 <poll_addresses>
+  18:	00c0006f          	j	24 <print_hello>
+
+0000001c <handle_found>:
+  1c:	00000013          	nop
+  20:	ff1ff06f          	j	10 <next_address>
+
+00000024 <print_hello>:
+  24:	00400313          	li	t1,4
+  28:	04800293          	li	t0,72
+  2c:	00532023          	sw	t0,0(t1)
+  30:	06500293          	li	t0,101
+  34:	00532023          	sw	t0,0(t1)
+  38:	06c00293          	li	t0,108
+  3c:	00532023          	sw	t0,0(t1)
+  40:	06c00293          	li	t0,108
+  44:	00532023          	sw	t0,0(t1)
+  48:	06f00293          	li	t0,111
+  4c:	00532023          	sw	t0,0(t1)
+  50:	05700293          	li	t0,87
+  54:	00532023          	sw	t0,0(t1)
+  58:	06f00293          	li	t0,111
+  5c:	00532023          	sw	t0,0(t1)
+  60:	07200293          	li	t0,114
+  64:	00532023          	sw	t0,0(t1)
+  68:	06c00293          	li	t0,108
+  6c:	00532023          	sw	t0,0(t1)
+  70:	06400293          	li	t0,100
+  74:	00532023          	sw	t0,0(t1)
+  78:	fadff06f          	j	24 <print_hello>
