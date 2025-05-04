@@ -1,11 +1,3 @@
-/*
- * Blinking LED: the hardware version of Hello World
- *
- * Copyright: 2013, Technical University of Denmark, DTU Compute
- * Author: Martin Schoeberl (martin@jopdesign.com)
- * 
- */
-
 import chisel3._
 import chisel3.util._
 
