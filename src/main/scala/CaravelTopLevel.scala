@@ -140,7 +140,9 @@ class CaravelTopLevel extends RawModule {
   io.caravel.io_oeb := 0.U
 
   withClockAndReset(clk, rst) {
-    val topLevel = Module(new TopLevel())
+    val testfile = getClass.getResource("/hello.bin").getPath
+
+    val topLevel = Module(new TopLevel(testfile))
     
     topLevel.io.imem <> DontCare
     topLevel.io.mem <> io.mem

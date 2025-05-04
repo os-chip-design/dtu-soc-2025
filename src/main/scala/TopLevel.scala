@@ -1,7 +1,7 @@
 import chisel3._
 import wildcat.pipeline.{InstrIO, MemIO, ThreeCats}
 
-class TopLevel extends Module {
+class TopLevel(file: String) extends Module {
   val addrWidth = 32
   val gpioPins = 8 // 8?
 
@@ -26,10 +26,10 @@ class TopLevel extends Module {
 
   //val imem_testfile = getClass.getResource("/hello.bin").getPath
   val devices = addressRanges.length
-  val interconnect = Module(new PipeConInterconnect(addrWidth, devices, addressRanges))
+  val interconnect = Module(new PipeConInterconnect(file, addrWidth, devices, addressRanges))
  
   // Modules
-  val cpu = Module(new ThreeCats())
+  //val cpu = Module(new ThreeCats())
   val uart = Module(new UartModule(9600, 1000))
 
   // PipeCon peripherals
@@ -62,18 +62,18 @@ class TopLevel extends Module {
   }
 
   // TODO: Connect memory to output.
-  NativeMemory2Pipecon.io.native <> io.mem
+  //NativeMemory2Pipecon.io.native <> io.mem
 
   // TODO: Connect UART module to UARTPeripheral for data exchange
   uart.io.tx_valid := DontCare
   uart.io.tx_data := DontCare
 
   // CPU gets instructions from external memory
-  io.imem.address := cpu.io.imem.address
-  cpu.io.imem.data := io.imem.data
-  cpu.io.imem.stall := io.imem.stall
+  //io.imem.address := cpu.io.imem.address
+  //cpu.io.imem.data := io.imem.data
+  //cpu.io.imem.stall := io.imem.stall
   
   // All CPU memory accesses go through the interconnect
-  interconnect.io.dmem <> cpu.io.dmem
+  //interconnect.io.dmem <> cpu.io.dmem
 
 }

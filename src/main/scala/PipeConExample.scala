@@ -39,7 +39,7 @@ class PipeConExample(file: String, addrWidth: Int) extends Module {
     ("h00000020".U, "h0000002F".U)   // Device 2 (GPIO)
   )
   val devices = addressRanges.length
-  val interconnect = Module(new PipeConInterconnect(addrWidth, devices, addressRanges))
+  val interconnect = Module(new PipeConInterconnect(file, addrWidth, devices, addressRanges))
   val UARTPeripheral = Module(new UARTPeripheral(addrWidth))
   val SPIPeripheral = Module(new SPIPeripheral(addrWidth))
   val GPIOPeripheral = Module(new GPIOPeripheral(addrWidth, 8)) //8?
@@ -73,13 +73,13 @@ class PipeConExample(file: String, addrWidth: Int) extends Module {
   io.GPIO_wrMask := GPIOPeripheral.io.mem_ifc.wrMask
   io.GPIO_ack := GPIOPeripheral.io.mem_ifc.ack
 
-  //io.cpuRdAddress := interconnect.io.cpuRdAddress
-  //io.cpuRdData := interconnect.io.cpuRdData
-  //io.cpuRdEnable := interconnect.io.cpuRdEnable
-  //io.cpuWrAddress := interconnect.io.cpuWrAddress
-  //io.cpuWrData := interconnect.io.cpuWrData
-  //io.cpuWrEnable := interconnect.io.cpuWrEnable
-  //io.cpuStall := interconnect.io.cpuStall
+  io.cpuRdAddress := interconnect.io.cpuRdAddress
+  io.cpuRdData := interconnect.io.cpuRdData
+  io.cpuRdEnable := interconnect.io.cpuRdEnable
+  io.cpuWrAddress := interconnect.io.cpuWrAddress
+  io.cpuWrData := interconnect.io.cpuWrData
+  io.cpuWrEnable := interconnect.io.cpuWrEnable
+  io.cpuStall := interconnect.io.cpuStall
 
   UARTPeripheral.testIo.testWrData := ("hDEADBEEF".U)
   SPIPeripheral.testIo.testRdData := 0.U
