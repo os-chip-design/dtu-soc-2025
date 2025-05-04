@@ -55,7 +55,7 @@ class PipeConExample(file: Option[String] = None, addrWidth: Int) extends Module
   cpu.io.dmem.stall := false.B
 
   val devices = addressRanges.length
-  val interconnect = Module(new PipeConInterconnect(memory, addrWidth, devices, addressRanges))
+  val interconnect = Module(new PipeConInterconnect(addrWidth, devices, addressRanges))
   val UARTPeripheral = Module(new UARTPeripheral(addrWidth))
   val SPIPeripheral = Module(new SPIPeripheral(addrWidth))
   val GPIOPeripheral = Module(new GPIOPeripheral(addrWidth, 8)) //8?
