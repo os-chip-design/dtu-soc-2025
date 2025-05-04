@@ -67,16 +67,17 @@ class TopLevel(file: Option[String] = None) extends Module {
   }
 
   // TODO: Connect memory to output.
-  //NativeMemory2Pipecon.io.native <> io.mem
+  NativeMemory2Pipecon.io.native <> io.mem
 
   // TODO: Connect UART module to UARTPeripheral for data exchange
   uart.io.tx_valid := DontCare
   uart.io.tx_data := DontCare
 
   // CPU gets instructions from external memory
-  //io.imem.address := cpu.io.imem.address
+  //io.imem.address := interconnect.io.cpuImemAddress
   //cpu.io.imem.data := io.imem.data
   //cpu.io.imem.stall := io.imem.stall
+
   
   // All CPU memory accesses go through the interconnect
   //interconnect.io.dmem <> cpu.io.dmem

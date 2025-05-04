@@ -1,8 +1,6 @@
 import chisel3._
 import chisel3.util._
-
 import wildcat.pipeline._
-
 import wildcat.Util
 
 
