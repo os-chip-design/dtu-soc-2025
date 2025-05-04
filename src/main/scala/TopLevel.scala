@@ -1,7 +1,9 @@
 import chisel3._
 import wildcat.pipeline.{InstrIO, MemIO, ThreeCats}
+import wildcat.Util
 
-class TopLevel(file: String) extends Module {
+
+class TopLevel(file: Option[String] = None) extends Module {
   val addrWidth = 32
   val gpioPins = 8 // 8?
 
@@ -23,10 +25,13 @@ class TopLevel(file: String) extends Module {
     ("h00000020".U, "h0000002F".U), // Device 3 (GPIO)
     ("h10000000".U, "h1FFFFFFF".U), // Device 4 (data memory)
   )
-
+  val (memory, start) = file match {
+    case Some(file) => Util.getCode(file)
+    case None        => (Array.fill(4096)(0), 0) // fallback: zero-initialized memory
+  }
   //val imem_testfile = getClass.getResource("/hello.bin").getPath
   val devices = addressRanges.length
-  val interconnect = Module(new PipeConInterconnect(file, addrWidth, devices, addressRanges))
+  val interconnect = Module(new PipeConInterconnect(memory, addrWidth, devices, addressRanges))
  
   // Modules
   //val cpu = Module(new ThreeCats())
