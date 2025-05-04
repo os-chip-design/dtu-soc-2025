@@ -1,7 +1,9 @@
 import chisel3._
 import chisel3.util._
+import wildcat.Util
 
-class PipeConExample(file: String, addrWidth: Int) extends Module {
+
+class PipeConExample(file: Option[String] = None, addrWidth: Int) extends Module {
   val io = IO(new Bundle { // should be empty when not testing
     val cpuRdAddress = Output(UInt(32.W))
     val cpuRdData = Output(UInt(32.W))
@@ -38,8 +40,12 @@ class PipeConExample(file: String, addrWidth: Int) extends Module {
     ("h00000010".U, "h0000001F".U),  // Device 1 (SPI)
     ("h00000020".U, "h0000002F".U)   // Device 2 (GPIO)
   )
+  val (memory, start) = file match {
+    case Some(fname) => Util.getCode(fname)
+    case None        => (Array.fill(4096)(0), 0) // fallback: zero-initialized memory
+  }
   val devices = addressRanges.length
-  val interconnect = Module(new PipeConInterconnect(file, addrWidth, devices, addressRanges))
+  val interconnect = Module(new PipeConInterconnect(memory, addrWidth, devices, addressRanges))
   val UARTPeripheral = Module(new UARTPeripheral(addrWidth))
   val SPIPeripheral = Module(new SPIPeripheral(addrWidth))
   val GPIOPeripheral = Module(new GPIOPeripheral(addrWidth, 8)) //8?
@@ -84,4 +90,9 @@ class PipeConExample(file: String, addrWidth: Int) extends Module {
   UARTPeripheral.testIo.testWrData := ("hDEADBEEF".U)
   SPIPeripheral.testIo.testRdData := 0.U
 
+}
+object PipeConExampleMain extends App {
+  // Example: No file input, default memory used
+  val addrWidth = 32
+  (new chisel3.stage.ChiselStage).emitVerilog(new PipeConExample(None, addrWidth))
 }

@@ -5,7 +5,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import wildcat.pipeline._
 import wildcat.Util
 
-class PipeConInterconnect(file: String, addrWidth: Int, devices: Int, addressRanges: Seq[(UInt,UInt)]) extends Module {
+class PipeConInterconnect(data: Array[Int], addrWidth: Int, devices: Int, addressRanges: Seq[(UInt,UInt)]) extends Module {
   val io = IO(new Bundle {
     val device = Vec(devices, Flipped(new PipeCon(addrWidth)))  // Create a vector of 2 devices (UART and SPI)
     val cpuRdAddress = Output(UInt(32.W))
@@ -17,11 +17,11 @@ class PipeConInterconnect(file: String, addrWidth: Int, devices: Int, addressRan
     val cpuStall = Output(Bool())
   })
 
-  val (memory, start) = Util.getCode(file)
+
   val cpu = Module(new ThreeCats())
-  val dmem = Module(new PipeConMem(memory))
+  val dmem = Module(new PipeConMem(data))
   cpu.io.dmem <> dmem.io
-  val imem = Module(new PipeConMemory(memory))
+  val imem = Module(new PipeConMemory(data))
   imem.io.address := cpu.io.imem.address
   cpu.io.imem.data := imem.io.data
   cpu.io.imem.stall := imem.io.stall
