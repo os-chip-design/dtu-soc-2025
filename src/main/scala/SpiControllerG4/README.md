@@ -1,8 +1,8 @@
-# 📦 SPI Controller – Register Map
+#  SPI Controller – Register Map
 
 ---
 
-## ✅ `txReg0` and `txReg1`
+##  `txReg0` and `txReg1`
 
 | Register | Bit Range | Field Name        | Width | Description                         |
 |----------|-----------|-------------------|--------|-------------------------------------|
@@ -11,7 +11,7 @@
 
 ---
 
-## ✅ `rxReg0` and `rxReg1`
+##  `rxReg0` and `rxReg1`
 
 | Register | Bit Range | Field Name        | Width | Description                         |
 |----------|-----------|-------------------|--------|-------------------------------------|
@@ -20,7 +20,7 @@
 
 ---
 
-## ⚙ `controlReg`
+##  `controlReg`
 
 | Bit Range | Field Name           | Width | Description                                |
 |-----------|----------------------|--------|--------------------------------------------|
@@ -34,7 +34,7 @@
 
 ---
 
-## 🏁 `flagReg`
+##  `flagReg`
 
 | Bit Range | Field Name | Width | Description                                              |
 |-----------|------------|--------|----------------------------------------------------------|
