@@ -1,5 +1,8 @@
 import chisel3._
 import chisel3.util._
+
+import wildcat.pipeline._
+
 import wildcat.Util
 
 
@@ -41,14 +44,26 @@ class PipeConExample(file: Option[String] = None, addrWidth: Int) extends Module
     ("h00000020".U, "h0000002F".U)   // Device 2 (GPIO)
   )
   val (memory, start) = file match {
-    case Some(fname) => Util.getCode(fname)
+    case Some(file) => Util.getCode(file)
     case None        => (Array.fill(4096)(0), 0) // fallback: zero-initialized memory
   }
+  val cpu = Module(new ThreeCats())
+  val dmem = Module(new PipeConMem(memory))
+  cpu.io.dmem <> dmem.io
+  val imem = Module(new PipeConMemory(memory))
+  imem.io.address := cpu.io.imem.address
+  cpu.io.imem.data := imem.io.data
+  cpu.io.imem.stall := imem.io.stall
+  cpu.io.dmem.stall := false.B
+
   val devices = addressRanges.length
   val interconnect = Module(new PipeConInterconnect(memory, addrWidth, devices, addressRanges))
   val UARTPeripheral = Module(new UARTPeripheral(addrWidth))
   val SPIPeripheral = Module(new SPIPeripheral(addrWidth))
   val GPIOPeripheral = Module(new GPIOPeripheral(addrWidth, 8)) //8?
+
+  interconnect.io.dmem <> cpu.io.dmem
+
 
   UARTPeripheral.io <> interconnect.io.device(0)
   SPIPeripheral.io <> interconnect.io.device(1)

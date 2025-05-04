@@ -15,17 +15,10 @@ class PipeConInterconnect(data: Array[Int], addrWidth: Int, devices: Int, addres
     val cpuWrData = Output(UInt(32.W))
     val cpuWrEnable = Output(UInt(4.W))
     val cpuStall = Output(Bool())
+
+    val dmem = Flipped(new MemIO)
   })
 
-
-  val cpu = Module(new ThreeCats())
-  val dmem = Module(new PipeConMem(data))
-  cpu.io.dmem <> dmem.io
-  val imem = Module(new PipeConMemory(data))
-  imem.io.address := cpu.io.imem.address
-  cpu.io.imem.data := imem.io.data
-  cpu.io.imem.stall := imem.io.stall
-  cpu.io.dmem.stall := false.B
 
   val rdDataReg = RegInit(0.U(32.W))
   val stall = RegInit(false.B)
@@ -33,13 +26,13 @@ class PipeConInterconnect(data: Array[Int], addrWidth: Int, devices: Int, addres
   val ackCounter = RegInit(0.U(16.W)) // Enough to count up to 65k
   val maxStallCycles = 20.U
 
-  io.cpuRdAddress := cpu.io.dmem.rdAddress
-  io.cpuRdData := cpu.io.dmem.rdData
-  io.cpuRdEnable := cpu.io.dmem.rdEnable
-  io.cpuWrAddress := cpu.io.dmem.wrAddress
-  io.cpuWrData := cpu.io.dmem.wrData
-  io.cpuWrEnable := cpu.io.dmem.wrEnable.asUInt//cpu.io.dmem.wrEnable.reduce(_ || _)
-  io.cpuStall := cpu.io.dmem.stall
+  io.cpuRdAddress := io.dmem.rdAddress
+  io.cpuRdData := io.dmem.rdData
+  io.cpuRdEnable := io.dmem.rdEnable
+  io.cpuWrAddress := io.dmem.wrAddress
+  io.cpuWrData := io.dmem.wrData
+  io.cpuWrEnable := io.dmem.wrEnable.asUInt//cpu.io.dmem.wrEnable.reduce(_ || _)
+  io.cpuStall := io.dmem.stall
 
   // Default values for devices
   for (i <- 0 until io.device.length) {
@@ -62,34 +55,34 @@ class PipeConInterconnect(data: Array[Int], addrWidth: Int, devices: Int, addres
 
   for (i <- 0 until io.device.length) {
     val (startAddr, endAddr) = addressRanges(i)
-    when(cpu.io.dmem.wrAddress >= startAddr && cpu.io.dmem.wrAddress <= endAddr) {
+    when(io.dmem.wrAddress >= startAddr && io.dmem.wrAddress <= endAddr) {
       selected <> io.device(i)
     }
   }
 
   // Write handling: start write, then begin waiting for ack
-  when(cpu.io.dmem.wrEnable.reduce(_ || _)) {
+  when(io.dmem.wrEnable.reduce(_ || _)) {
     selected.wr := true.B
     selected.rd := false.B
-    selected.address := cpu.io.dmem.wrAddress
-    selected.wrData := cpu.io.dmem.wrData
-    selected.wrMask := cpu.io.dmem.wrEnable.asUInt
+    selected.address := io.dmem.wrAddress
+    selected.wrData := io.dmem.wrData
+    selected.wrMask := io.dmem.wrEnable.asUInt
     // Check if ack is immediately high or not
     when(selected.ack) {
       waitingForAck := false.B  // If ack is already high, no need to wait
     } .otherwise {
       waitingForAck := true.B  // Otherwise, wait for ack
     }
-  } .elsewhen(cpu.io.dmem.rdEnable) {
+  } .elsewhen(io.dmem.rdEnable) {
     // Read happens when not writing
     selected.rd := true.B
     selected.wr := false.B
-    selected.address := cpu.io.dmem.rdAddress
+    selected.address := io.dmem.rdAddress
     rdDataReg := selected.rdData
   }
 
   // Stall logic for post-write ack wait (max 20 cycles)
-  when(waitingForAck || cpu.io.dmem.wrEnable.reduce(_ || _)) {
+  when(waitingForAck || io.dmem.wrEnable.reduce(_ || _)) {
     stall := true.B
     when(selected.ack || ackCounter >= maxStallCycles) {
       waitingForAck := false.B
@@ -104,9 +97,8 @@ class PipeConInterconnect(data: Array[Int], addrWidth: Int, devices: Int, addres
 
   // Output signals
   io.cpuStall := stall
-  cpu.io.imem.stall := stall
-  cpu.io.dmem.stall := stall
-  cpu.io.dmem.rdData := rdDataReg
+  io.dmem.stall := stall
+  io.dmem.rdData := rdDataReg
   
 
 }
