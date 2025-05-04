@@ -62,7 +62,14 @@ class PipeConInterconnect(addrWidth: Int, devices: Int, addressRanges: Seq[(UInt
         selectedWrData  := io.dmem.wrData
         selectedWrMask  := io.dmem.wrEnable.asUInt
         ackCounter      := 0.U
-        state           := sWaitAck
+
+        // Check immediately if ack is high
+        when (io.device(selectedIdx).ack) {
+          state := sIdle  // Directly move to sIdle if ack is already high
+        } .otherwise {
+          state := sWaitAck  // Wait for ack if it's not high immediately
+        }
+
       } .elsewhen (io.dmem.rdEnable) {
         selectedWr      := false.B
         selectedRd      := true.B
