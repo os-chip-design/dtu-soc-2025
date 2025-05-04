@@ -7,9 +7,10 @@ name: Scala CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "ral/mem_arbiter" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "ral/mem_arbiter" ]
+
 
 permissions:
   contents: read
