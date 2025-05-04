@@ -7,9 +7,9 @@ name: Scala CI
 
 on:
   push:
-    branches: [ "main", "my-feature-branch" ]
+    branches: [ "main", "ral/mem_arbiter" ]
   pull_request:
-    branches: [ "main", "my-feature-branch" ]
+    branches: [ "main", "ral/mem_arbiter" ]
 
 
 permissions:
