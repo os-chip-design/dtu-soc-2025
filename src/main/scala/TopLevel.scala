@@ -25,16 +25,26 @@ class TopLevel(file: Option[String] = None) extends Module {
     ("h00000020".U, "h0000002F".U), // Device 3 (GPIO)
     ("h10000000".U, "h1FFFFFFF".U), // Device 4 (data memory)
   )
+  val devices = addressRanges.length
+
+
   val (memory, start) = file match {
     case Some(file) => Util.getCode(file)
     case None        => (Array.fill(4096)(0), 0) // fallback: zero-initialized memory
   }
-  //val imem_testfile = getClass.getResource("/hello.bin").getPath
-  val devices = addressRanges.length
-  val interconnect = Module(new PipeConInterconnect(memory, addrWidth, devices, addressRanges))
+
+  val cpu = Module(new ThreeCats())
+  val dmem = Module(new PipeConMem(memory))
+  cpu.io.dmem <> dmem.io
+  val imem = Module(new PipeConMemory(memory))
+  imem.io.address := cpu.io.imem.address
+  cpu.io.imem.data := imem.io.data
+  cpu.io.imem.stall := imem.io.stall
+  cpu.io.dmem.stall := false.B
+
+  val interconnect = Module(new PipeConInterconnect(addrWidth, devices, addressRanges))
  
   // Modules
-  //val cpu = Module(new ThreeCats())
   val uart = Module(new UartModule(9600, 1000))
 
   // PipeCon peripherals
@@ -43,6 +53,7 @@ class TopLevel(file: Option[String] = None) extends Module {
   val GPIOPeripheral = Module(new GPIOPeripheral(addrWidth, gpioPins))
   val NativeMemory2Pipecon = Module(new NativeMemory2Pipecon(DATA_WIDTH = 32, ADDR_WIDTH = 9, WMASK_WIDTH = 4))
 
+  interconnect.io.dmem <> cpu.io.dmem
   UARTPeripheral.io <> interconnect.io.device(0)
   SPIPeripheral.io <> interconnect.io.device(1)
   GPIOPeripheral.io.mem_ifc <> interconnect.io.device(2)
@@ -74,12 +85,13 @@ class TopLevel(file: Option[String] = None) extends Module {
   uart.io.tx_data := DontCare
 
   // CPU gets instructions from external memory
-  //io.imem.address := interconnect.io.cpuImemAddress
+  io.imem.address := cpu.io.imem.address
   //cpu.io.imem.data := io.imem.data
   //cpu.io.imem.stall := io.imem.stall
 
   
   // All CPU memory accesses go through the interconnect
-  //interconnect.io.dmem <> cpu.io.dmem
+  interconnect.io.dmem <> cpu.io.dmem
+  
 
 }
