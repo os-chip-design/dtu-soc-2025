@@ -92,13 +92,13 @@ class PipeConExample(file: Option[String] = None, addrWidth: Int) extends Module
   io.GPIO_wrMask := GPIOPeripheral.io.mem_ifc.wrMask
   io.GPIO_ack := GPIOPeripheral.io.mem_ifc.ack
 
-  io.cpuRdAddress := interconnect.io.cpuRdAddress
-  io.cpuRdData := interconnect.io.cpuRdData
-  io.cpuRdEnable := interconnect.io.cpuRdEnable
-  io.cpuWrAddress := interconnect.io.cpuWrAddress
-  io.cpuWrData := interconnect.io.cpuWrData
-  io.cpuWrEnable := interconnect.io.cpuWrEnable
-  io.cpuStall := interconnect.io.cpuStall
+  io.cpuRdAddress := cpu.io.dmem.rdAddress
+  io.cpuRdData := cpu.io.dmem.rdData
+  io.cpuRdEnable := cpu.io.dmem.rdEnable
+  io.cpuWrAddress := cpu.io.dmem.wrAddress
+  io.cpuWrData := cpu.io.dmem.wrData
+  io.cpuWrEnable := cpu.io.dmem.wrEnable.asUInt
+  io.cpuStall := cpu.io.dmem.stall
 
   UARTPeripheral.testIo.testWrData := ("hDEADBEEF".U)
   SPIPeripheral.testIo.testRdData := 0.U

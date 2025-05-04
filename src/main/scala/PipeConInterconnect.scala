@@ -8,31 +8,14 @@ import wildcat.Util
 class PipeConInterconnect(addrWidth: Int, devices: Int, addressRanges: Seq[(UInt,UInt)]) extends Module {
   val io = IO(new Bundle {
     val device = Vec(devices, Flipped(new PipeCon(addrWidth)))  // Create a vector of 2 devices (UART and SPI)
-    val cpuRdAddress = Output(UInt(32.W))
-    val cpuRdData = Output(UInt(32.W))
-    val cpuRdEnable = Output(Bool())
-    val cpuWrAddress = Output(UInt(32.W))
-    val cpuWrData = Output(UInt(32.W))
-    val cpuWrEnable = Output(UInt(4.W))
-    val cpuStall = Output(Bool())
-
     val dmem = Flipped(new MemIO)
   })
-
 
   val rdDataReg = RegInit(0.U(32.W))
   val stall = RegInit(false.B)
   val waitingForAck = RegInit(false.B)
   val ackCounter = RegInit(0.U(16.W)) // Enough to count up to 65k
   val maxStallCycles = 20.U
-
-  io.cpuRdAddress := io.dmem.rdAddress
-  io.cpuRdData := io.dmem.rdData
-  io.cpuRdEnable := io.dmem.rdEnable
-  io.cpuWrAddress := io.dmem.wrAddress
-  io.cpuWrData := io.dmem.wrData
-  io.cpuWrEnable := io.dmem.wrEnable.asUInt//cpu.io.dmem.wrEnable.reduce(_ || _)
-  io.cpuStall := io.dmem.stall
 
   // Default values for devices
   for (i <- 0 until io.device.length) {
@@ -96,7 +79,6 @@ class PipeConInterconnect(addrWidth: Int, devices: Int, addressRanges: Seq[(UInt
   }
 
   // Output signals
-  io.cpuStall := stall
   io.dmem.stall := stall
   io.dmem.rdData := rdDataReg
   
