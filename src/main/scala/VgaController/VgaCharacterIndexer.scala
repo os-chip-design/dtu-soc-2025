@@ -75,8 +75,10 @@ class VgaCharacterIndexer extends Module {
     // Default outputs for non-active area (blanking intervals)
     io.xCharIndex := 0.U
     io.yCharIndex := 0.U
-    // Output address 0 during blanking to prefetch the first character for the active display.
-    io.charBaseAddr := 0.U
+    val currentVCharGridPos =
+      io.pixelY(V_COORD_CHAR_END_BIT, V_COORD_CHAR_START_BIT)
+    val startOfLineAddr = (currentVCharGridPos * CHAR_COLS.U)
+    io.charBaseAddr := Mux(io.vActive, startOfLineAddr, 0.U)
   }
 }
 
