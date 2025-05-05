@@ -47,16 +47,24 @@ class VgaTop(
   val clkDivCounterWidth = log2Ceil(clockDivRatio)
 
   // --- Clock Generation ---
-  // This should probably be extracted to a seperate module
+  val clkDivCounter = RegInit(
+    0.U(clkDivCounterWidth.W)
+  ) // Width is 2 for ratio 4
   val vgaClkReg = RegInit(false.B)
-  val clkDivCounter = RegInit(0.U(clkDivCounterWidth.W))
-  clkDivCounter := clkDivCounter + 1.U
-  when(clkDivCounter === (clockDivRatio / 2 - 1).U) {
-    vgaClkReg := !vgaClkReg
-  }
+
+  // Increment counter, wrapping at clockDivRatio - 1
   when(clkDivCounter === (clockDivRatio - 1).U) {
     clkDivCounter := 0.U
+  }.otherwise {
+    clkDivCounter := clkDivCounter + 1.U
   }
+
+  when(
+    clkDivCounter === (clockDivRatio / 2 - 1).U || clkDivCounter === (clockDivRatio - 1).U
+  ) {
+    vgaClkReg := !vgaClkReg
+  }
+
   val vgaClock = vgaClkReg.asClock
   io.vgaClkOut := vgaClock
 
