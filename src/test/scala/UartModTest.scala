@@ -62,7 +62,7 @@ class UartModTest extends AnyFlatSpec with ChiselScalatestTester {
     }
   }
 
-  "UartModule" should "transmit and receive" in {
+  "UartModule" should "transmit and recieve" in {
     val baudRate = 10
     val clockFreq = 100
     test(new UartModule(clockFreq, baudRate)) { dut =>

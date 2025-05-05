@@ -83,6 +83,9 @@ class TopLevel(file: Option[String] = None) extends Module {
   // TODO: Connect UART module to UARTPeripheral for data exchange
   uart.io.tx_valid := DontCare
   uart.io.tx_data := DontCare
+  uart.io.flowControl := DontCare //added this to stop git errors
+  uart.io.cts := DontCare
+  uart.io.rx_ready := DontCare
 
   // CPU gets instructions from external memory
   io.imem.address := cpu.io.imem.address
