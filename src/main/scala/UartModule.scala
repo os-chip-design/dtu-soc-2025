@@ -8,11 +8,15 @@ class UartModule(
   val io = IO(new Bundle{
     val tx = Output(Bool()) //UART tx
     val rx = Input(Bool()) //UART rx
+    val rts = Output(Bool()) //UART rts, flow control out
+    val cts = Input(Bool()) //UART cts, flow control in
     val tx_data = Input(UInt(8.W)) //Data to transmit to tx from bus
     val tx_valid = Input(Bool())  //low until cpu has data to transmit, then it pulls high
     val tx_ready = Output(Bool()) //default: high, uart controlled, indicates to cpu when available to receive new data
     val rx_data = Output(UInt(8.W)) //Data to store from rx to bus
     val rx_valid = Output(Bool())  //pulses high when valid byte has been captured
+    val rx_ready = Input(Bool()) //pulls low when buffer is full and can no longer receive
+    val flowControl = Input(Bool()) //determines if flow control is used.
   })
 
   //internal registers
@@ -46,7 +50,7 @@ class UartModule(
     is(sIdle){
       io.tx := 1.B //default high
       txBitCount := 0.U
-      when(io.tx_valid){ // begin transmission when tx_ready is high
+      when(io.tx_valid && (!io.flowControl || !io.cts)){ // begin transmission when tx_ready is high and check if flow control is needed
         txReg := io.tx_data //loading data from bus to register
         txState := sStartBit //changing state machine
         txCount := 0.U //start counting baud from zero
@@ -92,12 +96,11 @@ class UartModule(
   //RECEIVER--------------------------------------------------------
   val rxValid = RegNext(false.B) // RegNext keeps this var defaulting to 0, but we will change it later
   io.rx_valid := rxValid
-
+  io.rts := ~io.rx_ready // Will stop transmissions when CPU says buffer is full
   switch(rxState){
     is(sIdle){
       rxBitCount := 0.U //reset count
       rxDataShift := 0.U //reset
-
       when(io.rx === false.B) { //start to receive message
         rxState := sStartBit
         rxCount := 0.U
