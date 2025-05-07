@@ -64,6 +64,8 @@ class SpiControllerTopTest extends AnyFlatSpec with ChiselScalatestTester {
         dut.clock.step(1)
       }  // CS should assert
 
+      dut.io.txReg0.expect(sendData.U)
+
       // 4. Simulate slave sending 0x55 (8 bits)
       // Slave response simulation
       val misoData = expectData // 8-bit data to send
@@ -97,7 +99,6 @@ class SpiControllerTopTest extends AnyFlatSpec with ChiselScalatestTester {
       //6. Verify received data
       dut.clock.step(1)
       dut.io.rxReg0.expect((expectData >> (sendLen + waitCycles)).U)
-      dut.io.txReg0.expect(sendData.U)
       dut.io.flagReg.expect(1.U) //ready signal
     }
   }

@@ -16,16 +16,16 @@ class UartToPipecon(
 
 
 
-  // Instantiate the UART module
+  // instantiate the UART module
   val uartMod = Module(new UartModule(clockSpeed, baudRate))
 
-  // Define register addresses (offset from base address)
+  // define register addresses (offset from base address)
   val TX_DATA_ADDR = 0x0
   val RX_DATA_ADDR = 0x4
   val STATUS_ADDR = 0x8
   val CONTROL_ADDR = 0xC
 
-  // Status register bit definitions, 0: tx_Ready, 1: rx_valid
+  // status register bit definitions, 0: tx_Ready, 1: rx_valid
   val statusReg = Wire(UInt(2.W))
   statusReg := Cat(uartMod.io.rx_valid, uartMod.io.tx_ready)
 
@@ -49,11 +49,11 @@ class UartToPipecon(
   out.txOut := uartMod.io.tx
   out.rtsOut := uartMod.io.rts
 
-  // handshaking state machine
+  //  state machine setup
   val sIdle :: sReading :: sWriting :: sAck :: Nil = Enum(4)
   val state = RegInit(sIdle)
 
-  //address decoder - determine which register is being accessed
+  //address decoder
   val addrDecoded = io.address(3, 2)  // bits 3:2 select the register
 
 
@@ -73,7 +73,7 @@ class UartToPipecon(
       // handle read operations based on address
       switch(addrDecoded) {
         is(TX_DATA_ADDR.U(4.W)) {
-          io.rdData := 0.U  // TX data cannot be read back
+          io.rdData := 0.U  // dont read this addr
         }
         is(RX_DATA_ADDR.U(4.W)) {
           io.rdData := uartMod.io.rx_data & 0xFF.U  // read received data
@@ -89,12 +89,12 @@ class UartToPipecon(
     }
 
     is(sWriting) {
-      // Handle write operations based on address
+      // write operations based on address
       switch(addrDecoded) {
         is(TX_DATA_ADDR.U(4.W)) {
           when(uartMod.io.tx_ready) {
-            uartMod.io.tx_data := io.wrData(7, 0)  // Write data to transmit
-            uartMod.io.tx_valid := true.B  // Signal valid data
+            uartMod.io.tx_data := io.wrData(7, 0)  // write data to transmit
+            uartMod.io.tx_valid := true.B  // signal valid data
             state := sAck
           }
           // wait until uart is ready
@@ -108,9 +108,9 @@ class UartToPipecon(
           state := sAck
         }
         is(CONTROL_ADDR.U(4.W)) {
-          // wwrite to control register - update based on write mask
+          // wwrite to control register
           when(io.wrMask(0)) {
-            controlReg := io.wrData(0)  // Only write to bit 0 (flowControl)
+            controlReg := io.wrData(0)  // only write to bit 0 (flowControl)
           }
           state := sAck
         }
@@ -120,10 +120,10 @@ class UartToPipecon(
     is(sAck) {
       io.ack := true.B  // assert ack
 
-      // for tx operations, deassert tx_valid after one cycle
-      //uartMod.io.tx_valid := false.B
+      // deasssert tx_valid
+      uartMod.io.tx_valid := false.B
 
-      // Return to idle state
+      // return to idle state
       state := sIdle
     }
   }

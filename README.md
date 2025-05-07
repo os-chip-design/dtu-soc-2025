@@ -108,11 +108,11 @@ The main tasks are the task you are responisble for and that you are expected to
 - [x] Define interconnection protocol (PipeCon)
   - [x] Define amount of components and address space in collaboration with the groups
   - [x] Define IO interface (max 5000 ack-stalls)
-- [ ] Bridge CPU and chosen interfaces
-- [ ] Write bus logic in verilog
-- [ ] Create a testbench for read and write with different components
+- [x] Bridge CPU and chosen interfaces
+- [x] Write bus logic in verilog
+- [x] Create a testbench for read and write with different components
 
-- [ ] Please edit the address size for your respective device
+- Please edit the address size for your respective device
   - [ ] VGA: XX KB
   - [ ] SPI: XX KB
   - [ ] SPI: XX KB
