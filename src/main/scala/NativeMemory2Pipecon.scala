@@ -14,9 +14,9 @@ class NativeMemory2Pipecon(
   val enable = io.pipe.rd || io.pipe.wr
 
   // Chip select, writemask
-  io.native.cs := enable
+  io.native.cs := ~enable // native.cs is active low
   io.native.wmask := io.pipe.wrMask
-  io.native.wen := io.pipe.wr
+  io.native.wen := ~io.pipe.wr // native.wen is active low
 
   //ack
   ackreg := enable

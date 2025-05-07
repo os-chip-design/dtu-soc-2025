@@ -85,6 +85,11 @@ class CaravelTopLevel extends RawModule {
   val io = IO(new Bundle{
     val caravel = new CaravelIO(MPRJ_IO_PADS = 38, USE_POWER_PINS = true)
     val mem = new NativeMemoryInterface(DATA_WIDTH = 32, ADDR_WIDTH = 9, WMASK_WIDTH = 4)
+    val mem2 = new Bundle { 
+      val address = Output(UInt(9.W))
+      val rdata = Input(UInt(32.W))
+      val cs = Output(Bool())
+    }
   })
 
   // Enumerate all outputs as DontCare
@@ -138,6 +143,10 @@ class CaravelTopLevel extends RawModule {
 
   io.caravel.io_out := 0.U
   io.caravel.io_oeb := 0.U
+
+  io.mem2.address := 0.U
+  io.mem2.cs := true.B // Active low
+  io.mem2.rdata := DontCare
 
   withClockAndReset(clk, rst) {
     val topLevel = Module(new TopLevel())

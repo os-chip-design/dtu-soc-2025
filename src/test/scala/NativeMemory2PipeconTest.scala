@@ -14,14 +14,14 @@ class Memory2Pipecon extends AnyFlatSpec with ChiselScalatestTester {
 
                 // Don't acknowledge the same clock cycle
                 dut.io.pipe.ack.expect(false.B)
-                dut.io.native.cs.expect(true.B)
+                dut.io.native.cs.expect(false.B)
 
                 // Acknowledge the following clock cycle
                 dut.clock.step(1)
                 dut.io.pipe.wr.poke(false.B)
 
                 dut.io.pipe.ack.expect(true.B)
-                dut.io.native.cs.expect(false.B)
+                dut.io.native.cs.expect(true.B)
 
                 // Set acknowledge low after no transaction
                 dut.clock.step(1)
@@ -39,15 +39,15 @@ class Memory2Pipecon extends AnyFlatSpec with ChiselScalatestTester {
                 // Don't acknowledge the same clock cycle
                 dut.io.pipe.ack.expect(false.B)
 
-                // Set cs high
-                dut.io.native.cs.expect(true.B)
+                // Set cs low (active low)
+                dut.io.native.cs.expect(false.B)
 
                 // Acknowledge the following clock cycle
-                // and set memcs low
+                // and set memcs high
                 dut.clock.step(1)
                 dut.io.pipe.rd.poke(false.B)
                 dut.io.pipe.ack.expect(true.B)
-                dut.io.native.cs.expect(false.B)
+                dut.io.native.cs.expect(true.B)
 
                 // Set acknowledge low after no transaction
                 dut.clock.step(1)
